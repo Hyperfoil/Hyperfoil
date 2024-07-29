@@ -1,26 +1,5 @@
 package io.hyperfoil.core.session;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.session.AgentData;
-import io.hyperfoil.api.session.GlobalData;
-import io.hyperfoil.api.session.SessionStopException;
-import io.hyperfoil.api.session.ThreadData;
-import io.hyperfoil.api.statistics.SessionStatistics;
-import io.netty.util.concurrent.EventExecutor;
-import io.hyperfoil.api.collection.LimitedPool;
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.Scenario;
-import io.hyperfoil.api.session.SequenceInstance;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.api.session.PhaseInstance;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.FormattedMessage;
-
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -28,6 +7,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
+
+import io.hyperfoil.api.collection.LimitedPool;
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.Scenario;
+import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.session.AgentData;
+import io.hyperfoil.api.session.GlobalData;
+import io.hyperfoil.api.session.PhaseInstance;
+import io.hyperfoil.api.session.SequenceInstance;
+import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.session.SessionStopException;
+import io.hyperfoil.api.session.ThreadData;
+import io.hyperfoil.api.statistics.SessionStatistics;
+import io.hyperfoil.api.statistics.Statistics;
+import io.netty.util.concurrent.EventExecutor;
 
 class SessionImpl implements Session {
    private static final Logger log = LogManager.getLogger(SessionImpl.class);
@@ -320,7 +320,6 @@ class SessionImpl implements Session {
       sequencePool.release(sequence);
    }
 
-
    @Override
    public void currentSequence(SequenceInstance current) {
       if (trace) {
@@ -334,7 +333,8 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, GlobalData globalData, SessionStatistics statistics) {
+   public void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, GlobalData globalData,
+         SessionStatistics statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.threadData = threadData;
@@ -383,10 +383,11 @@ class SessionImpl implements Session {
 
       SequenceInstance instance = sequencePool.acquire();
       // Lookup first unused index
-      for (; ; ) {
+      for (;;) {
          if (sequence.concurrency() == 0) {
             if (index >= 1) {
-               log.error("Cannot start sequence {} as it has already started and it is not marked as concurrent", sequence.name());
+               log.error("Cannot start sequence {} as it has already started and it is not marked as concurrent",
+                     sequence.name());
                if (sequence == currentSequence.definition()) {
                   log.info("Hint: maybe you intended only to restart the current sequence?");
                }
@@ -400,7 +401,8 @@ class SessionImpl implements Session {
             if (policy == ConcurrencyPolicy.WARN) {
                log.warn("Cannot start sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
             } else {
-               log.error("Cannot start sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
+               log.error("Cannot start sequence {}, exceeded maximum concurrency ({})", sequence.name(),
+                     sequence.concurrency());
                fail(new IllegalStateException("Concurrency limit exceeded"));
             }
             return null;

@@ -3,12 +3,12 @@ package io.hyperfoil.api.session;
 import java.io.Serializable;
 import java.util.function.Supplier;
 
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.statistics.SessionStatistics;
-import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.api.config.Phase;
+import io.netty.util.concurrent.EventExecutor;
 
 public interface Session {
 
@@ -56,9 +56,9 @@ public interface Session {
    /**
     * See {@link #declareResource(ResourceKey, Supplier, boolean)}, with <code>singleton</code> defaulting to <code>false</code>
     *
-    * @param key              Unique key (usually the step or handler itself)
+    * @param key Unique key (usually the step or handler itself)
     * @param resourceSupplier Supplier creating the resource, possible multiple times.
-    * @param <R>              Resource type.
+    * @param <R> Resource type.
     */
    <R extends Session.Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier);
 
@@ -69,10 +69,10 @@ public interface Session {
     * stores one resource for each concurrent instance. If this behaviour should be avoided set
     * <code>singleton</code> to true.
     *
-    * @param key              Unique key (usually the step or handler itself)
+    * @param key Unique key (usually the step or handler itself)
     * @param resourceSupplier Supplier creating the resource, possible multiple times.
-    * @param singleton        Is the resource shared amongst concurrent sequences?
-    * @param <R>              Resource type.
+    * @param singleton Is the resource shared amongst concurrent sequences?
+    * @param <R> Resource type.
     */
    <R extends Session.Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton);
 
@@ -85,7 +85,8 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, GlobalData globalData, SessionStatistics statistics);
+   void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, GlobalData globalData,
+         SessionStatistics statistics);
 
    void start(PhaseInstance phase);
 
@@ -135,12 +136,15 @@ public interface Session {
    }
 
    interface Resource {
-      default void onSessionReset(Session session) {}
+      default void onSessionReset(Session session) {
+      }
 
-      default void destroy() {}
+      default void destroy() {
+      }
    }
 
-   interface ResourceKey<R extends Resource> extends Serializable {}
+   interface ResourceKey<R extends Resource> extends Serializable {
+   }
 
    /**
     * Behaviour when a new sequence start is requested but the concurrency factor is exceeded.

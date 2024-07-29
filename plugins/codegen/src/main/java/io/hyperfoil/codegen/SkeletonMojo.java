@@ -130,7 +130,8 @@ public class SkeletonMojo extends AbstractMojo {
       setExtendsOrImplements(builder, st.builder);
       builder.addAnnotation(new SingleMemberAnnotationExpr(new com.github.javaparser.ast.expr.Name("MetaInfServices"),
             new ClassExpr(getClassOrInterfaceType(st.builder))))
-            .addAnnotation(new SingleMemberAnnotationExpr(new com.github.javaparser.ast.expr.Name("Name"), new StringLiteralExpr(name)));
+            .addAnnotation(
+                  new SingleMemberAnnotationExpr(new com.github.javaparser.ast.expr.Name("Name"), new StringLiteralExpr(name)));
       clazz.addMember(builder.setName("Builder").setModifiers(Keyword.PUBLIC, Keyword.STATIC));
       stubMethods(st.builder, builder, new HashSet<>());
 
@@ -259,7 +260,8 @@ public class SkeletonMojo extends AbstractMojo {
          }
          return iface;
       } else if (type instanceof ParameterizedType) {
-         ClassOrInterfaceType iface = StaticJavaParser.parseClassOrInterfaceType(((ParameterizedType) type).getRawType().getTypeName());
+         ClassOrInterfaceType iface = StaticJavaParser
+               .parseClassOrInterfaceType(((ParameterizedType) type).getRawType().getTypeName());
          addImport(iface);
          com.github.javaparser.ast.type.Type[] args = Stream.of(((ParameterizedType) type).getActualTypeArguments())
                .map(t -> getType(t)).toArray(com.github.javaparser.ast.type.Type[]::new);

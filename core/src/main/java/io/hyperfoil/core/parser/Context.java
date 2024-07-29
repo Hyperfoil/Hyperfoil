@@ -44,7 +44,6 @@ public class Context {
       return clazz.getSimpleName();
    }
 
-
    public boolean hasNext() throws ParserException {
       try {
          return events.hasNext();
@@ -87,7 +86,8 @@ public class Context {
       if (hasNext()) {
          Event event = next();
          if (!eventClazz.isInstance(event)) {
-            throw new ParserException(event, "Expected " + translate(eventClazz) + ", got " + translate(event.getClass()) + ": " + event);
+            throw new ParserException(event,
+                  "Expected " + translate(eventClazz) + ", got " + translate(event.getClass()) + ": " + event);
          }
          @SuppressWarnings("unchecked")
          E expectedEvent = (E) event;
@@ -155,7 +155,6 @@ public class Context {
       }
       throw noMoreEvents(MappingEndEvent.class);
    }
-
 
    public void pushVar(Object var) {
       vars.push(var);

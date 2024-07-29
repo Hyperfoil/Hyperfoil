@@ -23,6 +23,7 @@ public class Http2ErrorRatioTest extends ErrorRatioTest {
 
    @Override
    protected Action validateConnection(TestContext ctx) {
-      return session -> ctx.assertTrue(((HttpConnection) session.currentRequest().connection()).version() == HttpVersion.HTTP_2_0);
+      return session -> ctx
+            .assertTrue(((HttpConnection) session.currentRequest().connection()).version() == HttpVersion.HTTP_2_0);
    }
 }

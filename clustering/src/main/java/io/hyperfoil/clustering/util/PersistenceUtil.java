@@ -7,14 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
+
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.FormattedMessage;
 
 public class PersistenceUtil {
    private static final Logger log = LogManager.getLogger(PersistenceUtil.class);

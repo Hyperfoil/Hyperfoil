@@ -53,7 +53,7 @@ public class RandomConcurrentSetTest {
    private void runReusing(RandomConcurrentSet<Integer> set) {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       try {
-         for (; ; ) {
+         for (;;) {
             if (counter.get() >= MAX) {
                return;
             }
@@ -77,7 +77,7 @@ public class RandomConcurrentSetTest {
    private void runAllocator(RandomConcurrentSet<Integer> set) {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       try {
-         for (; ; ) {
+         for (;;) {
             int value = counter.getAndIncrement();
             if (value >= MAX) {
                return;

@@ -1,13 +1,14 @@
 package io.hyperfoil.cli.commands;
 
-import io.hyperfoil.cli.context.HyperfoilCliContext;
-import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.RestClientException;
-import io.hyperfoil.controller.Client;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Argument;
+
+import io.hyperfoil.cli.context.HyperfoilCliContext;
+import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 
 @CommandDefinition(name = "load", description = "Registers a benchmark definition from a local path on the Hyperfoil Controller server")
 public class Load extends ServerCommand {

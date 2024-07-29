@@ -38,7 +38,6 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
    @Override
    public void encodeToWire(Buffer buffer, T object) {
 
-
       LazyByteArrayOutputStream bos = new LazyByteArrayOutputStream();
 
       try {

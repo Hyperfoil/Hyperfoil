@@ -13,19 +13,19 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.ReadAccess;
-import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.http.HttpScenarioTest;
-import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.ArrayRecorder;
 import io.hyperfoil.core.handlers.ProcessorAssertion;
 import io.hyperfoil.core.handlers.json.JsonHandler;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.AddToIntAction;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.SetAction;
 import io.hyperfoil.core.steps.SetIntAction;
 import io.hyperfoil.function.SerializableFunction;
+import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.test.entity.CrewMember;
 import io.hyperfoil.test.entity.Fleet;
 import io.hyperfoil.test.entity.Ship;
@@ -43,8 +43,7 @@ public class FleetTest extends HttpScenarioTest {
          .addShip(new Ship("Republika")
                .dwt(10500)
                .addCrew(new CrewMember("Captain", "Adam", "Korkorán"))
-               .addCrew(new CrewMember("Cabin boy", "Pepek", "Novák"))
-         )
+               .addCrew(new CrewMember("Cabin boy", "Pepek", "Novák")))
          .addShip(new Ship("Julius Fučík").dwt(7100))
          .addShip(new Ship("Lidice").dwt(8500));
    private static final int MAX_SHIPS = 16;

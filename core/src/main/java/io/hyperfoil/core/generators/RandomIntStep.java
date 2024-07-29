@@ -22,7 +22,8 @@ public class RandomIntStep implements Step {
    private final SerializableToIntFunction<Session> minInclusive;
    private final SerializableToIntFunction<Session> maxInclusive;
 
-   public RandomIntStep(IntAccess toVar, SerializableToIntFunction<Session> minInclusive, SerializableToIntFunction<Session> maxInclusive) {
+   public RandomIntStep(IntAccess toVar, SerializableToIntFunction<Session> minInclusive,
+         SerializableToIntFunction<Session> maxInclusive) {
       this.toVar = toVar;
       this.minInclusive = minInclusive;
       this.maxInclusive = maxInclusive;

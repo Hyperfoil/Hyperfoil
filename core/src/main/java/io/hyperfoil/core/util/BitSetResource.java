@@ -1,8 +1,8 @@
 package io.hyperfoil.core.util;
 
-import io.hyperfoil.api.session.Session;
-
 import java.util.BitSet;
+
+import io.hyperfoil.api.session.Session;
 
 public interface BitSetResource extends Session.Resource {
 
@@ -81,6 +81,5 @@ public interface BitSetResource extends Session.Resource {
 
       return new MultiBitSetResource(nbits);
    }
-
 
 }

@@ -66,7 +66,7 @@ public class JsonHandlerTest {
          ByteBuf data1 = Unpooled.wrappedBuffer(JSON, 0, i);
          ByteBuf data2 = Unpooled.wrappedBuffer(JSON, i, JSON.length - i);
 
-         for (byte[] string : new byte[][]{ ID418, ID420, ID450 }) {
+         for (byte[] string : new byte[][] { ID418, ID420, ID450 }) {
             if (contains(JSON, 0, i, string) || contains(JSON, i, JSON.length - i, string)) {
                expect.expect(-1, 3, true);
             } else {
@@ -221,8 +221,7 @@ public class JsonHandlerTest {
    }
 
    private boolean contains(byte[] data, int offset, int length, byte[] string) {
-      OUTER:
-      for (int i = 0; i <= length - string.length; ++i) {
+      OUTER: for (int i = 0; i <= length - string.length; ++i) {
          for (int j = 0; j < string.length && i + j < length; ++j) {
             if (string[j] != data[offset + i + j]) {
                continue OUTER;
@@ -249,7 +248,8 @@ public class JsonHandlerTest {
       }
    }
 
-   private static class ObscuringTransformer implements Transformer, ResourceUtilizer, Session.ResourceKey<ObscuringTransformer.Context> {
+   private static class ObscuringTransformer
+         implements Transformer, ResourceUtilizer, Session.ResourceKey<ObscuringTransformer.Context> {
       @Override
       public void transform(Session session, ByteBuf in, int offset, int length, boolean lastFragment, ByteBuf out) {
          Context ctx = session.getResource(this);

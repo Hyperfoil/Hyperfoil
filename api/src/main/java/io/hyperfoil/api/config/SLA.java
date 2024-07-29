@@ -32,7 +32,8 @@ public class SLA implements Serializable {
    private final double blockedRatio;
    private final Collection<PercentileLimit> limits;
 
-   public SLA(long window, double errorRatio, double invalidRatio, long meanResponseTime, double blockedRatio, Collection<PercentileLimit> limits) {
+   public SLA(long window, double errorRatio, double invalidRatio, long meanResponseTime, double blockedRatio,
+         Collection<PercentileLimit> limits) {
       this.window = window;
       this.meanResponseTime = meanResponseTime;
       this.errorRatio = errorRatio;
@@ -87,7 +88,8 @@ public class SLA implements Serializable {
          }
       }
       if (statistics.blockedTime > 0) {
-         double actualBlockedRatio = statistics.blockedTime / (statistics.blockedTime + statistics.histogram.getMean() * statistics.histogram.getTotalCount());
+         double actualBlockedRatio = statistics.blockedTime
+               / (statistics.blockedTime + statistics.histogram.getMean() * statistics.histogram.getTotalCount());
          if (actualBlockedRatio > blockedRatio) {
             return new SLA.Failure(this, phase, metric, statistics.clone(),
                   String.format("Progress was blocked waiting for a free connection. Hint: increase http.sharedConnections."));
@@ -97,7 +99,8 @@ public class SLA implements Serializable {
          long value = statistics.histogram.getValueAtPercentile(limit.percentile());
          if (value >= limit.responseTime()) {
             return new SLA.Failure(this, phase, metric, statistics.clone(),
-                  String.format("Response time at percentile %f exceeded: required %d, actual %d", limit.percentile, limit.responseTime, value));
+                  String.format("Response time at percentile %f exceeded: required %d, actual %d", limit.percentile,
+                        limit.responseTime, value));
          }
       }
       return null;

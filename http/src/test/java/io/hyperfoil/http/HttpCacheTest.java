@@ -125,7 +125,8 @@ public class HttpCacheTest extends VertxBaseTest {
          assertCacheHits(ctx, req, 0);
       });
 
-      context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.CACHE_CONTROL, "max-stale=10")));
+      context.requests.add(
+            () -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.CACHE_CONTROL, "max-stale=10")));
       context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
          ctx.assertEquals(HttpCache.get(context.session).size(), 1);
@@ -151,14 +152,16 @@ public class HttpCacheTest extends VertxBaseTest {
       });
 
       // We have 'bar' and 'foo', should get cached as 'foo' is in the cache
-      context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\", \"foo\"")));
+      context.requests.add(() -> doRequest(context, GET_TEST,
+            (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\", \"foo\"")));
       context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 1);
       });
 
       // We have 'bar' but this is not in the cache yet -> not cached
-      context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
+      context.requests
+            .add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
       context.serverQueue.add(req -> req.response().putHeader(HttpHeaderNames.ETAG, "\"bar\"").end());
       context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
@@ -167,14 +170,16 @@ public class HttpCacheTest extends VertxBaseTest {
       });
 
       // foo still cached
-      context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"foo\"")));
+      context.requests
+            .add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"foo\"")));
       context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
          assertCacheHits(ctx, req, 1);
       });
 
       // bar still cached
-      context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
+      context.requests
+            .add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
       context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
          assertCacheHits(ctx, req, 1);
@@ -288,7 +293,8 @@ public class HttpCacheTest extends VertxBaseTest {
       });
    }
 
-   private void doRequest(Context context, Consumer<HttpRequest> configurator, BiConsumer<Session, HttpRequestWriter> headerAppender) {
+   private void doRequest(Context context, Consumer<HttpRequest> configurator,
+         BiConsumer<Session, HttpRequestWriter> headerAppender) {
       HttpRequest request = HttpRequestPool.get(context.session).acquire();
       HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
             .onCompletion(s -> {
@@ -308,7 +314,8 @@ public class HttpCacheTest extends VertxBaseTest {
       HttpConnectionPool pool = context.pool.next();
       request.start(pool, handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
       @SuppressWarnings("unchecked")
-      BiConsumer<Session, HttpRequestWriter>[] headerAppenders = headerAppender == null ? null : new BiConsumer[]{ headerAppender };
+      BiConsumer<Session, HttpRequestWriter>[] headerAppenders = headerAppender == null ? null
+            : new BiConsumer[] { headerAppender };
       pool.acquire(false, connection -> request.send(connection, headerAppenders, true, null));
    }
 

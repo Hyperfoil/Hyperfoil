@@ -20,6 +20,10 @@
 
 package io.hyperfoil.cli.context;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
+
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandNotFoundException;
 import org.aesh.command.Executor;
@@ -32,10 +36,6 @@ import org.aesh.command.validator.OptionValidatorException;
 import org.aesh.readline.Prompt;
 import org.aesh.readline.action.KeyAction;
 import org.aesh.terminal.utils.ANSI;
-
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.cli.HyperfoilCli;
 import io.hyperfoil.cli.commands.ServerCommand;
@@ -186,7 +186,8 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
                break;
             } catch (RuntimeException e) {
                Throwable cause = e.getCause();
-               while (cause instanceof RuntimeException && cause != cause.getCause() && !(cause instanceof ServerCommand.SwitchCommandException)) {
+               while (cause instanceof RuntimeException && cause != cause.getCause()
+                     && !(cause instanceof ServerCommand.SwitchCommandException)) {
                   cause = cause.getCause();
                }
                if (cause instanceof ServerCommand.SwitchCommandException) {

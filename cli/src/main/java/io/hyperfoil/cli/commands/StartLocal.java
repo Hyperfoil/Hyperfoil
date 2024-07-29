@@ -11,6 +11,7 @@ import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
@@ -21,8 +22,6 @@ import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
-
-import org.apache.logging.log4j.LogManager;
 
 @CommandDefinition(name = "start-local", description = "Start non-clustered controller within the CLI process.")
 public class StartLocal extends ServerCommand {
@@ -59,7 +58,8 @@ public class StartLocal extends ServerCommand {
             throw new CommandException(rootDir + " exists but it is not a directory");
          }
          if (!quiet) {
-            invocation.println("Starting controller in " + (rootDir == null ? "default directory (/tmp/hyperfoil)" : rootDir.getAbsolutePath()));
+            invocation.println("Starting controller in "
+                  + (rootDir == null ? "default directory (/tmp/hyperfoil)" : rootDir.getAbsolutePath()));
          }
          // disable logs from controller
          if (!logLevel.isEmpty()) {

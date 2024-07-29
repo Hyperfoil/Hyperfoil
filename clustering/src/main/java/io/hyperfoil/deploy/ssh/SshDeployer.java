@@ -96,12 +96,14 @@ public class SshDeployer implements Deployer {
          dir = Controller.ROOT_DIR.toString();
       }
       try {
-         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, sshKey, port, dir, extras, cpu);
+         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, sshKey, port, dir, extras,
+               cpu);
          ClientSession session = connectAndLogin(sshKey, username, hostname, port);
          deployedAgent.deploy(session, exceptionHandler);
          return deployedAgent;
       } catch (IOException | GeneralSecurityException e) {
-         exceptionHandler.accept(new DeploymentException("Cannot connect to agent " + agent.name + " at " + username + "@" + hostname + ":" + port, e));
+         exceptionHandler.accept(new DeploymentException(
+               "Cannot connect to agent " + agent.name + " at " + username + "@" + hostname + ":" + port, e));
          return null;
       } catch (DeploymentException e) {
          exceptionHandler.accept(e);
@@ -120,7 +122,8 @@ public class SshDeployer implements Deployer {
    }
 
    @Override
-   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile,
+         Handler<AsyncResult<Void>> handler) {
       SshDeployedAgent sshAgent = (SshDeployedAgent) deployedAgent;
       try {
          ClientSession session = connectAndLogin(sshAgent.sshKey, sshAgent.username, sshAgent.hostname, sshAgent.port);
@@ -130,7 +133,8 @@ public class SshDeployer implements Deployer {
       }
    }
 
-   private ClientSession connectAndLogin(String sshKey, String username, String hostname, int port) throws IOException, GeneralSecurityException, DeploymentException {
+   private ClientSession connectAndLogin(String sshKey, String username, String hostname, int port)
+         throws IOException, GeneralSecurityException, DeploymentException {
       ConnectFuture connect = client.connect(username, hostname, port).verify(15000);
       ClientSession session = connect.getSession();
 
@@ -143,8 +147,7 @@ public class SshDeployer implements Deployer {
                session,
                identity,
                inputStream,
-               (s, resourceKey, retryIndex) -> null
-         )));
+               (s, resourceKey, retryIndex) -> null)));
       }
 
       AuthFuture auth = session.auth();

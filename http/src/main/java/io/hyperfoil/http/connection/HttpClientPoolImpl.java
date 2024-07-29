@@ -27,16 +27,19 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.impl.EventLoopFactory;
-import io.hyperfoil.impl.Util;
-import io.hyperfoil.http.config.ConnectionPoolConfig;
-import io.hyperfoil.http.config.Http;
-import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnectionPool;
+import io.hyperfoil.http.api.HttpVersion;
+import io.hyperfoil.http.config.ConnectionPoolConfig;
+import io.hyperfoil.http.config.Http;
+import io.hyperfoil.impl.Util;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -52,9 +55,6 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.util.concurrent.EventExecutor;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -117,7 +117,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
                maxConnections = Math.max(maxConnections, executors.length);
                bufferConnections = Math.max(bufferConnections, hadBuffer ? executors.length : 0);
                log.warn("Connection pool size (core {}, max {}, buffer {}) too small: the event loop has {} executors. " +
-                           "Setting connection pool size to core {}, max {}, buffer {}",
+                     "Setting connection pool size to core {}, max {}, buffer {}",
                      prevCore, prevMax, prevBuffer, executors.length, coreConnections, maxConnections, bufferConnections);
             }
             log.info("Allocating {} connections (max {}, buffer {}) in {} executors to {}",
@@ -146,7 +146,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
             int core = coreShare + (i < coreRemainder ? 1 : 0);
             int max = maxShare + (i < maxRemainder ? 1 : 0);
             int buffer = bufferShare + (i < bufferRemainder ? 1 : 0);
-            children[i] = new SharedConnectionPool(this, executors[i], new ConnectionPoolConfig(core, max, buffer, http.sharedConnections().keepAliveTime()));
+            children[i] = new SharedConnectionPool(this, executors[i],
+                  new ConnectionPoolConfig(core, max, buffer, http.sharedConnections().keepAliveTime()));
          } else {
             children[i] = new ConnectionAllocator(this, executors[i]);
          }
@@ -169,7 +170,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
          int bracketIndex = address.lastIndexOf(']');
          int firstColonIndex = address.indexOf(':');
          int lastColonIndex = address.lastIndexOf(':');
-         if (lastColonIndex >= 0 && ((bracketIndex >= 0 && lastColonIndex > bracketIndex) || (bracketIndex < 0 && lastColonIndex == firstColonIndex))) {
+         if (lastColonIndex >= 0 && ((bracketIndex >= 0 && lastColonIndex > bracketIndex)
+               || (bracketIndex < 0 && lastColonIndex == firstColonIndex))) {
             addressHosts[i] = address.substring(0, lastColonIndex);
             addressPorts[i] = (int) Util.parseLong(address, lastColonIndex + 1, address.length(), port);
          } else {
@@ -185,8 +187,10 @@ public class HttpClientPoolImpl implements HttpClientPool {
 
       SslContextBuilder builder = SslContextBuilder.forClient()
             .sslProvider(provider)
-            /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
-             * Please refer to the HTTP/2 specification for cipher requirements. */
+            /*
+             * NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
+             * Please refer to the HTTP/2 specification for cipher requirements.
+             */
             .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
             .trustManager(trustManagerFactory)
             .keyManager(createKeyManagerFactory());
@@ -196,8 +200,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
             ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
             // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
             ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-            Stream.of(http.versions()).map(HttpVersion::protocolName).toArray(String[]::new)
-      ));
+            Stream.of(http.versions()).map(HttpVersion::protocolName).toArray(String[]::new)));
       return builder.build();
    }
 
@@ -209,7 +212,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
       try {
          KeyStore ks = KeyStore.getInstance(config.storeType());
          if (config.storeBytes() != null) {
-            ks.load(new ByteArrayInputStream(config.storeBytes()), config.password() == null ? null : config.password().toCharArray());
+            ks.load(new ByteArrayInputStream(config.storeBytes()),
+                  config.password() == null ? null : config.password().toCharArray());
             if (config.alias() != null) {
                if (ks.containsAlias(config.alias()) && ks.isKeyEntry(config.alias())) {
                   KeyStore.PasswordProtection password = new KeyStore.PasswordProtection(config.password().toCharArray());
@@ -218,7 +222,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
                   ks.load(null);
                   ks.setEntry(config.alias(), entry, password);
                } else {
-                  throw new BenchmarkDefinitionException("Store file " + config.storeBytes() + " does not contain any entry for alias " + config.alias());
+                  throw new BenchmarkDefinitionException(
+                        "Store file " + config.storeBytes() + " does not contain any entry for alias " + config.alias());
                }
             }
          } else {
@@ -226,10 +231,11 @@ public class HttpClientPoolImpl implements HttpClientPool {
          }
          if (config.certBytes() != null || config.keyBytes() != null) {
             if (config.certBytes() == null || config.keyBytes() == null) {
-               throw new BenchmarkDefinitionException("You should provide both certificate and private key for " + http.host() + ":" + http.port());
+               throw new BenchmarkDefinitionException(
+                     "You should provide both certificate and private key for " + http.host() + ":" + http.port());
             }
             ks.setKeyEntry(config.alias() == null ? "default" : config.alias(), toPrivateKey(config.keyBytes()),
-                  config.password().toCharArray(), new Certificate[]{ loadCertificate(config.certBytes()) });
+                  config.password().toCharArray(), new Certificate[] { loadCertificate(config.certBytes()) });
          }
          KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
          keyManagerFactory.init(ks, config.password().toCharArray());
@@ -242,13 +248,18 @@ public class HttpClientPoolImpl implements HttpClientPool {
    private PrivateKey toPrivateKey(byte[] bytes) throws NoSuchAlgorithmException, InvalidKeySpecException {
       int pos = 0, lastPos = bytes.length - 1;
       // Truncate first and last lines and any newlines.
-      while (pos < bytes.length && isWhite(bytes[pos])) ++pos;
-      while (pos < bytes.length && bytes[pos] != '\n') ++pos;
-      while (lastPos >= 0 && isWhite(bytes[lastPos])) --lastPos;
-      while (lastPos >= 0 && bytes[lastPos] != '\n') --lastPos;
+      while (pos < bytes.length && isWhite(bytes[pos]))
+         ++pos;
+      while (pos < bytes.length && bytes[pos] != '\n')
+         ++pos;
+      while (lastPos >= 0 && isWhite(bytes[lastPos]))
+         --lastPos;
+      while (lastPos >= 0 && bytes[lastPos] != '\n')
+         --lastPos;
       ByteBuffer buffer = ByteBuffer.allocate(lastPos - pos);
       while (pos < lastPos) {
-         if (!isWhite(bytes[pos])) buffer.put(bytes[pos]);
+         if (!isWhite(bytes[pos]))
+            buffer.put(bytes[pos]);
          ++pos;
       }
       buffer.flip();
@@ -273,7 +284,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
       try {
          KeyStore ks = KeyStore.getInstance(config.storeType());
          if (config.storeBytes() != null) {
-            ks.load(new ByteArrayInputStream(config.storeBytes()), config.password() == null ? null : config.password().toCharArray());
+            ks.load(new ByteArrayInputStream(config.storeBytes()),
+                  config.password() == null ? null : config.password().toCharArray());
          } else {
             ks.load(null, null);
          }

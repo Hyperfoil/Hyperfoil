@@ -47,17 +47,18 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), YAML)
-                  .send(handler), 0,
+                  .send(handler),
+            0,
             response -> {
                if (response.statusCode() == 200) {
-                  return new Client.BenchmarkSource(response.bodyAsString(), response.getHeader(HttpHeaders.ETAG.toString()), response.headers().getAll("x-file"));
+                  return new Client.BenchmarkSource(response.bodyAsString(), response.getHeader(HttpHeaders.ETAG.toString()),
+                        response.headers().getAll("x-file"));
                } else if (response.statusCode() == 406) {
                   return null;
                } else {
                   throw RestClient.unexpected(response);
                }
-            }
-      );
+            });
    }
 
    @Override
@@ -65,7 +66,8 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), SERIALIZED)
-                  .send(handler), 200,
+                  .send(handler),
+            200,
             response -> {
                try {
                   return Util.deserialize(response.bodyAsBuffer().getBytes());
@@ -110,22 +112,26 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                   try {
                      url = new URL(location);
                   } catch (MalformedURLException e) {
-                     future.completeExceptionally(new RestClientException("Cannot parse URL " + location, new RestClientException(e)));
+                     future.completeExceptionally(
+                           new RestClientException("Cannot parse URL " + location, new RestClientException(e)));
                      return;
                   }
                   String runId = response.getHeader("x-run-id");
-                  client.request(HttpMethod.GET, "https".equalsIgnoreCase(url.getProtocol()), url.getHost(), url.getPort(), url.getFile()).send(rsp2 -> {
-                     if (rsp2.succeeded()) {
-                        HttpResponse<Buffer> response2 = rsp2.result();
-                        if (response2.statusCode() >= 200 && response2.statusCode() < 300) {
-                           future.complete(new RunRefImpl(client, runId == null ? "last" : runId));
-                        } else {
-                           future.completeExceptionally(new RestClientException("Failed to indirectly trigger job on " + location + ", status is " + response2.statusCode()));
-                        }
-                     } else {
-                        future.completeExceptionally(new RestClientException("Failed to indirectly trigger job on " + location, rsp2.cause()));
-                     }
-                  });
+                  client.request(HttpMethod.GET, "https".equalsIgnoreCase(url.getProtocol()), url.getHost(), url.getPort(),
+                        url.getFile()).send(rsp2 -> {
+                           if (rsp2.succeeded()) {
+                              HttpResponse<Buffer> response2 = rsp2.result();
+                              if (response2.statusCode() >= 200 && response2.statusCode() < 300) {
+                                 future.complete(new RunRefImpl(client, runId == null ? "last" : runId));
+                              } else {
+                                 future.completeExceptionally(new RestClientException("Failed to indirectly trigger job on "
+                                       + location + ", status is " + response2.statusCode()));
+                              }
+                           } else {
+                              future.completeExceptionally(
+                                    new RestClientException("Failed to indirectly trigger job on " + location, rsp2.cause()));
+                           }
+                        });
                } else {
                   future.completeExceptionally(RestClient.unexpected(response));
                }
@@ -160,7 +166,8 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/files")
                   .putHeader(HttpHeaders.ACCEPT.toString(), MULTIPART_FORM_DATA)
-                  .send(handler), 200,
+                  .send(handler),
+            200,
             response -> {
                String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
                if (contentType == null) {
@@ -178,7 +185,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                   int length = -1;
                   String filename = null;
                   byte[] buffer = new byte[2048];
-                  for (; ; ) {
+                  for (;;) {
                      int b, pos = 0;
                      while (pos < buffer.length && (b = stream.read()) >= 0 && b != '\n') {
                         buffer[pos++] = (byte) b;
@@ -240,7 +247,8 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), YAML)
-                  .send(handler), 0,
+                  .send(handler),
+            0,
             response -> {
                if (response.statusCode() == 200) {
                   return true;
@@ -256,7 +264,8 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    public boolean forget() {
       return client.sync(
             handler -> client.request(HttpMethod.DELETE, "/benchmark/" + encode(name))
-                  .send(handler), 0, response -> {
+                  .send(handler),
+            0, response -> {
                if (response.statusCode() == 204) {
                   return true;
                } else if (response.statusCode() == 404) {

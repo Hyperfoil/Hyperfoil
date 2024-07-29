@@ -22,15 +22,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
+
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 
 class AgentsParser implements Parser<BenchmarkBuilder> {
 

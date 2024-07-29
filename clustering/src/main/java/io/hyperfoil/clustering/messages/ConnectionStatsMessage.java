@@ -14,5 +14,6 @@ public class ConnectionStatsMessage extends StatsMessage {
       this.stats = stats;
    }
 
-   public static class Codec extends ObjectCodec<ConnectionStatsMessage> {}
+   public static class Codec extends ObjectCodec<ConnectionStatsMessage> {
+   }
 }

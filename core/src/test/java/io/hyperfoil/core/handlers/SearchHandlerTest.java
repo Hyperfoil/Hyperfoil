@@ -5,10 +5,10 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class SearchHandlerTest {
    @Test

@@ -25,11 +25,11 @@ import io.hyperfoil.core.steps.JsonStep;
 import io.hyperfoil.core.steps.LogAction;
 import io.hyperfoil.core.steps.LoopStep;
 import io.hyperfoil.core.steps.PollStep;
-import io.hyperfoil.core.steps.data.PullSharedMapStep;
-import io.hyperfoil.core.steps.data.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.steps.StopStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
+import io.hyperfoil.core.steps.data.PullSharedMapStep;
+import io.hyperfoil.core.steps.data.PushSharedMapStep;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.function.SerializablePredicate;
 import io.hyperfoil.impl.StepCatalogFactory;
@@ -77,7 +77,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    /**
     * Define a point in future until which we should wait. Do not wait yet.
     *
-    * @param key      Identifier.
+    * @param key Identifier.
     * @param duration Delay duration.
     * @param timeUnit Time unit.
     * @return Builder.

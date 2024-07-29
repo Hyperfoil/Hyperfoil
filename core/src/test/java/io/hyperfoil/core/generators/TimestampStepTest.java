@@ -16,7 +16,8 @@ public class TimestampStepTest {
    public void testTimestamp() {
       Locator.push(TestUtil.locator());
       try {
-         TimestampStep step = (TimestampStep) new TimestampStep.Builder().toVar("foo").pattern("yyyyy.MMMMM.dd GGG hh:mm aaa").build().get(0);
+         TimestampStep step = (TimestampStep) new TimestampStep.Builder().toVar("foo").pattern("yyyyy.MMMMM.dd GGG hh:mm aaa")
+               .build().get(0);
          ObjectAccess foo = SessionFactory.objectAccess("foo");
          Session session = SessionFactory.forTesting(foo);
          step.reserve(session);

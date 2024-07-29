@@ -24,7 +24,8 @@ public class SetItemAction implements Action {
    private final SerializableToIntFunction<Session> index;
    private final ReadAccess toVar;
 
-   public SetItemAction(SerializableFunction<Session, Object> item, SerializableToIntFunction<Session> index, ReadAccess toVar) {
+   public SetItemAction(SerializableFunction<Session, Object> item, SerializableToIntFunction<Session> index,
+         ReadAccess toVar) {
       this.item = item;
       this.index = index;
       this.toVar = toVar;
@@ -43,7 +44,8 @@ public class SetItemAction implements Action {
          if (index < 0) {
             throw new IllegalArgumentException("The index " + this.index + " = " + index + " is negative!");
          } else if (index >= vars.length) {
-            throw new IllegalArgumentException("The index " + this.index + " = " + index + " exceeds collection size (" + vars.length + ")!");
+            throw new IllegalArgumentException(
+                  "The index " + this.index + " = " + index + " exceeds collection size (" + vars.length + ")!");
          }
          vars[index].set(item);
       } else {

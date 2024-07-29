@@ -29,8 +29,8 @@ import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.impl.Util;
 
 public class BaseReflectionParser {
@@ -138,7 +138,8 @@ public class BaseReflectionParser {
       }
    }
 
-   protected void fillSLBP(Context ctx, ScalarEvent nameEvent, ServiceLoadedBuilderProvider<?> provider) throws ParserException {
+   protected void fillSLBP(Context ctx, ScalarEvent nameEvent, ServiceLoadedBuilderProvider<?> provider)
+         throws ParserException {
       ServiceLoadedContract slc;
       Event builderEvent = ctx.next();
       String param = null;
@@ -160,7 +161,8 @@ public class BaseReflectionParser {
       slc.complete();
    }
 
-   private void invokeWithSingleParam(Object target, ScalarEvent keyEvent, String key, Event valueEvent, String value) throws ParserException {
+   private void invokeWithSingleParam(Object target, ScalarEvent keyEvent, String key, Event valueEvent, String value)
+         throws ParserException {
       if (target instanceof PairBuilder) {
          PairBuilder builder = (PairBuilder) target;
          acceptPair(builder, key, value, valueEvent);
@@ -193,7 +195,8 @@ public class BaseReflectionParser {
       builder.accept(key, param);
    }
 
-   private ServiceLoadedContract getLoadedBuilder(ServiceLoadedBuilderProvider.Owner<?> target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
+   private ServiceLoadedContract getLoadedBuilder(ServiceLoadedBuilderProvider.Owner<?> target, ScalarEvent keyEvent,
+         String key, String value, ParserException exception) throws ParserException {
       ServiceLoadedContract serviceLoadedContract;
       try {
          serviceLoadedContract = target.serviceLoaded().forName(key, value);
@@ -259,7 +262,8 @@ public class BaseReflectionParser {
                   try {
                      return f.get(inv.targetSupplier.get());
                   } catch (IllegalAccessException e) {
-                     throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + f.getName(), e);
+                     throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + f.getName(),
+                           e);
                   }
                }, null, inv.depth + 1));
             }
@@ -273,20 +277,21 @@ public class BaseReflectionParser {
                   try {
                      return m.invoke(inv.targetSupplier.get());
                   } catch (IllegalAccessException | InvocationTargetException e) {
-                     throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + m.getName(), e);
+                     throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + m.getName(),
+                           e);
                   }
                }, null, inv.depth + 1));
             }
          }
       }
 
-
       Invocable[] candidates = matchingName.stream()
             .filter(inv -> inv.method.getParameterCount() == params)
             .filter(inv -> Stream.of(inv.method.getParameterTypes()).allMatch(Util::isParamConvertible))
             .toArray(Invocable[]::new);
       if (params == 1 && candidates.length == 0) {
-         candidates = matchingName.stream().filter(inv -> InitFromParam.class.isAssignableFrom(inv.method.getReturnType())).toArray(Invocable[]::new);
+         candidates = matchingName.stream().filter(inv -> InitFromParam.class.isAssignableFrom(inv.method.getReturnType()))
+               .toArray(Invocable[]::new);
       }
       if (candidates.length == 0) {
          return new Invocable(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
@@ -297,7 +302,8 @@ public class BaseReflectionParser {
       if (candidates.length == 1) {
          return candidates[0];
       } else { // candidates.length > 1
-         return new Invocable(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
+         return new Invocable(new ParserException(event,
+               "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
       }
    }
 
@@ -358,7 +364,8 @@ public class BaseReflectionParser {
          } else if (builderType == null || method == null) {
             return "<null>";
          }
-         return builderType.getName() + "." + method.getName() + "(" + Arrays.toString(method.getParameterTypes()) + ")(" + depth + ")";
+         return builderType.getName() + "." + method.getName() + "(" + Arrays.toString(method.getParameterTypes()) + ")("
+               + depth + ")";
       }
    }
 }

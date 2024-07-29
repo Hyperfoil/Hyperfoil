@@ -5,7 +5,8 @@ import io.hyperfoil.hotrod.connection.HotRodRemoteCachePoolImpl;
 
 public interface HotRodRemoteCachePool extends Session.Resource {
 
-   Session.ResourceKey<HotRodRemoteCachePool> KEY = new Session.ResourceKey<>() {};
+   Session.ResourceKey<HotRodRemoteCachePool> KEY = new Session.ResourceKey<>() {
+   };
 
    static HotRodRemoteCachePool get(Session session) {
       return session.getResource(KEY);

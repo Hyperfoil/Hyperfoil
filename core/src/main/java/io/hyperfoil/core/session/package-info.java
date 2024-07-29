@@ -21,9 +21,11 @@
  *
  * <h2>Execution</h2>
  * <p>
- * After the session is constructed or reset you should create {@link io.hyperfoil.api.session.SequenceInstance sequence instances}
+ * After the session is constructed or reset you should create {@link io.hyperfoil.api.session.SequenceInstance sequence
+ * instances}
  * from the {@link io.hyperfoil.api.config.Sequence templates} and subsequently
- * {@link io.hyperfoil.core.session.SessionImpl#startSequence(java.lang.String, boolean, io.hyperfoil.api.session.Session.ConcurrencyPolicy) start}
+ * {@link io.hyperfoil.core.session.SessionImpl#startSequence(java.lang.String, boolean, io.hyperfoil.api.session.Session.ConcurrencyPolicy)
+ * start}
  * them in the session. Upon {@link io.hyperfoil.core.session.SessionImpl#runSession()} the session tries to invoke all enabled
  * sequence instances; some of the enabled sequences may be blocked because of missing data dependency.
  * <p>
@@ -53,7 +55,9 @@
  * Simple variables are scalar, these are useful for scenario-scoped data. Other variables are scoped for particular
  * {@link io.hyperfoil.api.session.SequenceInstance}; these should be implemented as arrays (or collections) with
  * a limited size equal to the number of instances. When a Step/Processor needs to address sequence-scoped data
- * it fetches its index through {@link io.hyperfoil.core.session.SessionImpl#currentSequence()}.{@link io.hyperfoil.api.session.SequenceInstance#index() index()}.
+ * it fetches its index through
+ * {@link io.hyperfoil.core.session.SessionImpl#currentSequence()}.{@link io.hyperfoil.api.session.SequenceInstance#index()
+ * index()}.
  * <p>
  * The choice of index is up to the Step that creates the new sequences. Two concurrently enabled sequences may share
  * the same index, but in that case these should not use the same variable names for sequence-scoped data.
@@ -61,7 +65,8 @@
  * <h2>Threading model</h2>
  * <p>
  * There's no internal synchronization of anything; we rely on the event-loop model.
- * Each {@link io.hyperfoil.api.session.Session session} is tied to a single-threaded {@link io.netty.channel.EventLoop event loop}.
+ * Each {@link io.hyperfoil.api.session.Session session} is tied to a single-threaded {@link io.netty.channel.EventLoop event
+ * loop}.
  */
 package io.hyperfoil.core.session;
 

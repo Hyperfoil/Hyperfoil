@@ -2,15 +2,15 @@ package io.hyperfoil.core.generators;
 
 import java.util.function.Supplier;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableFunction;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 // To be recognized as a builder by Generator the class name must end with 'Builder'
 
@@ -29,7 +29,8 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
    }
 
    /**
-    * @param param A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
+    * @param param A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+    *        interpolation</a>.
     * @return Self.
     */
    @Override
@@ -82,7 +83,8 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
    }
 
    /**
-    * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
+    * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session
+    * variables.
     *
     * @param pattern Template pattern.
     * @return Self.

@@ -23,7 +23,7 @@ import io.hyperfoil.core.test.TestUtil;
 
 public class RandomCsvRowStepTest {
 
-   private static final String[][] DATA = new String[][]{
+   private static final String[][] DATA = new String[][] {
          { "one", "two two", "three, three", "four\"four" },
          { "     five", "six ", "", "eight" },
          { "nine", "", "eleven", "twelve\n ends here" }
@@ -84,12 +84,12 @@ public class RandomCsvRowStepTest {
 
    @Test
    public void testAllColumns() {
-      test(new String[]{ "first", "second", "third", "fourth" });
+      test(new String[] { "first", "second", "third", "fourth" });
    }
 
    @Test
    public void testTwoColums() {
-      test(new String[]{ "first", null, "third", null });
+      test(new String[] { "first", null, "third", null });
    }
 
    @Test
@@ -111,7 +111,7 @@ public class RandomCsvRowStepTest {
       var step = steps.get(0);
       final byte[] serializedBytes;
       try (var byteArrayStream = new ByteArrayOutputStream();
-           var objectOutputStream = new ObjectOutputStream(byteArrayStream)) {
+            var objectOutputStream = new ObjectOutputStream(byteArrayStream)) {
          objectOutputStream.writeObject(step);
          objectOutputStream.flush();
          serializedBytes = byteArrayStream.toByteArray();
@@ -141,8 +141,7 @@ public class RandomCsvRowStepTest {
       RandomCsvRowStep csvRowStep = (RandomCsvRowStep) steps.get(0);
       TestUtil.resolveAccess(session, csvRowStep);
 
-      OUTER:
-      for (int i = 0; i < 10; ++i) {
+      OUTER: for (int i = 0; i < 10; ++i) {
          csvRowStep.invoke(session);
          Object first = access[0].getObject(session);
          for (String[] row : DATA) {

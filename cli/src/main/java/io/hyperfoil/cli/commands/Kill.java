@@ -6,8 +6,8 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Phase;
 
 @CommandDefinition(name = "kill", description = "Terminate run.")
@@ -31,7 +31,8 @@ public class Kill extends BaseRunIdCommand {
                running++;
             }
          }
-         invocation.print("(phases: " + running + " running, " + finished + " finished, " + terminated + " terminated) [y/N]: ");
+         invocation
+               .print("(phases: " + running + " running, " + finished + " finished, " + terminated + " terminated) [y/N]: ");
          if (!readYes(invocation)) {
             invocation.println("Kill cancelled.");
             return CommandResult.SUCCESS;

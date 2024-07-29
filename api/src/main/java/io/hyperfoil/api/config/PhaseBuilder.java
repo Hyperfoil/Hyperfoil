@@ -41,9 +41,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       parent.addPhase(name, this);
    }
 
-   public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
+   public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName,
+         long duration, Collection<String> startAfter, Collection<String> startAfterStrict,
+         Collection<String> terminateAfterStrict) {
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], 0, 0);
-      return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop(), Collections.emptyMap(), null);
+      return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict,
+            terminateAfterStrict, duration, duration, null, true, new Model.Noop(), Collections.emptyMap(), null);
    }
 
    public BenchmarkBuilder endPhase() {
@@ -107,10 +110,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       return self();
    }
 
-
    public PB startWith(String phase) {
       if (this.startWith != null) {
-         throw new BenchmarkDefinitionException("Start with " + this.startWith.phase + " already defined, cannot set multiple startWith clauses");
+         throw new BenchmarkDefinitionException(
+               "Start with " + this.startWith.phase + " already defined, cannot set multiple startWith clauses");
       }
       this.startWith = new PhaseReferenceDelay(phase, RelativeIteration.NONE, null, 0);
       return self();
@@ -118,7 +121,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    public PB startWith(PhaseReferenceDelay startWith) {
       if (this.startWith != null) {
-         throw new BenchmarkDefinitionException("Start with " + this.startWith.phase + " already defined, cannot set multiple startWith clauses");
+         throw new BenchmarkDefinitionException(
+               "Start with " + this.startWith.phase + " already defined, cannot set multiple startWith clauses");
       }
       this.startWith = startWith;
       return self();
@@ -169,12 +173,14 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
             IntStream.range(0, maxIterations).mapToObj(iteration -> {
                String iterationName = formatIteration(name, iteration);
                List<String> forks = this.forks.stream().map(f -> iterationName + "/" + f.name).collect(Collectors.toList());
-               return noop(benchmark, idCounter.getAndIncrement(), iteration, iterationName, 0, forks, Collections.emptyList(), forks);
+               return noop(benchmark, idCounter.getAndIncrement(), iteration, iterationName, 0, forks, Collections.emptyList(),
+                     forks);
             }).forEach(phases::add);
          }
          // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
          List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
-         phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, 0, lastIteration, Collections.emptyList(), lastIteration));
+         phases.add(
+               noop(benchmark, idCounter.getAndIncrement(), 0, name, 0, lastIteration, Collections.emptyList(), lastIteration));
       } else if (hasForks) {
          // add phase covering forks
          List<String> forks = this.forks.stream().map(f -> name + "/" + f.name).collect(Collectors.toList());
@@ -184,8 +190,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    }
 
    protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
-      Collector<Map.Entry<String, List<SLABuilder<PB>>>, ?, Map<String, SLA[]>> customSlaCollector =
-            Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().stream().map(SLABuilder::build).toArray(SLA[]::new));
+      Collector<Map.Entry<String, List<SLABuilder<PB>>>, ?, Map<String, SLA[]>> customSlaCollector = Collectors
+            .toMap(Map.Entry::getKey, entry -> entry.getValue().stream().map(SLABuilder::build).toArray(SLA[]::new));
       return new Phase(benchmark, phaseId, iteration, iterationName(iteration, f.name), f.scenario.build(),
             iterationStartTime(iteration), iterationReferences(startAfter, iteration, false),
             iterationReferences(startAfterStrict, iteration, true),
@@ -267,7 +273,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       if (startWith.iteration != RelativeIteration.NONE && maxIterations <= 1 && !forceIterations) {
-         String msg = "Phase " + name + " tries to reference " + startWith.phase + "/" + startWith.iteration + " but this phase does not have any iterations (cannot determine relative iteration).";
+         String msg = "Phase " + name + " tries to reference " + startWith.phase + "/" + startWith.iteration
+               + " but this phase does not have any iterations (cannot determine relative iteration).";
          throw new BenchmarkDefinitionException(msg);
       }
 
@@ -342,7 +349,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (maxIterations > 1 || forceIterations) {
             // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
             List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
-            phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, duration, lastIteration, Collections.emptyList(), lastIteration));
+            phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, duration, lastIteration, Collections.emptyList(),
+                  lastIteration));
          }
          return phases;
       }
@@ -388,9 +396,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       protected void validate() {
          long propsSet = IntStream.of(users, usersPerAgent, usersPerThread).filter(u -> u > 0).count();
          if (propsSet < 1) {
-            throw new BenchmarkDefinitionException("Phase " + name + ".users (or .usersPerAgent/.usersPerThread) must be positive.");
+            throw new BenchmarkDefinitionException(
+                  "Phase " + name + ".users (or .usersPerAgent/.usersPerThread) must be positive.");
          } else if (propsSet > 1) {
-            throw new BenchmarkDefinitionException("Phase " + name + ": you can set only one of .users, .usersPerAgent and .usersPerThread");
+            throw new BenchmarkDefinitionException(
+                  "Phase " + name + ": you can set only one of .users, .usersPerAgent and .usersPerThread");
          }
       }
    }

@@ -16,7 +16,8 @@ public class RestartSequenceStep implements Step {
 
    public static Session.ResourceKey<Trigger> createTriggerKey() {
       // we cannot call this directly from any builder because it would capture reference to instantiating class
-      return new Session.ResourceKey<>() {};
+      return new Session.ResourceKey<>() {
+      };
    }
 
    public RestartSequenceStep(Session.ResourceKey<Trigger> triggerKey) {

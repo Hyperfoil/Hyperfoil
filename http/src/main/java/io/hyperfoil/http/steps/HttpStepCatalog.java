@@ -5,8 +5,8 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.core.builders.StepCatalog;
+import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.impl.StepCatalogFactory;
 
 public class HttpStepCatalog extends StepCatalog {
@@ -34,7 +34,6 @@ public class HttpStepCatalog extends StepCatalog {
    public BaseSequenceBuilder<?> awaitAllResponses() {
       return parent.step(new AwaitAllResponsesStep());
    }
-
 
    /**
     * Drop all entries from HTTP cache in the session.

@@ -10,10 +10,10 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class LoopStep implements Step {
@@ -49,6 +49,7 @@ public class LoopStep implements Step {
     * It is legal to place steps after the looped steps.
     * <p>
     * Example:
+    *
     * <pre>
     * scenario:
     * - mySequence:
@@ -110,7 +111,8 @@ public class LoopStep implements Step {
        */
       @Deprecated
       public Builder sequence(String sequence) {
-         throw new BenchmarkDefinitionException("Sequence is not supported anymore; place loop as the first step in a sequence.");
+         throw new BenchmarkDefinitionException(
+               "Sequence is not supported anymore; place loop as the first step in a sequence.");
       }
 
       /**

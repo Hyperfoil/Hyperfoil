@@ -38,7 +38,8 @@ public class RestartSequenceAction implements Action, ResourceUtilizer {
       public void prepareBuild() {
          Locator locator = Locator.current();
          if (locator.step() instanceof BreakSequenceStep.Builder) {
-            throw new BenchmarkDefinitionException("Restarting sequence this way from `breakSequence` does not work as this action adds subsequent step; use `conditional` instead.");
+            throw new BenchmarkDefinitionException(
+                  "Restarting sequence this way from `breakSequence` does not work as this action adds subsequent step; use `conditional` instead.");
          }
          triggerKey = RestartSequenceStep.createTriggerKey();
          locator.sequence().insertAfter(locator).step(new RestartSequenceStep(triggerKey));

@@ -6,13 +6,13 @@ import java.util.Objects;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.ObjectAccess;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class StopwatchBeginStep implements Step, ResourceUtilizer {

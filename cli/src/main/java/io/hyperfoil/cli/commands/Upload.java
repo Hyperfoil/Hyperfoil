@@ -40,7 +40,8 @@ public class Upload extends BaseUploadCommand {
          if (source == null) {
             return CommandResult.FAILURE;
          }
-         Client.BenchmarkRef benchmarkRef = invocation.context().client().register(source.yaml, source.data.files(), null, null);
+         Client.BenchmarkRef benchmarkRef = invocation.context().client().register(source.yaml, source.data.files(), null,
+               null);
          invocation.context().setServerBenchmark(benchmarkRef);
          invocation.println("... done.");
          return CommandResult.SUCCESS;

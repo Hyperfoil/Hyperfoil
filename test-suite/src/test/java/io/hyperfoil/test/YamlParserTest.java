@@ -56,7 +56,7 @@ public class YamlParserTest extends BaseBenchmarkParserTest {
       Phase[] phases = benchmark.phases().toArray(new Phase[0]);
       assertThat(phases.length).isEqualTo(3);
       @SuppressWarnings("unchecked")
-      Class<? extends Step>[] expectedSteps = new Class[]{
+      Class<? extends Step>[] expectedSteps = new Class[] {
             PrepareHttpRequestStep.class,
             SendHttpRequestStep.class,
             StepBuilder.ActionStep.class,
@@ -190,7 +190,8 @@ public class YamlParserTest extends BaseBenchmarkParserTest {
    public void testStaircase() {
       Benchmark benchmark = loadScenario("scenarios/staircase.hf.yaml");
       assertThat(benchmark.phases().stream().map(p -> p.model).filter(Model.RampRate.class::isInstance).count()).isEqualTo(3);
-      assertThat(benchmark.phases().stream().map(p -> p.model).filter(Model.ConstantRate.class::isInstance).count()).isEqualTo(3);
+      assertThat(benchmark.phases().stream().map(p -> p.model).filter(Model.ConstantRate.class::isInstance).count())
+            .isEqualTo(3);
       for (Phase phase : benchmark.phases()) {
          if (phase.model instanceof Model.Noop) {
             continue;
@@ -243,7 +244,7 @@ public class YamlParserTest extends BaseBenchmarkParserTest {
       Phase[] phases = benchmark.phases().toArray(new Phase[0]);
       assertThat(phases.length).isEqualTo(2);
       @SuppressWarnings("unchecked")
-      Class<? extends Step>[] expectedSteps = new Class[]{
+      Class<? extends Step>[] expectedSteps = new Class[] {
             PrepareHttpRequestStep.class,
             SendHttpRequestStep.class,
             StepBuilder.ActionStep.class,

@@ -6,7 +6,8 @@ import io.hyperfoil.api.session.Session;
  * Manages all {@link HttpConnectionPool http connection pools} for sessions in single executor.
  */
 public interface HttpDestinationTable extends Session.Resource {
-   Session.ResourceKey<HttpDestinationTable> KEY = new Session.ResourceKey<>() {};
+   Session.ResourceKey<HttpDestinationTable> KEY = new Session.ResourceKey<>() {
+   };
 
    HttpConnectionPool getConnectionPoolByName(String endpoint);
 

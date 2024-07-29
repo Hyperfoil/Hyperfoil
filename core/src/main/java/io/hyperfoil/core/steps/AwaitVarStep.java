@@ -15,7 +15,7 @@ import io.hyperfoil.core.session.SessionFactory;
 
 public class AwaitVarStep extends DependencyStep {
    public AwaitVarStep(ReadAccess var) {
-      super(new ReadAccess[]{ var });
+      super(new ReadAccess[] { var });
    }
 
    public static class NegatedAccess implements ReadAccess {

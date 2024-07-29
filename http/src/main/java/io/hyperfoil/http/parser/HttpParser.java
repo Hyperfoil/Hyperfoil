@@ -4,16 +4,16 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.http.config.ConnectionStrategy;
-import io.hyperfoil.http.config.HttpBuilder;
-import io.hyperfoil.http.config.HttpPluginBuilder;
-import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.core.parser.AbstractParser;
 import io.hyperfoil.core.parser.Context;
 import io.hyperfoil.core.parser.Parser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.parser.PropertyParser;
 import io.hyperfoil.core.parser.ReflectionParser;
+import io.hyperfoil.http.config.ConnectionStrategy;
+import io.hyperfoil.http.config.HttpBuilder;
+import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.hyperfoil.http.config.Protocol;
 
 public class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
    private static final AddressParser ADDRESS_PARSER = new AddressParser();

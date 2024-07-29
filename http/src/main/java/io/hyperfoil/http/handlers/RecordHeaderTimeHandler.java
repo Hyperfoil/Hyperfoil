@@ -8,11 +8,11 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.impl.Util;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.function.SerializableToLongFunction;
+import io.hyperfoil.http.api.HeaderHandler;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.impl.Util;
 import io.netty.util.AsciiString;
 
 public class RecordHeaderTimeHandler implements HeaderHandler {
@@ -22,7 +22,8 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
    private final SerializableToLongFunction<CharSequence> transform;
    private transient AsciiString asciiHeader;
 
-   public RecordHeaderTimeHandler(int stepId, String header, String statistics, SerializableToLongFunction<CharSequence> transform) {
+   public RecordHeaderTimeHandler(int stepId, String header, String statistics,
+         SerializableToLongFunction<CharSequence> transform) {
       this.stepId = stepId;
       this.header = header;
       this.statistics = statistics;

@@ -6,9 +6,9 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.session.Session;
 
 public class CountRecorder implements Processor {
    private final IntAccess toVar;

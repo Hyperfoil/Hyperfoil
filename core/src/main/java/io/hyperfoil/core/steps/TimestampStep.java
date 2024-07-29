@@ -1,25 +1,25 @@
 package io.hyperfoil.core.steps;
 
-import io.hyperfoil.api.config.InitFromParam;
-import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.session.ObjectAccess;
-import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseStepBuilder;
-import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
-
-import org.kohsuke.MetaInfServices;
-
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
+
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.function.SerializableSupplier;
 
 /**
  * This class implements a {@link Step} that bumps the current time in milliseconds as {@link String} to a variable.
@@ -29,7 +29,8 @@ public class TimestampStep implements Step, ResourceUtilizer {
    private final Session.ResourceKey<FormatterResource> formatterKey;
    private final SerializableSupplier<FormatterResource> formatterSupplier;
 
-   public TimestampStep(ObjectAccess toVar, Session.ResourceKey<FormatterResource> formatterKey, SerializableSupplier<FormatterResource> formatterSupplier) {
+   public TimestampStep(ObjectAccess toVar, Session.ResourceKey<FormatterResource> formatterKey,
+         SerializableSupplier<FormatterResource> formatterSupplier) {
       this.toVar = toVar;
       this.formatterKey = formatterKey;
       this.formatterSupplier = formatterSupplier;
@@ -54,7 +55,8 @@ public class TimestampStep implements Step, ResourceUtilizer {
       }
    }
 
-   private static final class FormatterKey implements Session.ResourceKey<FormatterResource> {}
+   private static final class FormatterKey implements Session.ResourceKey<FormatterResource> {
+   }
 
    private static class FormatterResource implements Session.Resource {
       private final SimpleDateFormat format;
@@ -66,7 +68,8 @@ public class TimestampStep implements Step, ResourceUtilizer {
          } else {
             locale = Stream.of(Locale.getAvailableLocales())
                   .filter(l -> localeCountry.equals(l.getCountry())).findFirst()
-                  .orElseThrow(() -> new IllegalArgumentException("No locale with 2-letter country code '" + localeCountry + "' available."));
+                  .orElseThrow(() -> new IllegalArgumentException(
+                        "No locale with 2-letter country code '" + localeCountry + "' available."));
          }
          this.format = new SimpleDateFormat(pattern, locale);
       }

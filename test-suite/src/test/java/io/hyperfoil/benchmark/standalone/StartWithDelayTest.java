@@ -71,14 +71,15 @@ public class StartWithDelayTest extends BaseBenchmarkTest {
       assertEquals("steady", additionalPhase.startWithDelay().phase);
       assertEquals(delay, additionalPhase.startWithDelay().delay);
 
-      StatisticsCollector.StatisticsConsumer statisticsConsumer =
-            (phase, stepId, metric, snapshot, countDown) -> log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
-                  snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
+      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot, countDown) -> log.debug(
+            "Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
+            snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null, null);
       runner.run();
 
       // check start time
-      long startTimeDiff = runner.instances().get("additional").absoluteStartTime() - runner.instances().get("steady").absoluteStartTime();
+      long startTimeDiff = runner.instances().get("additional").absoluteStartTime()
+            - runner.instances().get("steady").absoluteStartTime();
       assertTrue(startTimeDiff >= delay);
    }
 

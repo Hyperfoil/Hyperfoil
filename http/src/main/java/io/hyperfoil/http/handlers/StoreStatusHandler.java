@@ -5,9 +5,9 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.core.session.SessionFactory;
 
 public class StoreStatusHandler implements StatusHandler {
    private final IntAccess toVar;

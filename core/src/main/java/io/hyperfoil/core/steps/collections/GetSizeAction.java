@@ -21,7 +21,8 @@ public class GetSizeAction implements Action {
    private final StringFilter stringFilter;
    private final IntFilter intFilter;
 
-   public GetSizeAction(ReadAccess fromVar, IntAccess toVar, int undefinedValue, BoolFilter boolFilter, StringFilter stringFilter, IntFilter intFilter) {
+   public GetSizeAction(ReadAccess fromVar, IntAccess toVar, int undefinedValue, BoolFilter boolFilter,
+         StringFilter stringFilter, IntFilter intFilter) {
       this.fromVar = fromVar;
       this.toVar = toVar;
       this.undefinedValue = undefinedValue;
@@ -167,7 +168,6 @@ public class GetSizeAction implements Action {
          }
          return intFilter = new IntFilter.Builder<>(this);
       }
-
 
       /**
        * Value to use when <code>fromVar</code> is unset or it does not contain any array/collection.

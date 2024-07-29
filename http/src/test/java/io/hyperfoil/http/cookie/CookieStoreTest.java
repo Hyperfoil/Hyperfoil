@@ -6,10 +6,10 @@ import java.util.ArrayList;
 
 import org.junit.Test;
 
+import io.hyperfoil.http.BaseMockConnection;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
-import io.hyperfoil.http.BaseMockConnection;
 
 public class CookieStoreTest {
    @Test

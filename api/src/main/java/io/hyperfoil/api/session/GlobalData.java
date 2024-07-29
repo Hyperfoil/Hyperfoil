@@ -10,7 +10,7 @@ public interface GlobalData {
     * element with this key present all remaining phases are cancelled and an error is reported.
     *
     * @param phase
-    * @param key     Identifier.
+    * @param key Identifier.
     * @param element Custom element.
     */
    void publish(String phase, String key, Element element);

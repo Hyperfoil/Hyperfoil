@@ -27,7 +27,7 @@ public class Connections extends BaseRunIdCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
       Client.RunRef runRef = getRunRef(invocation);
       Map<String, Map<String, Client.MinMax>> connectionStats = null;
-      for (; ; ) {
+      for (;;) {
          try {
             if (!total) {
                int numLines = connectionStats == null ? 0 : connectionStats.values().stream().mapToInt(Map::size).sum() + 2;

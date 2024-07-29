@@ -6,7 +6,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 class WriterUtil {
-   static <T, E extends Throwable> void printInSync(Map<String, List<T>> map, ThrowingBiConsumer<String, T, E> consumer) throws E {
+   static <T, E extends Throwable> void printInSync(Map<String, List<T>> map, ThrowingBiConsumer<String, T, E> consumer)
+         throws E {
       String[] addresses = map.keySet().toArray(new String[0]);
       @SuppressWarnings("unchecked")
       Iterator<T>[] iterators = Stream.of(addresses).map(a -> map.get(a).iterator()).toArray(Iterator[]::new);

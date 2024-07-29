@@ -1,22 +1,22 @@
 package io.hyperfoil.core.impl;
 
-import io.hyperfoil.api.config.Model;
-import io.netty.util.concurrent.EventExecutorGroup;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.collection.ElasticPool;
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.session.PhaseChangeHandler;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.PhaseInstance;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.hyperfoil.api.collection.ElasticPool;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Model;
+import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.session.PhaseChangeHandler;
+import io.hyperfoil.api.session.PhaseInstance;
+import io.hyperfoil.api.session.Session;
+import io.netty.util.concurrent.EventExecutorGroup;
 
 public abstract class PhaseInstanceImpl implements PhaseInstance {
    protected static final Logger log = LogManager.getLogger(PhaseInstanceImpl.class);
@@ -44,7 +44,8 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
    public static PhaseInstance newInstance(Phase def, String runId, int agentId) {
       PhaseCtor ctor = constructors.get(def.model.getClass());
-      if (ctor == null) throw new BenchmarkDefinitionException("Unknown phase type: " + def.model);
+      if (ctor == null)
+         throw new BenchmarkDefinitionException("Unknown phase type: " + def.model);
       return ctor.create(def, runId, agentId);
    }
 
@@ -169,7 +170,8 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
    // TODO better name
    @Override
-   public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, PhaseChangeHandler phaseChangeHandler) {
+   public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList,
+         PhaseChangeHandler phaseChangeHandler) {
       this.sessionPool = sessionPool;
       this.sessionList = sessionList;
       this.phaseChangeHandler = phaseChangeHandler;
@@ -182,7 +184,8 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       }
       int numActive = activeSessions.decrementAndGet();
       if (trace) {
-         log.trace("#{} NotifyFinished, {} has {} active sessions", session == null ? -1 : session.uniqueId(), def.name, numActive);
+         log.trace("#{} NotifyFinished, {} has {} active sessions", session == null ? -1 : session.uniqueId(), def.name,
+               numActive);
       }
       if (numActive < 0) {
          throw new IllegalStateException(def.name + " has " + numActive + " active sessions");
@@ -274,7 +277,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
    private void noSessionsAvailable() {
       if (failedSessionAcquisitionAction != null) {
-          failedSessionAcquisitionAction.run();
+         failedSessionAcquisitionAction.run();
       }
       if (!sessionLimitExceeded) {
          sessionLimitExceeded = true;

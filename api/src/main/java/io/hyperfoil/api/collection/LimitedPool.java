@@ -3,8 +3,8 @@ package io.hyperfoil.api.collection;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Fixed-size pool that can be accessed by single thread only.
@@ -35,7 +35,8 @@ public class LimitedPool<T> {
 
    public void reset(Object[] array) {
       if (array.length != size) {
-         throw new IllegalArgumentException("Pool should be initialized with " + size + " objects (actual: " + array.length + ")");
+         throw new IllegalArgumentException(
+               "Pool should be initialized with " + size + " objects (actual: " + array.length + ")");
       }
       System.arraycopy(array, 0, elements, 0, array.length);
       Arrays.fill(elements, array.length, elements.length, null);
@@ -60,7 +61,8 @@ public class LimitedPool<T> {
    public void release(T object) {
       int i = index;
       int stop = (index + mask) & mask;
-      while (i != stop && elements[i & mask] != null) ++i;
+      while (i != stop && elements[i & mask] != null)
+         ++i;
       if (elements[i] == null) {
          index = (i + mask) & mask;
          elements[i] = object;
@@ -88,7 +90,8 @@ public class LimitedPool<T> {
 
    public boolean isDepleted() {
       for (Object o : elements) {
-         if (o != null) return false;
+         if (o != null)
+            return false;
       }
       return true;
    }

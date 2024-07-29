@@ -12,7 +12,8 @@ import io.hyperfoil.function.SerializableFunction;
 /**
  * Allows categorizing request statistics into metrics based on the request path. The expressions are evaluated
  * in the order as provided in the list.
- * Use one of: <ul>
+ * Use one of:
+ * <ul>
  * <li><code>regexp -&gt; replacement</code>, e.g. <code>([^?]*)(\?.*)? -&gt; $1</code> to drop the query part.
  * <li><code>regexp</code> (don't do any replaces and use the full path), e.g. <code>.*.jpg</code>
  * <li><code>-&gt; name</code> (metric applied if none of the previous expressions match).

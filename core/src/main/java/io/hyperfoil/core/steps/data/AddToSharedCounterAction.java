@@ -19,7 +19,8 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
    private final SerializableToIntFunction<Session> input;
    private final SerializableLongBinaryOperator operator;
 
-   public AddToSharedCounterAction(String key, SerializableToIntFunction<Session> input, SerializableLongBinaryOperator operator) {
+   public AddToSharedCounterAction(String key, SerializableToIntFunction<Session> input,
+         SerializableLongBinaryOperator operator) {
       this.key = key;
       this.input = input;
       this.operator = operator;
@@ -49,7 +50,7 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
 
       /**
        * @param param Use on of: <code>counter++</code>, <code>counter--</code>, <code>counter += &lt;value&gt;</code>,
-       *              <code>counter -= &lt;value&gt;</code>
+       *        <code>counter -= &lt;value&gt;</code>
        * @return Self.
        */
       @Override
@@ -109,6 +110,7 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
    public enum Operator {
       ADD(Long::sum),
       SUBTRACT((a, b) -> a - b);
+
       final SerializableLongBinaryOperator operator;
 
       Operator(SerializableLongBinaryOperator operator) {

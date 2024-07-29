@@ -9,8 +9,8 @@ import org.aesh.command.CommandResult;
 import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 
 @CommandDefinition(name = "sessions", description = "Show sessions statistics")
 public class Sessions extends BaseRunIdCommand {
@@ -23,7 +23,7 @@ public class Sessions extends BaseRunIdCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
       Map<String, Map<String, Client.MinMax>> sessionStats = null;
-      for (; ; ) {
+      for (;;) {
          try {
             int numLines = sessionStats == null ? 0 : sessionStats.values().stream().mapToInt(Map::size).sum() + 2;
             sessionStats = runRef.sessionStatsRecent();

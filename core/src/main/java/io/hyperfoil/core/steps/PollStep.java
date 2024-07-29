@@ -5,9 +5,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiConsumer;
@@ -15,9 +18,6 @@ import io.hyperfoil.function.SerializableBiPredicate;
 import io.hyperfoil.function.SerializableConsumer;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.function.SerializablePredicate;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class PollStep<T> implements Step {
    private static final Logger log = LogManager.getLogger(PollStep.class);
@@ -29,7 +29,8 @@ public class PollStep<T> implements Step {
    private final long periodMs;
    private final int maxRetries;
 
-   public PollStep(SerializableFunction<Session, T> provider, ObjectAccess toVar, SerializableBiPredicate<Session, T> filter, SerializableBiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
+   public PollStep(SerializableFunction<Session, T> provider, ObjectAccess toVar, SerializableBiPredicate<Session, T> filter,
+         SerializableBiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
       this.provider = provider;
       this.filter = filter;
       this.toVar = toVar;
@@ -114,7 +115,8 @@ public class PollStep<T> implements Step {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new PollStep<>(provider, SessionFactory.objectAccess(var), filter, recycler, periodMs, maxRetries));
+         return Collections.singletonList(
+               new PollStep<>(provider, SessionFactory.objectAccess(var), filter, recycler, periodMs, maxRetries));
       }
    }
 }

@@ -30,9 +30,7 @@ import io.hyperfoil.api.session.Session;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-@IncludeBuilders(
-      @IncludeBuilders.Conversion(from = Action.Builder.class, adapter = StepBuilder.ActionBuilderConverter.class)
-)
+@IncludeBuilders(@IncludeBuilders.Conversion(from = Action.Builder.class, adapter = StepBuilder.ActionBuilderConverter.class))
 public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
 
    static String nameOf(StepBuilder<?> builder) {

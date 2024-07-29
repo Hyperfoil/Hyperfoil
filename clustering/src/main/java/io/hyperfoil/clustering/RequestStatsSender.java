@@ -1,16 +1,16 @@
 package io.hyperfoil.clustering;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.clustering.messages.PhaseStatsCompleteMessage;
-import io.hyperfoil.core.util.CountDown;
-import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.clustering.messages.RequestStatsMessage;
+import io.hyperfoil.core.impl.statistics.StatisticsCollector;
+import io.hyperfoil.core.util.CountDown;
 import io.vertx.core.eventbus.EventBus;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class RequestStatsSender extends StatisticsCollector {
    private static final Logger log = LogManager.getLogger(RequestStatsSender.class);

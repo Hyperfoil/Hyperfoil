@@ -45,6 +45,7 @@ public class RandomFileStep implements Step {
     * Reads bytes from a randomly chosen file into a variable. <br>
     * Two formats are supported: <br>
     * Example 1 - without weights:
+    *
     * <pre>
     * toVar: myVar
     * files:
@@ -53,6 +54,7 @@ public class RandomFileStep implements Step {
     * </pre>
     * <p>
     * Example 2 - with weights (the second file will be returned twice as often):
+    *
     * <pre>
     * toVar: myVar
     * files:

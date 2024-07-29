@@ -52,7 +52,8 @@ public class HotRodRunData implements PluginRunData {
    }
 
    @Override
-   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Consumer<Future<Void>> promiseCollector) {
+   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler,
+         Consumer<Future<Void>> promiseCollector) {
       for (HotRodRemoteCachePool p : this.pool) {
          promiseCollector.accept(blockingHandler.apply(() -> {
             p.start();

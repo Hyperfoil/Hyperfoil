@@ -16,5 +16,6 @@ public interface Step extends Serializable {
    /**
     * Marker interface that should have single implementation in other module.
     */
-   interface Catalog {}
+   interface Catalog {
+   }
 }

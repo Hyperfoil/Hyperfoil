@@ -92,7 +92,8 @@ public class JsonStep implements Step {
       }
    }
 
-   private static class ByteArrayParser extends JsonParser implements ResourceUtilizer, Session.ResourceKey<ByteArrayParser.Context> {
+   private static class ByteArrayParser extends JsonParser
+         implements ResourceUtilizer, Session.ResourceKey<ByteArrayParser.Context> {
       ByteArrayParser(String query, boolean delete, Transformer replace, Processor processor) {
          super(query, delete, replace, processor);
       }
@@ -103,7 +104,8 @@ public class JsonStep implements Step {
       }
 
       @Override
-      protected void record(JsonParser.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
+      protected void record(JsonParser.Context context, Session session, ByteStream data, int offset, int length,
+            boolean isLastPart) {
          Context ctx = (Context) context;
          byte[] array = ((ByteArrayByteStream) data).array;
          processor.process(session, ctx.buffer.wrap(array), offset, length, isLastPart);
@@ -139,8 +141,10 @@ public class JsonStep implements Step {
          }
 
          @Override
-         protected void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length, boolean lastFragment) {
-            replace.transform(session, buffer.wrap(((ByteArrayByteStream) data).array), offset, length, lastFragment, replaceBuffer);
+         protected void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length,
+               boolean lastFragment) {
+            replace.transform(session, buffer.wrap(((ByteArrayByteStream) data).array), offset, length, lastFragment,
+                  replaceBuffer);
          }
 
          public ByteStream wrap(byte[] object) {

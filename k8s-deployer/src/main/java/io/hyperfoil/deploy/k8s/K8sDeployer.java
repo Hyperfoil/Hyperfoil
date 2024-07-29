@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
@@ -41,20 +43,16 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.dsl.internal.PodOperationsImpl;
+import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
-import io.hyperfoil.api.Version;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -75,8 +73,10 @@ import okhttp3.Response;
  */
 public class K8sDeployer implements Deployer {
    private static final Logger log = LogManager.getLogger(K8sDeployer.class);
-   private static final String API_SERVER = Properties.get("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
-   private static final String DEFAULT_IMAGE = Properties.get("io.hyperfoil.deployer.k8s.defaultimage", "quay.io/hyperfoil/hyperfoil:" + Version.VERSION);
+   private static final String API_SERVER = Properties.get("io.hyperfoil.deployer.k8s.apiserver",
+         "https://kubernetes.default.svc.cluster.local/");
+   private static final String DEFAULT_IMAGE = Properties.get("io.hyperfoil.deployer.k8s.defaultimage",
+         "quay.io/hyperfoil/hyperfoil:" + Version.VERSION);
    private static final String CONTROLLER_POD_NAME = System.getenv("HOSTNAME");
    private static final String APP;
    private static final String NAMESPACE;
@@ -85,13 +85,13 @@ public class K8sDeployer implements Deployer {
     * labels for use in Kubernetes</a>.
     */
    private static final String[] K8S_RECOMMENDED_LABELS = {
-           "app.kubernetes.io/name",
-           "app.kubernetes.io/instance",
-           "app.kubernetes.io/version",
-           "app.kubernetes.io/component",
-           "app.kubernetes.io/part-of",
-           "app.kubernetes.io/managed-by",
-           "app.kubernetes.io/created-by"
+         "app.kubernetes.io/name",
+         "app.kubernetes.io/instance",
+         "app.kubernetes.io/version",
+         "app.kubernetes.io/component",
+         "app.kubernetes.io/part-of",
+         "app.kubernetes.io/managed-by",
+         "app.kubernetes.io/created-by"
    };
    protected static final String POD_LABEL_PROPERTY_PREFIX = "pod.label.";
 
@@ -134,7 +134,7 @@ public class K8sDeployer implements Deployer {
 
       PodSpecBuilder spec = new PodSpecBuilder().withRestartPolicy("Never");
       String serviceAccount = agent.properties.getOrDefault("pod-serviceaccount",
-              Properties.get("io.hyperfoil.deployer.k8s.pod.service-account", null));
+            Properties.get("io.hyperfoil.deployer.k8s.pod.service-account", null));
       if (serviceAccount != null) {
          spec.withServiceAccount(serviceAccount);
       }
@@ -144,29 +144,26 @@ public class K8sDeployer implements Deployer {
       ResourceRequirements resourceRequirements = new ResourceRequirements();
       Map<String, Quantity> podResourceRequests = new LinkedHashMap<>();
       String cpuRequest = agent.properties.getOrDefault(
-              "pod-cpu",
-              Properties.get("io.hyperfoil.deployer.k8s.pod.cpu", null)
-      );
+            "pod-cpu",
+            Properties.get("io.hyperfoil.deployer.k8s.pod.cpu", null));
       if (cpuRequest != null) {
          podResourceRequests.put("cpu", new Quantity(cpuRequest));
       }
       String memoryRequest = agent.properties.getOrDefault(
-              "pod-memory",
-              Properties.get("io.hyperfoil.deployer.k8s.pod.memory", null)
-      );
+            "pod-memory",
+            Properties.get("io.hyperfoil.deployer.k8s.pod.memory", null));
       if (memoryRequest != null) {
          podResourceRequests.put("memory", new Quantity(memoryRequest));
       }
       String storageRequest = agent.properties.getOrDefault(
-              "pod-ephemeral-storage",
-              Properties.get("io.hyperfoil.deployer.k8s.pod.ephemeralstorage", null)
-      );
+            "pod-ephemeral-storage",
+            Properties.get("io.hyperfoil.deployer.k8s.pod.ephemeralstorage", null));
       if (storageRequest != null) {
          podResourceRequests.put("ephemeral-storage", new Quantity(storageRequest));
       }
       resourceRequirements.setRequests(podResourceRequests);
       if (Boolean.parseBoolean(agent.properties.getOrDefault("pod-limits",
-              Properties.get("io.hyperfoil.deployer.k8s.pod.limits", "false")))) {
+            Properties.get("io.hyperfoil.deployer.k8s.pod.limits", "false")))) {
          resourceRequirements.setLimits(podResourceRequests);
       }
       ContainerBuilder containerBuilder = new ContainerBuilder()
@@ -217,7 +214,6 @@ public class K8sDeployer implements Deployer {
                .withConfigMap(new ConfigMapVolumeSource(null, null, configMap, false))
                .build());
       }
-
 
       command.add("-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       command.add("-D" + Properties.AGENT_NAME + "=" + agent.name);
@@ -315,7 +311,8 @@ public class K8sDeployer implements Deployer {
    }
 
    @Override
-   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile,
+         Handler<AsyncResult<Void>> handler) {
       K8sAgent agent = (K8sAgent) deployedAgent;
       ensureClient();
       if (agent.outputPath != null) {

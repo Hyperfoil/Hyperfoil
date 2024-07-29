@@ -5,5 +5,6 @@ public class AgentReadyMessage extends AgentStatusMessage {
       super(senderId, runId);
    }
 
-   public static class Codec extends ObjectCodec<AgentReadyMessage> {}
+   public static class Codec extends ObjectCodec<AgentReadyMessage> {
+   }
 }

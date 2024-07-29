@@ -4,14 +4,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.deployment.DeployedAgent;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 class K8sAgent implements DeployedAgent {
    private static final Logger log = LogManager.getLogger(K8sAgent.class);

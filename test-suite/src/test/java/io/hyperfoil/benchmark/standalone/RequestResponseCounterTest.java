@@ -96,8 +96,8 @@ public class RequestResponseCounterTest extends BaseBenchmarkTest {
       Benchmark benchmark = builder.build();
 
       AtomicLong actualNumberOfRequests = new AtomicLong(0);
-      StatisticsCollector.StatisticsConsumer statisticsConsumer =
-            (phase, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount());
+      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot,
+            countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount());
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null, null);
       runner.run();
 

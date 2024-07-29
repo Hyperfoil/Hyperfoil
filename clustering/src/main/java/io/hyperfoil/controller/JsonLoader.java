@@ -10,10 +10,10 @@ import java.util.TreeMap;
 
 import org.HdrHistogram.Histogram;
 
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.api.statistics.StatsExtension;
-import io.hyperfoil.api.config.SLA;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -31,14 +31,16 @@ public class JsonLoader {
          snapshot.histogram.setStartTimeStamp(failure.getLong("start"));
          snapshot.histogram.setEndTimeStamp(failure.getLong("end"));
          // ignoring percentiles
-         store.addFailure(new SLA.Failure(null, failure.getString("phase"), failure.getString("metric"), snapshot, failure.getString("message")));
+         store.addFailure(new SLA.Failure(null, failure.getString("phase"), failure.getString("metric"), snapshot,
+               failure.getString("message")));
       }
       int dataCounter = 0;
       // TODO: there could be multiple Data per phase+metric but stepId is not in JSON
       Map<String, Map<String, Data>> dataMap = new HashMap<>();
       for (Object item : object.getJsonArray("stats")) {
          JsonObject stats = (JsonObject) item;
-         Data data = new Data(store, stats.getString("name"), stats.getBoolean("isWarmup"), 0, stats.getString("metric"), Collections.emptyMap(), new SLA[0]);
+         Data data = new Data(store, stats.getString("name"), stats.getBoolean("isWarmup"), 0, stats.getString("metric"),
+               Collections.emptyMap(), new SLA[0]);
          dataMap.computeIfAbsent(data.phase, p -> new HashMap<>()).putIfAbsent(data.metric, data);
          store.addData(dataCounter++, data.metric, data);
          loadSnapshot(stats.getJsonObject("total"), data.total);
@@ -72,7 +74,8 @@ public class JsonLoader {
             String metric = stats.getString("metric");
             boolean isWarmup = stats.getBoolean("isWarmup");
             Data data = dataMap.computeIfAbsent(phase, p -> new HashMap<>())
-                  .computeIfAbsent(metric, m -> new Data(store, phase, isWarmup, 0, metric, Collections.emptyMap(), new SLA[0]));
+                  .computeIfAbsent(metric,
+                        m -> new Data(store, phase, isWarmup, 0, metric, Collections.emptyMap(), new SLA[0]));
             StatisticsSnapshot snapshot = new StatisticsSnapshot();
             loadSnapshot(stats.getJsonObject("total"), snapshot);
             loadHistogram(stats.getJsonObject("histogram").getJsonArray("linear"), snapshot.histogram);
@@ -89,8 +92,10 @@ public class JsonLoader {
             var typeMap = targetMap.computeIfAbsent(type, t -> new HashMap<>());
             for (Object item : (JsonArray) typeEntry.getValue()) {
                JsonObject record = (JsonObject) item;
-               List<StatisticsStore.ConnectionPoolStats> list = typeMap.computeIfAbsent(record.getString("agent"), a -> new ArrayList<>());
-               list.add(new StatisticsStore.ConnectionPoolStats(record.getLong("timestamp"), record.getInteger("min"), record.getInteger("max")));
+               List<StatisticsStore.ConnectionPoolStats> list = typeMap.computeIfAbsent(record.getString("agent"),
+                     a -> new ArrayList<>());
+               list.add(new StatisticsStore.ConnectionPoolStats(record.getLong("timestamp"), record.getInteger("min"),
+                     record.getInteger("max")));
             }
          }
       }
@@ -157,7 +162,9 @@ public class JsonLoader {
 
          SortedMap<String, StatsExtension> extensions = Collections.emptySortedMap(); // TODO
          SortedMap<Double, Long> percentiles = toMap(object.getJsonObject("percentileResponseTime"));
-         series.add(new StatisticsSummary(startTime, endTime, minResponseTime, meanResponseTime, stdDevResponseTime, maxResponseTime, percentiles, requestCount, responseCount, invalid, connectionErrors, requestTimeouts, internalErrors, blockedTime, extensions));
+         series.add(new StatisticsSummary(startTime, endTime, minResponseTime, meanResponseTime, stdDevResponseTime,
+               maxResponseTime, percentiles, requestCount, responseCount, invalid, connectionErrors, requestTimeouts,
+               internalErrors, blockedTime, extensions));
       }
    }
 

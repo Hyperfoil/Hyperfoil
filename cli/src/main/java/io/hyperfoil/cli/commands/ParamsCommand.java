@@ -26,8 +26,7 @@ public abstract class ParamsCommand extends BenchmarkCommand {
    boolean resetParams;
 
    protected Map<String, String> getParams(HyperfoilCommandInvocation invocation) {
-      Map<String, String> currentParams = resetParams ?
-            new HashMap<>() : new HashMap<>(invocation.context().currentParams());
+      Map<String, String> currentParams = resetParams ? new HashMap<>() : new HashMap<>(invocation.context().currentParams());
       if (resetParams) {
          invocation.context().setCurrentParams(Collections.emptyMap());
       }
@@ -46,7 +45,8 @@ public abstract class ParamsCommand extends BenchmarkCommand {
       return currentParams;
    }
 
-   protected boolean readParams(HyperfoilCommandInvocation invocation, List<String> missingParams, Map<String, String> currentParams) {
+   protected boolean readParams(HyperfoilCommandInvocation invocation, List<String> missingParams,
+         Map<String, String> currentParams) {
       if (!missingParams.isEmpty()) {
          invocation.println("This benchmark is a template with these mandatory parameters that haven't been set:");
       }

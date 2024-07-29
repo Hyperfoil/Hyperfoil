@@ -7,12 +7,12 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
@@ -41,7 +41,8 @@ public class ForeachStep extends DependencyStep {
       Session.Var[] array = (Session.Var[]) value;
       int i = 0;
       for (; i < array.length; i++) {
-         if (!array[i].isSet()) break;
+         if (!array[i].isSet())
+            break;
          SequenceInstance instance = session.startSequence(sequence, false, Session.ConcurrencyPolicy.FAIL);
          // This is a bit fragile; we rely on the fact that
          // 1) instance always gets the lowest possible index

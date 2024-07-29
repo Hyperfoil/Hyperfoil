@@ -33,7 +33,8 @@ public class IntCondition extends IntConditionBase implements Condition {
    /**
     * Condition comparing integer in session variable.
     */
-   public static class Builder<P> extends IntConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>>, InitFromParam<Builder<P>> {
+   public static class Builder<P> extends IntConditionBuilder<Builder<P>, P>
+         implements Condition.Builder<Builder<P>>, InitFromParam<Builder<P>> {
       private Object fromVar;
       private boolean isSet = true;
 
@@ -47,9 +48,9 @@ public class IntCondition extends IntConditionBase implements Condition {
 
       /**
        * @param param Parses condition in the form &lt;variable&gt; &lt;operator&gt; &lt;value&gt;
-       *              where operator is one of: <code>==</code>, <code>!=</code>,
-       *              <code>&lt;&gt;</code> (the same as <code>!=</code>),
-       *              <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>.
+       *        where operator is one of: <code>==</code>, <code>!=</code>,
+       *        <code>&lt;&gt;</code> (the same as <code>!=</code>),
+       *        <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>.
        * @return Self.
        */
       @Override

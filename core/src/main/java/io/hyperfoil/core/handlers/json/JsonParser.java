@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Function;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.InitFromParam;
@@ -19,9 +22,6 @@ import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.handlers.StoreShortcuts;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public abstract class JsonParser implements Serializable {
    protected static final Logger log = LogManager.getLogger(JsonParser.class);
@@ -50,7 +50,8 @@ public abstract class JsonParser implements Serializable {
       int next = 1;
       for (int i = 1; i < queryBytes.length; ++i) {
          if (queryBytes[i] == '[' || queryBytes[i] == '.' && next < i) {
-            while (queryBytes[next] == '.') ++next;
+            while (queryBytes[next] == '.')
+               ++next;
             if (next != i) {
                selectors.add(new AttribSelector(Arrays.copyOfRange(queryBytes, next, i)));
             }
@@ -81,17 +82,19 @@ public abstract class JsonParser implements Serializable {
          }
       }
       if (next < queryBytes.length) {
-         while (queryBytes[next] == '.') ++next;
+         while (queryBytes[next] == '.')
+            ++next;
          selectors.add(new AttribSelector(Arrays.copyOfRange(queryBytes, next, queryBytes.length)));
       }
       this.selectors = selectors.toArray(new JsonParser.Selector[0]);
    }
 
-   protected abstract void record(Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart);
+   protected abstract void record(Context context, Session session, ByteStream data, int offset, int length,
+         boolean isLastPart);
 
    private static int bytesToInt(byte[] bytes, int start, int end) {
       int value = 0;
-      for (; ; ) {
+      for (;;) {
          if (bytes[start] < '0' || bytes[start] > '9') {
             throw new BenchmarkDefinitionException("Invalid range specification: " + new String(bytes));
          }
@@ -123,7 +126,8 @@ public abstract class JsonParser implements Serializable {
          assert start <= end;
          // TODO: move this to StreamQueue and optimize access
          for (int i = 0; i < name.length && i < end - start; ++i) {
-            if (name[i] != stream.getByte(start + i)) return false;
+            if (name[i] != stream.getByte(start + i))
+               return false;
          }
          return true;
       }
@@ -189,7 +193,8 @@ public abstract class JsonParser implements Serializable {
 
       public void reset() {
          for (Selector.Context ctx : selectorContext) {
-            if (ctx != null) ctx.reset();
+            if (ctx != null)
+               ctx.reset();
          }
          level = -1;
          selectorLevel = 0;
@@ -218,8 +223,7 @@ public abstract class JsonParser implements Serializable {
 
       public void parse(ByteStream data, Session session, boolean isLast) {
          int readerIndex = stream.append(data);
-         PARSING:
-         while (true) {
+         PARSING: while (true) {
             int b = stream.getByte(readerIndex++);
             switch (b) {
                case -1:
@@ -264,15 +268,15 @@ public abstract class JsonParser implements Serializable {
                   break;
                case ':':
                   if (!inQuote) {
-                     if (selectorLevel == level && keyStartIndex >= 0 && selector < selectors.length && selectors[selector] instanceof AttribSelector) {
+                     if (selectorLevel == level && keyStartIndex >= 0 && selector < selectors.length
+                           && selectors[selector] instanceof AttribSelector) {
                         AttribSelector selector = (AttribSelector) selectors[this.selector];
                         if (selector.match(stream, keyStartIndex, lastCharIndex)) {
                            if (onMatch(readerIndex) && (delete || replace != null)) {
                               // omit key's starting quote
                               int outputEnd = keyStartIndex - 1;
                               // remove possible comma before the key
-                              LOOP:
-                              while (true) {
+                              LOOP: while (true) {
                                  switch (stream.getByte(outputEnd - 1)) {
                                     case ' ':
                                     case '\n':
@@ -323,7 +327,8 @@ public abstract class JsonParser implements Serializable {
                         safeOutputIndex = readerIndex;
                      }
                      ++level;
-                     if (selectorLevel == level && selector < selectors.length && selectors[selector] instanceof ArraySelector) {
+                     if (selectorLevel == level && selector < selectors.length
+                           && selectors[selector] instanceof ArraySelector) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         asc.active = true;
                         if (((ArraySelector) selectors[selector]).matches(asc)) {
@@ -389,8 +394,7 @@ public abstract class JsonParser implements Serializable {
       private void tryRecord(Session session, int readerIndex) {
          if (selectorLevel == level && valueStartIndex >= 0) {
             // valueStartIndex is always before quotes here
-            LOOP:
-            while (true) {
+            LOOP: while (true) {
                switch (stream.getByte(valueStartIndex)) {
                   case ' ':
                   case '\n':
@@ -404,8 +408,7 @@ public abstract class JsonParser implements Serializable {
                }
             }
             int end = readerIndex - 1;
-            LOOP:
-            while (end > valueStartIndex) {
+            LOOP: while (end > valueStartIndex) {
                switch (stream.getByte(end - 1)) {
                   case ' ':
                   case '\n':
@@ -465,7 +468,8 @@ public abstract class JsonParser implements Serializable {
          throw new IllegalStateException();
       }
 
-      protected abstract void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length, boolean lastFragment);
+      protected abstract void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length,
+            boolean lastFragment);
    }
 
    public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S>, StoreShortcuts.Host {
@@ -497,7 +501,8 @@ public abstract class JsonParser implements Serializable {
             query = parts[1];
             var = parts[0];
          } else {
-            throw new BenchmarkDefinitionException("Cannot parse json query specification: '" + param + "', use 'query -> var' or 'var <- query'");
+            throw new BenchmarkDefinitionException(
+                  "Cannot parse json query specification: '" + param + "', use 'query -> var' or 'var <- query'");
          }
          storeShortcuts.toVar(var.trim());
          return query(query.trim());

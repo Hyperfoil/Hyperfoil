@@ -9,9 +9,9 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.session.Session;
 
 public class JsonHandler extends JsonParser implements Processor, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
 
@@ -58,7 +58,8 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
    }
 
    @Override
-   protected void record(JsonParser.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
+   protected void record(JsonParser.Context context, Session session, ByteStream data, int offset, int length,
+         boolean isLastPart) {
       processor.process(session, ((ByteBufByteStream) data).buffer, offset, length, isLastPart);
    }
 
@@ -78,7 +79,8 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
       }
 
       @Override
-      protected void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length, boolean lastFragment) {
+      protected void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length,
+            boolean lastFragment) {
          replace.transform(session, ((ByteBufByteStream) data).buffer, offset, length, lastFragment, replaceBuffer);
       }
    }

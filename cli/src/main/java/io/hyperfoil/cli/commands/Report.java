@@ -46,7 +46,8 @@ public class Report extends BaseRunIdCommand {
                      return CommandResult.SUCCESS;
                   }
                } else if (destination.isDirectory()) {
-                  invocation.println("Both " + this.destination + " and " + destination + " are directories. Please use another path.");
+                  invocation.println(
+                        "Both " + this.destination + " and " + destination + " are directories. Please use another path.");
                   return CommandResult.SUCCESS;
                }
             }

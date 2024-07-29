@@ -5,6 +5,9 @@ import static io.netty.handler.codec.http2.Http2CodecUtil.getEmbeddedHttp2Except
 import java.io.IOException;
 import java.util.function.BiConsumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.http.api.HttpClientPool;
@@ -16,9 +19,6 @@ import io.netty.handler.codec.http2.Http2ConnectionDecoder;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.internal.StringUtil;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2ConnectionHandler {
    private static final Logger log = LogManager.getLogger(CustomHttp2ConnectionHandler.class);

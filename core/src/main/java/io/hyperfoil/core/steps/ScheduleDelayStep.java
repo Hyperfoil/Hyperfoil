@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
@@ -15,17 +18,13 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.ObjectAccess;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Unique;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableToLongFunction;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import io.hyperfoil.impl.Util;
 
 public class ScheduleDelayStep implements Step, ResourceUtilizer {
    private static final Logger log = LogManager.getLogger(ScheduleDelayStep.class);
@@ -153,7 +152,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       /**
-       * Set previous delay point reference as the reference for next delay point; it will be computed as <code>(previous delay point or now) + duration</code>.
+       * Set previous delay point reference as the reference for next delay point; it will be computed as
+       * <code>(previous delay point or now) + duration</code>.
        *
        * @return Self.
        */
@@ -222,7 +222,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          switch (randomType) {
             case CONSTANT:
                if (this.min != 0 || this.max != Long.MAX_VALUE) {
-                  throw new BenchmarkDefinitionException("This duration should be constant; no need to define 'min' and 'max'.");
+                  throw new BenchmarkDefinitionException(
+                        "This duration should be constant; no need to define 'min' and 'max'.");
                } else if (this.duration <= 0) {
                   throw new BenchmarkDefinitionException("Duration must be positive.");
                }

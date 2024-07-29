@@ -1,14 +1,14 @@
 package io.hyperfoil.http.connection;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class RawRequestHandler extends ChannelOutboundHandlerAdapter {
    private static final Logger log = LogManager.getLogger(RawRequestHandler.class);

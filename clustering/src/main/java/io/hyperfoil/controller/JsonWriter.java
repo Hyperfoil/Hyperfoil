@@ -1,17 +1,5 @@
 package io.hyperfoil.controller;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
-import io.hyperfoil.api.Version;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.core.util.LowHigh;
-
-import io.vertx.core.json.JsonObject;
-
-import org.HdrHistogram.HistogramIterationValue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,12 +10,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.HdrHistogram.HistogramIterationValue;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import io.hyperfoil.api.Version;
+import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.core.util.LowHigh;
+import io.vertx.core.json.JsonObject;
+
 public class JsonWriter {
    static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/v3.0";
 
    public static void writeArrayJsons(StatisticsStore store, JsonGenerator jGenerator, JsonObject info) throws IOException {
       Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
-      Arrays.sort(sorted, Comparator.comparing((Data data) -> data.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
+      Arrays.sort(sorted,
+            Comparator.comparing((Data data) -> data.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
 
       jGenerator.writeStartObject(); //root of object
 
@@ -50,11 +50,11 @@ public class JsonWriter {
 
          jGenerator.writeNumberField("start", failure.statistics().histogram.getStartTimeStamp());
          jGenerator.writeNumberField("end", failure.statistics().histogram.getEndTimeStamp());
-         jGenerator.writeObjectField("percentileResponseTime", failure.statistics().getPercentiles(StatisticsStore.PERCENTILES));
+         jGenerator.writeObjectField("percentileResponseTime",
+               failure.statistics().getPercentiles(StatisticsStore.PERCENTILES));
          jGenerator.writeEndObject();
       }
       jGenerator.writeEndArray();
-
 
       jGenerator.writeFieldName("stats");
       jGenerator.writeStartArray(); //stats array
@@ -71,7 +71,8 @@ public class JsonWriter {
          jGenerator.writeBooleanField("isWarmup", data.isWarmup);
 
          jGenerator.writeFieldName("total");
-         long numFailures = failures.stream().filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric))).count();
+         long numFailures = failures.stream()
+               .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric))).count();
          StatisticsStore.SessionPoolStats sessionPoolStats = store.sessionPoolStats.get(data.phase);
          LowHigh minMaxSessions = sessionPoolStats == null ? new LowHigh(0, 0) : sessionPoolStats.findMinMax();
          writeTotalValue(jGenerator, data, d -> d.total, minMaxSessions, numFailures);
@@ -90,7 +91,6 @@ public class JsonWriter {
          jGenerator.writeEndObject(); //entry
       }
       jGenerator.writeEndArray(); //stats array
-
 
       jGenerator.writeFieldName("sessions");
       jGenerator.writeStartArray(); //phase sessions array
@@ -154,8 +154,8 @@ public class JsonWriter {
                      jGenerator,
                      data,
                      d -> d.perAgent.get(agent),
-                     store.sessionPoolStats.getOrDefault(data.phase, new StatisticsStore.SessionPoolStats())
-                           .records.getOrDefault(agent, new ArrayList<>())
+                     store.sessionPoolStats.getOrDefault(data.phase, new StatisticsStore.SessionPoolStats()).records
+                           .getOrDefault(agent, new ArrayList<>())
                            .stream()
                            .map(LowHigh.class::cast)
                            .reduce(LowHigh::combine)
@@ -252,7 +252,8 @@ public class JsonWriter {
       return rtrn;
    }
 
-   private static void histogramArray(JsonGenerator jGenerator, Iterator<HistogramIterationValue> iter, double maxPercentile) throws IOException {
+   private static void histogramArray(JsonGenerator jGenerator, Iterator<HistogramIterationValue> iter, double maxPercentile)
+         throws IOException {
       jGenerator.writeStartArray(); //start histogram
       double from = -1, to = -1, percentileTo = -1;
       long total = 0;
@@ -301,7 +302,8 @@ public class JsonWriter {
       jGenerator.writeEndArray(); //end histogram
    }
 
-   private static void writeBucket(JsonGenerator jGenerator, double from, double to, double percentile, long count, long totalCount) throws IOException {
+   private static void writeBucket(JsonGenerator jGenerator, double from, double to, double percentile, long count,
+         long totalCount) throws IOException {
       jGenerator.writeStartObject();
       jGenerator.writeNumberField("from", from);
       jGenerator.writeNumberField("to", to);
@@ -322,7 +324,8 @@ public class JsonWriter {
       jGenerator.flush();
    }
 
-   private static void writeTotalValue(JsonGenerator generator, Data data, Function<Data, StatisticsSnapshot> selector, LowHigh minMaxSessions, long failures) throws IOException {
+   private static void writeTotalValue(JsonGenerator generator, Data data, Function<Data, StatisticsSnapshot> selector,
+         LowHigh minMaxSessions, long failures) throws IOException {
       StatisticsSnapshot snapshot = selector.apply(data);
 
       generator.writeStartObject();

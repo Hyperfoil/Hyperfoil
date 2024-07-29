@@ -36,7 +36,8 @@ public abstract class BaseUploadCommand extends ServerCommand {
    @OptionList(name = "extra-files", shortName = 'f', description = "Extra files for upload (comma-separated) in case this benchmark is a template and files won't be auto-detected. Example: --extra-files foo.txt,bar.txt")
    protected List<String> extraFiles;
 
-   protected BenchmarkSource loadBenchmarkSource(HyperfoilCommandInvocation invocation, String benchmarkYaml, BenchmarkData data) throws CommandException {
+   protected BenchmarkSource loadBenchmarkSource(HyperfoilCommandInvocation invocation, String benchmarkYaml,
+         BenchmarkData data) throws CommandException {
       BenchmarkSource source;
       try {
          source = BenchmarkParser.instance().createSource(benchmarkYaml, data);
@@ -72,7 +73,8 @@ public abstract class BaseUploadCommand extends ServerCommand {
       }
    }
 
-   protected BenchmarkSource loadFromUrl(HyperfoilCommandInvocation invocation, String benchmarkPath, Map<String, byte[]> extraData) throws CommandException {
+   protected BenchmarkSource loadFromUrl(HyperfoilCommandInvocation invocation, String benchmarkPath,
+         Map<String, byte[]> extraData) throws CommandException {
       WebClientOptions options = new WebClientOptions().setFollowRedirects(false);
       if (benchmarkPath.startsWith("https://")) {
          options.setSsl(true).setUseAlpn(true);
@@ -80,7 +82,8 @@ public abstract class BaseUploadCommand extends ServerCommand {
       HyperfoilCliContext ctx = invocation.context();
       WebClient client = WebClient.create(ctx.vertx(), options);
       try {
-         HttpResponse<Buffer> response = client.getAbs(benchmarkPath).send().toCompletionStage().toCompletableFuture().get(15, TimeUnit.SECONDS);
+         HttpResponse<Buffer> response = client.getAbs(benchmarkPath).send().toCompletionStage().toCompletableFuture().get(15,
+               TimeUnit.SECONDS);
          String benchmarkYaml = response.bodyAsString();
          ProvidedBenchmarkData data = new ProvidedBenchmarkData();
          data.files().putAll(extraData);
@@ -94,12 +97,13 @@ public abstract class BaseUploadCommand extends ServerCommand {
          }
          URL dirUrl = new URL(url.getProtocol(), url.getHost(), url.getPort(), path);
 
-         for (; ; ) {
+         for (;;) {
             try {
                return loadBenchmarkSource(invocation, benchmarkYaml, data);
             } catch (BenchmarkData.MissingFileException e) {
                try {
-                  HttpResponse<Buffer> fileResponse = client.getAbs(dirUrl + e.file).send().toCompletionStage().toCompletableFuture().get(15, TimeUnit.SECONDS);
+                  HttpResponse<Buffer> fileResponse = client.getAbs(dirUrl + e.file).send().toCompletionStage()
+                        .toCompletableFuture().get(15, TimeUnit.SECONDS);
                   byte[] bytes = fileResponse.bodyAsBuffer().getBytes();
                   data.files.put(e.file, bytes);
                } catch (ExecutionException e2) {

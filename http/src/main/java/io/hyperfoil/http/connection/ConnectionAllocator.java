@@ -3,6 +3,9 @@ package io.hyperfoil.http.connection;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.http.api.ConnectionConsumer;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
@@ -11,9 +14,6 @@ import io.netty.channel.EventLoop;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 class ConnectionAllocator extends ConnectionPoolStats implements HttpConnectionPool {
    private static final Logger log = LogManager.getLogger(ConnectionAllocator.class);

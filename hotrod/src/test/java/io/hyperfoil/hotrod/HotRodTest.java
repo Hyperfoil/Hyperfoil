@@ -40,10 +40,12 @@ public class HotRodTest extends BaseHotRodTest {
    public void testUndefinedCache() throws Exception {
       try (InputStream is = getClass().getClassLoader().getResourceAsStream("scenarios/HotRodPutTest.hf.yaml")) {
          String cacheName = "something-else-undefined";
-         Benchmark benchmark = loadBenchmark(is, Map.of("CACHE", cacheName, "PORT", String.valueOf(hotrodServers[0].getPort())));
+         Benchmark benchmark = loadBenchmark(is,
+               Map.of("CACHE", cacheName, "PORT", String.valueOf(hotrodServers[0].getPort())));
 
          RuntimeException e = assertThrows(RuntimeException.class, () -> runScenario(benchmark));
-         assertException(RuntimeException.class, IllegalArgumentException.class, String.format("Cache '%s' is not a defined cache", cacheName), e);
+         assertException(RuntimeException.class, IllegalArgumentException.class,
+               String.format("Cache '%s' is not a defined cache", cacheName), e);
       }
    }
 

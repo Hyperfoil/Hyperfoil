@@ -13,8 +13,9 @@ import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.session.ReadAccess;
 
 public class ReflectionAcceptor {
-   private static final Class<?>[] BOXING_TYPES = new Class[]{
-         Boolean.class, Integer.class, Long.class, Double.class, Byte.class, Character.class, Short.class, Float.class, Void.class
+   private static final Class<?>[] BOXING_TYPES = new Class[] {
+         Boolean.class, Integer.class, Long.class, Double.class, Byte.class, Character.class, Short.class, Float.class,
+         Void.class
    };
 
    public static int accept(Object target, Visitor visitor) {

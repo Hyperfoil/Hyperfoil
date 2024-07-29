@@ -20,10 +20,10 @@ public class Statistics {
    private static final long SAMPLING_PERIOD_MILLIS = TimeUnit.SECONDS.toMillis(1);
    private static final ThreadLocal<Long> lastWarnThrottle = ThreadLocal.withInitial(() -> Long.MIN_VALUE);
 
-   private static final AtomicIntegerFieldUpdater<Statistics> LU1 =
-         AtomicIntegerFieldUpdater.newUpdater(Statistics.class, "lowestActive1");
-   private static final AtomicIntegerFieldUpdater<Statistics> LU2 =
-         AtomicIntegerFieldUpdater.newUpdater(Statistics.class, "lowestActive2");
+   private static final AtomicIntegerFieldUpdater<Statistics> LU1 = AtomicIntegerFieldUpdater.newUpdater(Statistics.class,
+         "lowestActive1");
+   private static final AtomicIntegerFieldUpdater<Statistics> LU2 = AtomicIntegerFieldUpdater.newUpdater(Statistics.class,
+         "lowestActive2");
 
    private final WriterReaderPhaser recordingPhaser = new WriterReaderPhaser();
    private final long highestTrackableValue;
@@ -136,7 +136,8 @@ public class Statistics {
       }
    }
 
-   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, LongUpdater<C> updater, long value) {
+   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, LongUpdater<C> updater,
+         long value) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          StatisticsSnapshot active = active(timestamp);
@@ -152,7 +153,8 @@ public class Statistics {
       }
    }
 
-   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, ObjectUpdater<C> updater, Object value) {
+   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, ObjectUpdater<C> updater,
+         Object value) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          StatisticsSnapshot active = active(timestamp);

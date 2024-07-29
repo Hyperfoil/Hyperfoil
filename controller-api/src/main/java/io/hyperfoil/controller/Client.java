@@ -56,6 +56,7 @@ public interface Client {
       Benchmark get();
 
       RunRef start(String description, Map<String, String> templateParams);
+
       RunRef start(String description, Map<String, String> templateParams, Boolean validate);
 
       BenchmarkStructure structure(Integer maxCollectionSize, Map<String, String> templateParams);

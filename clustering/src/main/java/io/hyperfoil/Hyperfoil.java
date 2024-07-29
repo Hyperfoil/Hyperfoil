@@ -101,7 +101,8 @@ public class Hyperfoil {
 
          if (!isController) {
             String initialHosts = clusterIp;
-            if (clusterPort != null) initialHosts = String.format("%s[%s]", initialHosts, clusterPort);
+            if (clusterPort != null)
+               initialHosts = String.format("%s[%s]", initialHosts, clusterPort);
 
             log.info("Starting agent with controller: {}", initialHosts);
             System.setProperty("jgroups.tcpping.initial_hosts", initialHosts);
@@ -171,7 +172,8 @@ public class Hyperfoil {
    }
 
    private static DefaultCacheManager createCacheManager() {
-      try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml", Thread.currentThread().getContextClassLoader())) {
+      try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml",
+            Thread.currentThread().getContextClassLoader())) {
          ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, MediaType.APPLICATION_XML);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
                .withProperties(System.getProperties())
@@ -202,7 +204,8 @@ public class Hyperfoil {
       if (leakDetectionLevel != null) {
          leakDetectionLevel = leakDetectionLevel.trim();
          for (ResourceLeakDetector.Level level : ResourceLeakDetector.Level.values()) {
-            if (leakDetectionLevel.equalsIgnoreCase(level.name()) || leakDetectionLevel.equals(String.valueOf(level.ordinal()))) {
+            if (leakDetectionLevel.equalsIgnoreCase(level.name())
+                  || leakDetectionLevel.equals(String.valueOf(level.ordinal()))) {
                ResourceLeakDetector.setLevel(level);
                return;
             }
@@ -265,7 +268,8 @@ public class Hyperfoil {
             System.getProperty("java.vm.version", "<unknown VM version>"),
             System.getProperty("java.home", "<unknown Java home>"),
             System.getProperty("user.dir", "<unknown current dir>"));
-      String path = new File(Hyperfoil.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getParent();
+      String path = new File(Hyperfoil.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile()
+            .getParent();
       log.info("Hyperfoil: {} ({})", Version.VERSION, Version.COMMIT_ID);
       log.info("           DISTRIBUTION:  {}", path);
       log.info("           ROOT_DIR:      {}", io.hyperfoil.internal.Controller.ROOT_DIR);

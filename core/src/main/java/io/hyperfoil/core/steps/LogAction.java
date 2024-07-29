@@ -3,6 +3,8 @@ package io.hyperfoil.core.steps;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -12,9 +14,6 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.Pattern;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 /**
  * This is a debugging step.
@@ -43,7 +42,9 @@ public class LogAction implements Action {
       List<String> vars = new ArrayList<>();
 
       /**
-       * @param param A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
+       * @param param A pattern for
+       *        <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       *        interpolation</a>.
        * @return Self.
        */
       @Override
@@ -52,7 +53,8 @@ public class LogAction implements Action {
       }
 
       /**
-       * Message format pattern. Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>
+       * Message format pattern. Use
+       * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>
        * for variables.
        *
        * @param message Message format pattern.
@@ -95,7 +97,8 @@ public class LogAction implements Action {
                msgBuilder.append("${").append(var).append("}");
                from = index + 2;
             } else {
-               throw new BenchmarkDefinitionException("Missing position for variable " + var + " ('{}') in log message '" + message + "'");
+               throw new BenchmarkDefinitionException(
+                     "Missing position for variable " + var + " ('{}') in log message '" + message + "'");
             }
          }
          msgBuilder.append(message.substring(from));

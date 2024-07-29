@@ -42,4 +42,3 @@ public abstract class BaseAccess implements ReadAccess {
       return Objects.hash(key);
    }
 }
-

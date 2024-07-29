@@ -12,7 +12,8 @@ public class IntVar implements Session.Var {
 
    public static IntVar[] newArray(Session session, int size) {
       IntVar[] array = new IntVar[size];
-      for (int i = 0; i < array.length; ++i) array[i] = new IntVar((SessionImpl) session);
+      for (int i = 0; i < array.length; ++i)
+         array[i] = new IntVar((SessionImpl) session);
       return array;
    }
 

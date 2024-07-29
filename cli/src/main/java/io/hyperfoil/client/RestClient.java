@@ -69,7 +69,8 @@ public class RestClient implements Client, Closeable {
    public void setPassword(String password) {
       if (password != null) {
          // server ignores username
-         authorization = "Basic " + Base64.getEncoder().encodeToString(("hyperfoil:" + password).getBytes(StandardCharsets.UTF_8));
+         authorization = "Basic "
+               + Base64.getEncoder().encodeToString(("hyperfoil:" + password).getBytes(StandardCharsets.UTF_8));
       } else {
          authorization = null;
       }
@@ -146,14 +147,15 @@ public class RestClient implements Client, Closeable {
       MultipartForm multipart = MultipartForm.create();
       multipart.textFileUpload("benchmark", "benchmark.yaml", Buffer.buffer(yaml), "text/vnd.yaml");
       for (var entry : otherFiles.entrySet()) {
-         multipart.binaryFileUpload(entry.getKey(), entry.getKey(), Buffer.buffer(entry.getValue()), "application/octet-stream");
+         multipart.binaryFileUpload(entry.getKey(), entry.getKey(), Buffer.buffer(entry.getValue()),
+               "application/octet-stream");
       }
       return multipartUpload(prevVersion, storedFilesBenchmark, multipart);
    }
 
    @Override
    public BenchmarkRef register(Path benchmarkFile, Map<String, Path> otherFiles, String prevVersion,
-                                String storedFilesBenchmark) {
+         String storedFilesBenchmark) {
       MultipartForm multipart = MultipartForm.create();
       multipart.textFileUpload("benchmark", "benchmark.yaml", benchmarkFile.toString(), "text/vnd.yaml");
       for (Map.Entry<String, Path> entry : otherFiles.entrySet()) {
@@ -384,7 +386,8 @@ public class RestClient implements Client, Closeable {
       }
    }
 
-   <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, int statusCode, Function<HttpResponse<Buffer>, T> f) {
+   <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, int statusCode,
+         Function<HttpResponse<Buffer>, T> f) {
       CompletableFuture<T> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
          try {

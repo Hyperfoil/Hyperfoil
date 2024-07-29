@@ -66,12 +66,14 @@ public class HttpDecodeSpaceTest extends BaseClientTest {
 
    @Test
    public void testComplexHttp1x(TestContext ctx) {
-      test(ctx, HTTP1x_ONLY, "/oidc/endpoint/OP/authorize me?client_id=nc4b29d8d4myasad9a9ptn9ossihjs1y&response_type=code&scope=openid email profile&redirect_uri=https://cp-console.mosss-f6522d190538f009b13c287376c6106d-0000.us-east.containers.appdomain.cloud:443/auth/liberty/callback&state=1611152679");
+      test(ctx, HTTP1x_ONLY,
+            "/oidc/endpoint/OP/authorize me?client_id=nc4b29d8d4myasad9a9ptn9ossihjs1y&response_type=code&scope=openid email profile&redirect_uri=https://cp-console.mosss-f6522d190538f009b13c287376c6106d-0000.us-east.containers.appdomain.cloud:443/auth/liberty/callback&state=1611152679");
    }
 
    @Test
    public void testComplexHttp2(TestContext ctx) {
-      test(ctx, HTTP2_ONLY, "/oidc/endpoint/OP/authorize me?client_id=nc4b29d8d4myasad9a9ptn9ossihjs1y&response_type=code&scope=openid email profile&redirect_uri=https://cp-console.mosss-f6522d190538f009b13c287376c6106d-0000.us-east.containers.appdomain.cloud:443/auth/liberty/callback&state=1611152679");
+      test(ctx, HTTP2_ONLY,
+            "/oidc/endpoint/OP/authorize me?client_id=nc4b29d8d4myasad9a9ptn9ossihjs1y&response_type=code&scope=openid email profile&redirect_uri=https://cp-console.mosss-f6522d190538f009b13c287376c6106d-0000.us-east.containers.appdomain.cloud:443/auth/liberty/callback&state=1611152679");
    }
 
    private void test(TestContext ctx, List<io.vertx.core.http.HttpVersion> serverVersions, String path) {

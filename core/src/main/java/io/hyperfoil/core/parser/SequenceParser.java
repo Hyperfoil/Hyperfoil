@@ -18,15 +18,15 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.ScenarioBuilder;
-import io.hyperfoil.api.config.SequenceBuilder;
-
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
+
+import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.ScenarioBuilder;
+import io.hyperfoil.api.config.SequenceBuilder;
 
 class SequenceParser implements Parser<ScenarioBuilder> {
    private final Supplier supplier;
@@ -47,7 +47,8 @@ class SequenceParser implements Parser<ScenarioBuilder> {
       ctx.expectEvent(MappingEndEvent.class);
    }
 
-   static SequenceBuilder parseSequence(Context ctx, String name, ScenarioBuilder scenario, Supplier supplier) throws ParserException {
+   static SequenceBuilder parseSequence(Context ctx, String name, ScenarioBuilder scenario, Supplier supplier)
+         throws ParserException {
       Event event = ctx.peek();
       if (event instanceof SequenceStartEvent) {
          SequenceBuilder sequence = supplier.get(scenario, name, null);

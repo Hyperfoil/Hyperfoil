@@ -104,8 +104,8 @@ class ControllerServer implements ApiService {
 
    private static final String BEARER_TOKEN;
 
-   private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
-         Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
+   private static final Comparator<ControllerPhase> PHASE_COMPARATOR = Comparator
+         .<ControllerPhase, Long> comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final BinaryOperator<Run> LAST_RUN_OPERATOR = (r1, r2) -> r1.id.compareTo(r2.id) > 0 ? r1 : r2;
    private static final String DATAKEY = "[/**DATAKEY**/]";
 
@@ -157,8 +157,10 @@ class ControllerServer implements ApiService {
       router.route("/favicon.ico").handler(FaviconHandler.create(controller.getVertx(), "webroot/favicon.ico"));
       new ApiRouter(this, router);
 
-      String controllerHost = Properties.get(Properties.CONTROLLER_HOST, controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));
-      int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT, controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
+      String controllerHost = Properties.get(Properties.CONTROLLER_HOST,
+            controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));
+      int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT,
+            controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
       WebCLI webCLI = new WebCLI(controller.getVertx());
       httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
             .webSocketHandler(webCLI)
@@ -208,7 +210,8 @@ class ControllerServer implements ApiService {
                .end(payload);
       } catch (IOException e) {
          log.error("Cannot read OpenAPI definition", e);
-         ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).setStatusMessage("Cannot read OpenAPI definition.").end();
+         ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+               .setStatusMessage("Cannot read OpenAPI definition.").end();
       }
    }
 
@@ -239,7 +242,8 @@ class ControllerServer implements ApiService {
       addBenchmark$text_vnd_yaml(ctx, ifMatch, storedFilesBenchmark);
    }
 
-   private void addBenchmarkAndReply(RoutingContext ctx, String source, BenchmarkData data, String prevVersion) throws ParserException {
+   private void addBenchmarkAndReply(RoutingContext ctx, String source, BenchmarkData data, String prevVersion)
+         throws ParserException {
       if (source == null || data == null) {
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark.");
          return;
@@ -300,8 +304,8 @@ class ControllerServer implements ApiService {
       if (loadDirProperty == null) {
          log.error("Loading controller local benchmarks is not enabled, set the {} property to enable.",
                Properties.LOAD_DIR);
-         ctx.response().setStatusCode(HttpResponseStatus.SERVICE_UNAVAILABLE.code()).
-               end("Loading controller local benchmarks is not enabled.");
+         ctx.response().setStatusCode(HttpResponseStatus.SERVICE_UNAVAILABLE.code())
+               .end("Loading controller local benchmarks is not enabled.");
          return;
       }
       var loadDirPath = Paths.get(loadDirProperty).toAbsolutePath();
@@ -337,7 +341,8 @@ class ControllerServer implements ApiService {
       var uri = uris.get(0);
       if (uri.getScheme() != null && !"file".equals(uri.getScheme())) {
          log.error("Unsupported URI scheme of {} specified, load failed.", uri.getScheme());
-         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(uri.getScheme() + " scheme URIs are not supported.");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+               .end(uri.getScheme() + " scheme URIs are not supported.");
          return;
       }
       var localPath = (uri.getScheme() == null ? Paths.get(uri.getPath()) : Paths.get(uri)).toAbsolutePath();
@@ -381,11 +386,13 @@ class ControllerServer implements ApiService {
 
    private void respondParsingError(RoutingContext ctx, Exception e) {
       log.error("Failed to read benchmark", e);
-      ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark: " + Util.explainCauses(e));
+      ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+            .end("Cannot read benchmark: " + Util.explainCauses(e));
    }
 
    @Override
-   public void addBenchmark$application_java_serialized_object(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
+   public void addBenchmark$application_java_serialized_object(RoutingContext ctx, String ifMatch,
+         String storedFilesBenchmark) {
       if (storedFilesBenchmark != null) {
          log.warn("Ignoring parameter useStoredData for serialized benchmark upload.");
       }
@@ -395,7 +402,8 @@ class ControllerServer implements ApiService {
          addBenchmarkAndReply(ctx, benchmark, ifMatch);
       } catch (IOException | ClassNotFoundException e) {
          log.error("Failed to deserialize", e);
-         StringBuilder message = new StringBuilder("Cannot read benchmark - the controller (server) version and CLI version are probably not in sync.\n");
+         StringBuilder message = new StringBuilder(
+               "Cannot read benchmark - the controller (server) version and CLI version are probably not in sync.\n");
          message.append("This partial stack-track might help you diagnose the problematic part:\n---\n");
          for (StackTraceElement ste : e.getStackTrace()) {
             message.append(ste).append('\n');
@@ -432,7 +440,8 @@ class ControllerServer implements ApiService {
          }
       }
       if (source == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Multi-part definition missing benchmark=source-file.yaml");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+               .end("Multi-part definition missing benchmark=source-file.yaml");
          return;
       }
       try {
@@ -522,7 +531,8 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId, List<String> templateParam, boolean validate) {
+   public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId,
+         List<String> templateParam, boolean validate) {
       Benchmark benchmark = controller.getBenchmark(name);
       if (benchmark == null) {
          BenchmarkSource template = controller.getTemplate(name);
@@ -676,7 +686,9 @@ class ControllerServer implements ApiService {
    @Override
    public void listRuns(RoutingContext ctx, boolean details) {
       io.hyperfoil.controller.model.Run[] runs = controller.runs().stream()
-            .map(r -> details ? runInfo(r, false) : new io.hyperfoil.controller.model.Run(r.id, null, null, null, r.cancelled, r.completed, null, null, null, null))
+            .map(r -> details ? runInfo(r, false)
+                  : new io.hyperfoil.controller.model.Run(r.id, null, null, null, r.cancelled, r.completed, null, null, null,
+                        null))
             .toArray(io.hyperfoil.controller.model.Run[]::new);
       respondWithJson(ctx, true, runs);
    }
@@ -728,7 +740,8 @@ class ControllerServer implements ApiService {
                         long totalDurationValue = phase.absoluteCompletionTime() - phase.absoluteStartTime();
                         totalDuration = new StringBuilder().append(totalDurationValue).append(" ms");
                         if (totalDurationValue > phase.definition().duration()) {
-                           totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration()).append(" ms)");
+                           totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration())
+                                 .append(" ms)");
                         }
                      }
                   }
@@ -743,7 +756,8 @@ class ControllerServer implements ApiService {
       List<io.hyperfoil.controller.model.Agent> agents = run.agents.stream()
             .map(ai -> new io.hyperfoil.controller.model.Agent(ai.name, ai.deploymentId, ai.status.toString()))
             .collect(Collectors.toList());
-      return new io.hyperfoil.controller.model.Run(run.id, benchmark, started, terminated, run.cancelled, run.completed, run.description, phases, agents,
+      return new io.hyperfoil.controller.model.Run(run.id, benchmark, started, terminated, run.cancelled, run.completed,
+            run.description, phases, agents,
             run.errors.stream().map(Run.Error::toString).collect(Collectors.toList()));
    }
 
@@ -769,7 +783,8 @@ class ControllerServer implements ApiService {
          if (result.succeeded()) {
             ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).end();
          } else {
-            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).setStatusMessage(result.cause().getMessage()).end();
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                  .setStatusMessage(result.cause().getMessage()).end();
          }
       }));
    }
@@ -778,7 +793,8 @@ class ControllerServer implements ApiService {
    public void createReport(RoutingContext ctx, String runId, String source) {
       withRun(ctx, runId, run -> {
          String template;
-         File templateFile = Path.of(Properties.get(Properties.DIST_DIR, "."), "templates", "report-template-v3.1.html").toFile();
+         File templateFile = Path.of(Properties.get(Properties.DIST_DIR, "."), "templates", "report-template-v3.1.html")
+               .toFile();
          if (templateFile.exists() && templateFile.isFile()) {
             try {
                template = Files.readString(templateFile.toPath(), StandardCharsets.UTF_8);
@@ -852,7 +868,8 @@ class ControllerServer implements ApiService {
       getSessionStats(ctx, runId, StatisticsStore::totalSessionPoolSummary);
    }
 
-   private void getSessionStats(RoutingContext ctx, String runId, Function<StatisticsStore, Map<String, Map<String, LowHigh>>> func) {
+   private void getSessionStats(RoutingContext ctx, String runId,
+         Function<StatisticsStore, Map<String, Map<String, LowHigh>>> func) {
       withStats(ctx, runId, run -> {
          Map<String, Map<String, LowHigh>> stats = func.apply(run.statisticsStore());
          JsonObject reply = new JsonObject();
@@ -862,14 +879,14 @@ class ControllerServer implements ApiService {
             JsonObject phaseStats = new JsonObject();
             reply.put(phase, phaseStats);
             addressStats.forEach((address, lowHigh) -> {
-               String agent = run.agents.stream().filter(a -> a.deploymentId.equals(address)).map(a -> a.name).findFirst().orElse("unknown");
+               String agent = run.agents.stream().filter(a -> a.deploymentId.equals(address)).map(a -> a.name).findFirst()
+                     .orElse("unknown");
                phaseStats.put(agent, new JsonObject().put("min", lowHigh.low).put("max", lowHigh.high));
             });
          }
          respondWithJson(ctx, reply);
       });
    }
-
 
    @Override
    public void listConnections(RoutingContext ctx, String runId) {
@@ -894,7 +911,8 @@ class ControllerServer implements ApiService {
       connectionStats(ctx, runId, StatisticsStore::totalConnectionsSummary);
    }
 
-   private void connectionStats(RoutingContext ctx, String runId, Function<StatisticsStore, Map<String, Map<String, LowHigh>>> mapper) {
+   private void connectionStats(RoutingContext ctx, String runId,
+         Function<StatisticsStore, Map<String, Map<String, LowHigh>>> mapper) {
       withStats(ctx, runId, run -> {
          Map<String, Map<String, LowHigh>> stats = mapper.apply(run.statisticsStore());
          JsonObject result = stats.entrySet().stream().collect(JsonObject::new,
@@ -905,7 +923,8 @@ class ControllerServer implements ApiService {
 
    private static JsonObject lowHighMapToJson(Map<String, LowHigh> map) {
       return map.entrySet().stream().collect(JsonObject::new,
-            (byType, e2) -> byType.put(e2.getKey(), new JsonObject().put("min", e2.getValue().low).put("max", e2.getValue().high)),
+            (byType, e2) -> byType.put(e2.getKey(),
+                  new JsonObject().put("min", e2.getValue().low).put("max", e2.getValue().high)),
             JsonObject::mergeIn);
    }
 
@@ -1146,7 +1165,8 @@ class ControllerServer implements ApiService {
 
    @Override
    public void shutdown(RoutingContext ctx, boolean force) {
-      List<Run> runs = controller.runs.values().stream().filter(run -> !run.terminateTime.future().isComplete()).collect(Collectors.toList());
+      List<Run> runs = controller.runs.values().stream().filter(run -> !run.terminateTime.future().isComplete())
+            .collect(Collectors.toList());
       if (force) {
          // We don't allow concurrent runs ATM, but...
          @SuppressWarnings("rawtypes")
@@ -1178,7 +1198,8 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getVersion(RoutingContext ctx) {
-      respondWithJson(ctx, true, new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID(), new Date()));
+      respondWithJson(ctx, true, new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID,
+            controller.deploymentID(), new Date()));
    }
 
    public void withBenchmark(RoutingContext ctx, String name, Consumer<Benchmark> consumer) {
@@ -1219,7 +1240,8 @@ class ControllerServer implements ApiService {
                ctx.response().setStatusCode(403).end();
             }
          } else {
-            ctx.response().setStatusCode(401).putHeader("WWW-Authenticate", "Basic realm=\"Hyperfoil\", charset=\"UTF-8\"").end();
+            ctx.response().setStatusCode(401).putHeader("WWW-Authenticate", "Basic realm=\"Hyperfoil\", charset=\"UTF-8\"")
+                  .end();
          }
       }
    }

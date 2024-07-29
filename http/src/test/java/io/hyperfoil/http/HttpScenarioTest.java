@@ -42,7 +42,8 @@ public abstract class HttpScenarioTest extends BaseScenarioTest {
    protected Future<Void> startServer(TestContext ctx, boolean tls, boolean compression) {
       HttpServerOptions options = new HttpServerOptions();
       if (tls) {
-         options.setSsl(true).setUseAlpn(true).setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
+         options.setSsl(true).setUseAlpn(true)
+               .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
       }
       if (compression) {
          options.setCompressionSupported(true);

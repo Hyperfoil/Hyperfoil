@@ -19,10 +19,10 @@ import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.function.SerializableFunction;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 
 public class Pattern implements SerializableFunction<Session, String>, SerializableBiConsumer<Session, ByteBuf>, Transformer {
@@ -41,7 +41,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       this.urlEncode = urlEncode;
       List<Component> components = new ArrayList<>();
       int last = 0, lastSearch = 0;
-      for (; ; ) {
+      for (;;) {
          int openPar = str.indexOf("${", lastSearch);
          if (openPar < 0) {
             String substring = str.substring(last);
@@ -73,9 +73,11 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   components.add(new VarComponent(key, allowUnset, Pattern::urlEncode));
                   // TODO: More efficient encoding/decoding: we're converting object to string, then to byte array and then allocating another string
                } else if (format.equalsIgnoreCase("base64encode")) {
-                  components.add(new VarComponent(key, allowUnset, s -> Base64.getEncoder().encodeToString(s.getBytes(StandardCharsets.UTF_8))));
+                  components.add(new VarComponent(key, allowUnset,
+                        s -> Base64.getEncoder().encodeToString(s.getBytes(StandardCharsets.UTF_8))));
                } else if (format.equalsIgnoreCase("base64decode")) {
-                  components.add(new VarComponent(key, allowUnset, s -> new String(Base64.getDecoder().decode(s), StandardCharsets.UTF_8)));
+                  components.add(new VarComponent(key, allowUnset,
+                        s -> new String(Base64.getDecoder().decode(s), StandardCharsets.UTF_8)));
                } else if (format.startsWith(REPLACE)) {
                   if (format.length() == REPLACE.length()) {
                      throw new BenchmarkDefinitionException(wrongReplaceSyntax(str, format));
@@ -86,7 +88,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   if (regexpEnd < 0 || replacementEnd < 0) {
                      throw new BenchmarkDefinitionException(wrongReplaceSyntax(str, format));
                   }
-                  java.util.regex.Pattern regex = java.util.regex.Pattern.compile(format.substring(REPLACE.length() + 1, regexpEnd));
+                  java.util.regex.Pattern regex = java.util.regex.Pattern
+                        .compile(format.substring(REPLACE.length() + 1, regexpEnd));
                   String replacement = format.substring(regexpEnd + 1, replacementEnd);
                   boolean all = false;
                   if (format.length() > replacementEnd + 1) {
@@ -94,7 +97,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                      if ("g".equals(flags)) {
                         all = true;
                      } else {
-                        throw new BenchmarkDefinitionException("Unknown flags '" + flags + "' in replace expression in '" + str + "'");
+                        throw new BenchmarkDefinitionException(
+                              "Unknown flags '" + flags + "' in replace expression in '" + str + "'");
                      }
                   }
                   if (all) {
@@ -306,7 +310,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
    }
 
    /**
-    * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
+    * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session
+    * variables.
     */
    @MetaInfServices(Transformer.Builder.class)
    @Name("pattern")
@@ -314,7 +319,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       public String pattern;
 
       /**
-       * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
+       * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing
+       * session variables.
        *
        * @param param The pattern formatting string.
        * @return Self.
@@ -325,7 +331,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       }
 
       /**
-       * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
+       * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing
+       * session variables.
        *
        * @param pattern The pattern formatting string.
        * @return Self.

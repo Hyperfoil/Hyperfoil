@@ -1,6 +1,5 @@
 package io.hyperfoil.clustering.messages;
 
-
 public class DelayStatsCompletionMessage extends StatsMessage {
    public final int phaseId;
    public final long delay;
@@ -11,5 +10,6 @@ public class DelayStatsCompletionMessage extends StatsMessage {
       this.delay = delay;
    }
 
-   public static class Codec extends ObjectCodec<DelayStatsCompletionMessage> {}
+   public static class Codec extends ObjectCodec<DelayStatsCompletionMessage> {
+   }
 }

@@ -21,11 +21,11 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import io.hyperfoil.api.collection.ElasticPool;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
+import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
@@ -82,7 +82,8 @@ public class SimulationRunner {
 
    public SimulationRunner(Benchmark benchmark, String runId, int agentId, Consumer<Throwable> errorHandler) {
       this.eventLoopGroup = EventLoopFactory.INSTANCE.create(benchmark.threads(agentId));
-      this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast).toArray(EventLoop[]::new);
+      this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast)
+            .toArray(EventLoop[]::new);
       this.benchmark = benchmark;
       this.runId = runId;
       this.agentId = agentId;
@@ -127,7 +128,8 @@ public class SimulationRunner {
                   this.sessions.add(session);
                   phaseSessions.add(session);
                }
-               session.attach(executors[executorId], threadData[executorId], agentData, globalData[executorId], statistics[executorId]);
+               session.attach(executors[executorId], threadData[executorId], agentData, globalData[executorId],
+                     statistics[executorId]);
                for (int i = 0; i < runData.length; ++i) {
                   runData[i].initSession(session, executorId, def.scenario, DEFAULT_CLOCK);
                }
@@ -164,7 +166,8 @@ public class SimulationRunner {
    }
 
    public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Handler<AsyncResult<Void>> handler) {
-      @SuppressWarnings("rawtypes") ArrayList<Future> futures = new ArrayList<>();
+      @SuppressWarnings("rawtypes")
+      ArrayList<Future> futures = new ArrayList<>();
       for (PluginRunData plugin : runData) {
          plugin.openConnections(blockingHandler, futures::add);
       }
@@ -193,7 +196,8 @@ public class SimulationRunner {
          long currentTimestamp = System.nanoTime();
          long delay = TimeUnit.NANOSECONDS.toMillis(currentTimestamp - lastTimestamp);
          if (delay > threshold) {
-            String message = String.format("%s | Jitter watchdog was not invoked for %d ms (threshold is %d ms); please check your GC settings.",
+            String message = String.format(
+                  "%s | Jitter watchdog was not invoked for %d ms (threshold is %d ms); please check your GC settings.",
                   new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), delay, threshold);
             log.error(message);
             errorHandler.accept(new BenchmarkExecutionException(message));
@@ -202,7 +206,8 @@ public class SimulationRunner {
       }
    }
 
-   protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+   protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded,
+         Throwable error) {
       if (!phase.isWarmup) {
          if (status == PhaseInstance.Status.RUNNING) {
             cpuWatchdog.notifyPhaseStart(phase.name);
@@ -211,7 +216,8 @@ public class SimulationRunner {
          }
       }
       if (status == PhaseInstance.Status.TERMINATED) {
-         return completePhase(phase).whenComplete((nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error != null ? error : e, globalCollector.extract()));
+         return completePhase(phase).whenComplete((nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded,
+               error != null ? error : e, globalCollector.extract()));
       } else {
          notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error, null);
          return Util.COMPLETED_VOID_FUTURE;
@@ -252,7 +258,8 @@ public class SimulationRunner {
       return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
    }
 
-   private void notifyAndScheduleForPruning(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error, Map<String, GlobalData.Element> globalData) {
+   private void notifyAndScheduleForPruning(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded,
+         Throwable error, Map<String, GlobalData.Element> globalData) {
       if (controllerListener != null) {
          controllerListener.onPhaseChange(phase, status, sessionLimitExceeded, error, globalData);
       }
@@ -420,7 +427,8 @@ public class SimulationRunner {
     * If the JVM arg {@link Properties#GC_CHECK} is set, it will also perform an additional check to ensure that the
     * GC actually occurred.
     *
-    * <p>Note: This method uses {@link ManagementFactory#getGarbageCollectorMXBeans()} to gather GC bean information
+    * <p>
+    * Note: This method uses {@link ManagementFactory#getGarbageCollectorMXBeans()} to gather GC bean information
     * and checks if at least one GC cycle has completed. It waits for the GC to stabilize within a maximum wait time.
     * If GC beans are not available, it waits pessimistically for a defined period after invoking {@code System.gc()}.
     * </p>

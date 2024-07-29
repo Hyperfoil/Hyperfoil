@@ -22,7 +22,8 @@ public class AgentDataImpl implements AgentData {
    public void pull(Session session, String name, ObjectAccess access) {
       Object obj = map.get(name);
       if (obj == null) {
-         session.fail(new BenchmarkExecutionException("Trying to pull global data '" + name + "' but it is not defined; maybe you need to synchronize phases with 'startAfterStrict'?"));
+         session.fail(new BenchmarkExecutionException("Trying to pull global data '" + name
+               + "' but it is not defined; maybe you need to synchronize phases with 'startAfterStrict'?"));
       }
       access.setObject(session, obj);
    }

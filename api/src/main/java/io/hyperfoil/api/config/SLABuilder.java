@@ -10,7 +10,7 @@ import io.hyperfoil.impl.Util;
  * Defines a Service Level Agreement (SLA) - conditions that must hold for benchmark to be deemed successful.
  */
 public class SLABuilder<P> implements BuilderBase<SLABuilder<P>> {
-   public static final SLA[] DEFAULT = new SLA[]{ new SLABuilder<>(null).build() };
+   public static final SLA[] DEFAULT = new SLA[] { new SLABuilder<>(null).build() };
    private final P parent;
    private long window = -1;
    private double errorRatio = 1.01; // 101% of errors allowed
@@ -54,7 +54,8 @@ public class SLABuilder<P> implements BuilderBase<SLABuilder<P>> {
    }
 
    /**
-    * Maximum allowed ratio of errors: connection failures or resets, timeouts and internal errors. Valid values are 0.0 - 1.0 (inclusive).
+    * Maximum allowed ratio of errors: connection failures or resets, timeouts and internal errors. Valid values are 0.0 - 1.0
+    * (inclusive).
     * Note: 4xx and 5xx statuses are NOT considered errors for this SLA parameter. Use <code>invalidRatio</code> for that.
     *
     * @param errorRatio Ratio.
@@ -77,7 +78,6 @@ public class SLABuilder<P> implements BuilderBase<SLABuilder<P>> {
       this.invalidRatio = invalidRatio;
       return this;
    }
-
 
    public SLABuilder<P> meanResponseTime(long meanResponseTime, TimeUnit timeUnit) {
       this.meanResponseTime = timeUnit.toNanos(meanResponseTime);
@@ -123,7 +123,7 @@ public class SLABuilder<P> implements BuilderBase<SLABuilder<P>> {
        * Use percentile (value between 0.0 and 1.0) as key and response time with unit (e.g. `ms`) in suffix as value.
        *
        * @param percentileStr Percentile (value between 0.0 and 1.0).
-       * @param responseTime  Response time threshold.
+       * @param responseTime Response time threshold.
        */
       @Override
       public void accept(String percentileStr, String responseTime) {

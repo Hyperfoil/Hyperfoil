@@ -30,7 +30,8 @@ public class TemplateStep implements Step {
    }
 
    /**
-    * Format <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> into session variable.
+    * Format <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> into session
+    * variable.
     */
    @MetaInfServices(StepBuilder.class)
    @Name("template")

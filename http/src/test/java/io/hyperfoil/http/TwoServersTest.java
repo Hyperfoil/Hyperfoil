@@ -98,7 +98,7 @@ public class TwoServersTest extends HttpScenarioTest {
       // A single step is enough.
       scenario().initialSequence("test")
             .step(SC).httpRequest(HttpMethod.GET)
-               .path("/test")
+            .path("/test")
             .endStep();
 
       // Fails to build since we haven't defined the authority for which server to utilize in the step.

@@ -6,8 +6,8 @@ import org.junit.rules.ExpectedException;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.api.config.PhaseReferenceDelay;
+import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.core.builders.StepCatalog;
 
 public class InvalidBenchmarkTest {

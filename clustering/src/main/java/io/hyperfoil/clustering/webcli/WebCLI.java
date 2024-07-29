@@ -58,7 +58,8 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String FILE_TRANSFER = "__HYPERFOIL_FILE_TRANSFER__";
    private static final long SESSION_TIMEOUT = 60000;
 
-   static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1, Util.daemonThreadFactory("webcli-timer"));
+   static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1,
+         Util.daemonThreadFactory("webcli-timer"));
 
    private final Vertx vertx;
    private final ConcurrentMap<String, WebCliContext> contextMap = new ConcurrentHashMap<>();

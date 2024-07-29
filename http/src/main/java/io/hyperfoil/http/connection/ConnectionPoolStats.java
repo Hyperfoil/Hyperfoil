@@ -3,12 +3,12 @@ package io.hyperfoil.http.connection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.Watermarks;
 import io.hyperfoil.http.api.HttpConnection;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 class ConnectionPoolStats {
    private static final Logger log = LogManager.getLogger(ConnectionPoolStats.class);

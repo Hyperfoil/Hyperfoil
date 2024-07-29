@@ -14,14 +14,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import io.hyperfoil.api.statistics.StatsExtension;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.core.util.LowHigh;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class CsvWriter {
    private static final Logger log = LogManager.getLogger(CsvWriter.class);
@@ -34,7 +34,8 @@ public class CsvWriter {
          throw new IOException("Cannot create directory " + dir);
       }
       Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
-      Arrays.sort(sorted, Comparator.comparing((Data d) -> d.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
+      Arrays.sort(sorted,
+            Comparator.comparing((Data d) -> d.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
 
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "total.csv")) {
          writer.print("Phase,Metric,Start,End,");
@@ -78,7 +79,8 @@ public class CsvWriter {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
             writer.print("Phase,Metric,Start,End,");
             StatisticsSummary.printHeader(writer, StatisticsStore.PERCENTILES);
-            String[] extensionHeaders = getHeaders(Stream.of(sorted).map(d -> d.perAgent.get(agent)).filter(Objects::nonNull).map(s -> s.extensions));
+            String[] extensionHeaders = getHeaders(
+                  Stream.of(sorted).map(d -> d.perAgent.get(agent)).filter(Objects::nonNull).map(s -> s.extensions));
             printExtensionHeaders(writer, extensionHeaders);
             writer.println(",MinSessions,MaxSessions");
             for (Data data : sorted) {
@@ -112,7 +114,8 @@ public class CsvWriter {
             }
          }
          for (Data data : sorted) {
-            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
+            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId
+                  + ".agent." + agent;
             writeHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
          }
       }
@@ -154,7 +157,8 @@ public class CsvWriter {
       }
       for (var targetEntry : store.connectionPoolStats.entrySet()) {
          for (var typeEntry : targetEntry.getValue().entrySet()) {
-            try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(targetEntry.getKey()) + "." + sanitize(typeEntry.getKey()) + ".connections.csv")) {
+            try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(targetEntry.getKey()) + "."
+                  + sanitize(typeEntry.getKey()) + ".connections.csv")) {
                writer.println("Timestamp,Agent,MinConnections,MaxConnections");
                WriterUtil.printInSync(typeEntry.getValue(), (agent, record) -> {
                   writer.print(record.timestamp);
@@ -169,7 +173,8 @@ public class CsvWriter {
          }
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "agentCpu.csv")) {
-         String[] cpuAgents = store.cpuUsage.values().stream().flatMap(agentMap -> agentMap.keySet().stream()).sorted().distinct().toArray(String[]::new);
+         String[] cpuAgents = store.cpuUsage.values().stream().flatMap(agentMap -> agentMap.keySet().stream()).sorted()
+               .distinct().toArray(String[]::new);
          writer.print("phase,");
          for (int i = 0; i < cpuAgents.length; ++i) {
             writer.print(cpuAgents[i]);
@@ -193,7 +198,8 @@ public class CsvWriter {
       return phase.replaceAll(File.separator, "_");
    }
 
-   private static void writeHistogramAndSeries(String filePrefix, StatisticsSnapshot total, List<StatisticsSummary> series) throws FileNotFoundException {
+   private static void writeHistogramAndSeries(String filePrefix, StatisticsSnapshot total, List<StatisticsSummary> series)
+         throws FileNotFoundException {
       if (total != null) {
          try (PrintStream stream = new PrintStream(new FileOutputStream(filePrefix + ".histogram.csv"))) {
             total.histogram.outputPercentileDistribution(stream, 5, 1000_000.0, true);
@@ -226,9 +232,9 @@ public class CsvWriter {
    }
 
    private static String[] getHeaders(Stream<? extends Map<String, StatsExtension>> extensions) {
-      return extensions.flatMap(ext ->
-            ext.entrySet().stream().flatMap(c ->
-                  Stream.of(c.getValue().headers()).map(h -> c.getKey() + "." + h)))
+      return extensions
+            .flatMap(
+                  ext -> ext.entrySet().stream().flatMap(c -> Stream.of(c.getValue().headers()).map(h -> c.getKey() + "." + h)))
             .sorted().distinct().toArray(String[]::new);
    }
 }

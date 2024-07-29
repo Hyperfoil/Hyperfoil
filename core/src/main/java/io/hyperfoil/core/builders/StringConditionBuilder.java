@@ -9,7 +9,8 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiPredicate;
 import io.hyperfoil.impl.Util;
 
-public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> implements InitFromParam<StringConditionBuilder<B, P>>, BuilderBase<B> {
+public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P>
+      implements InitFromParam<StringConditionBuilder<B, P>>, BuilderBase<B> {
    private final P parent;
    private CharSequence value;
    private boolean caseSensitive = true;
@@ -29,8 +30,8 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
       SerializableBiPredicate<Session, CharSequence> predicate = contentPredicate();
       if (length != null) {
          IntCondition.Predicate lengthPredicate = length.buildPredicate();
-         SerializableBiPredicate<Session, CharSequence> strLengthPredicate =
-               (session, string) -> lengthPredicate.test(session, string == null ? 0 : string.length());
+         SerializableBiPredicate<Session, CharSequence> strLengthPredicate = (session, string) -> lengthPredicate.test(session,
+               string == null ? 0 : string.length());
          if (predicate == null) {
             predicate = strLengthPredicate;
          } else {
@@ -113,7 +114,8 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
 
    private void ensureNotSet() {
       if (value != null || matchVar != null) {
-         throw new BenchmarkDefinitionException("Must set only one of: 'value'/'equalTo', 'notEqualTo', 'startsWith', 'endsWith' or 'matchVar'!");
+         throw new BenchmarkDefinitionException(
+               "Must set only one of: 'value'/'equalTo', 'notEqualTo', 'startsWith', 'endsWith' or 'matchVar'!");
       }
    }
 

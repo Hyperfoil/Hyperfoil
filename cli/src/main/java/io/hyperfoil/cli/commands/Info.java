@@ -6,8 +6,8 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 
 @CommandDefinition(name = "info", description = "Provides information about the benchmark.")
 public class Info extends BenchmarkCommand {

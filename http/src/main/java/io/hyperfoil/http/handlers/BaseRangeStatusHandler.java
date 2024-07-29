@@ -56,7 +56,8 @@ public abstract class BaseRangeStatusHandler implements StatusHandler {
                   for (int i = part.length() - 1; i >= 0; --i) {
                      if (part.charAt(i) == 'x') {
                         ++xn;
-                     } else break;
+                     } else
+                        break;
                   }
                   int value = Integer.parseInt(part.substring(0, part.length() - xn));
                   int mul = Util.pow(10, xn);
@@ -64,27 +65,32 @@ public abstract class BaseRangeStatusHandler implements StatusHandler {
                   high = (value + 1) * mul - 1;
                }
                if (low > high || low < 100 || high > 599) {
-                  throw new BenchmarkDefinitionException("Invalid status range " + low + "-" + high + " in '" + entry.getKey() + "'");
+                  throw new BenchmarkDefinitionException(
+                        "Invalid status range " + low + "-" + high + " in '" + entry.getKey() + "'");
                }
                T partValue = func.apply(entry.getValue());
                Integer floor = byLow.floorKey(low);
                if (floor == null) {
                   Integer ceiling = byLow.ceilingKey(low);
                   if (ceiling != null && ceiling <= high) {
-                     throw new BenchmarkDefinitionException("Overlapping ranges: " + low + "-" + high + " and " + ceiling + "-" + toHigh.get(ceiling));
+                     throw new BenchmarkDefinitionException(
+                           "Overlapping ranges: " + low + "-" + high + " and " + ceiling + "-" + toHigh.get(ceiling));
                   }
                   byLow.put(low, partValue);
                   toHigh.put(low, high);
                } else if (floor == low) {
-                  throw new BenchmarkDefinitionException("Overlapping ranges: " + low + "-" + high + " and " + floor + "-" + toHigh.get(floor));
+                  throw new BenchmarkDefinitionException(
+                        "Overlapping ranges: " + low + "-" + high + " and " + floor + "-" + toHigh.get(floor));
                } else {
                   Integer floorHigh = toHigh.get(floor);
                   if (floorHigh >= low) {
-                     throw new BenchmarkDefinitionException("Overlapping ranges: " + low + "-" + high + " and " + floor + "-" + floorHigh);
+                     throw new BenchmarkDefinitionException(
+                           "Overlapping ranges: " + low + "-" + high + " and " + floor + "-" + floorHigh);
                   }
                   Integer ceiling = byLow.ceilingKey(low);
                   if (ceiling != null && ceiling <= high) {
-                     throw new BenchmarkDefinitionException("Overlapping ranges: " + low + "-" + high + " and " + ceiling + "-" + toHigh.get(ceiling));
+                     throw new BenchmarkDefinitionException(
+                           "Overlapping ranges: " + low + "-" + high + " and " + ceiling + "-" + toHigh.get(ceiling));
                   }
                   byLow.put(low, partValue);
                   toHigh.put(low, high);

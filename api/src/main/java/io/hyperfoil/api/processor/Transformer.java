@@ -7,11 +7,13 @@ import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
 public interface Transformer extends Serializable {
-   default void before(Session session) {}
+   default void before(Session session) {
+   }
 
    void transform(Session session, ByteBuf in, int offset, int length, boolean lastFragment, ByteBuf out);
 
-   default void after(Session session) {}
+   default void after(Session session) {
+   }
 
    interface Builder extends BuilderBase<Builder> {
       Transformer build(boolean fragmented);

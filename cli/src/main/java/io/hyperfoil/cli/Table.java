@@ -159,7 +159,8 @@ public class Table<T> {
             ++i;
             while (i < str.length()) {
                char c = str.charAt(i);
-               if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') break;
+               if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z')
+                  break;
                ++i;
             }
          } else {
@@ -169,11 +170,14 @@ public class Table<T> {
       return width;
    }
 
-   private int print(HyperfoilCommandInvocation invocation, List<String> titles, List<String> prefixes, List<String[]> values, List<String> suffixes, List<Align> aligns, int[] width) {
+   private int print(HyperfoilCommandInvocation invocation, List<String> titles, List<String> prefixes, List<String[]> values,
+         List<String> suffixes, List<Align> aligns, int[] width) {
       StringBuilder sb = new StringBuilder();
       int lines = 0;
-      int prefixLength = prefixes == null ? 0 : prefixes.stream().filter(Objects::nonNull).mapToInt(Table::width).max().orElse(0);
-      int suffixLength = prefixes == null ? 0 : prefixes.stream().filter(Objects::nonNull).mapToInt(Table::width).max().orElse(0);
+      int prefixLength = prefixes == null ? 0
+            : prefixes.stream().filter(Objects::nonNull).mapToInt(Table::width).max().orElse(0);
+      int suffixLength = prefixes == null ? 0
+            : prefixes.stream().filter(Objects::nonNull).mapToInt(Table::width).max().orElse(0);
       int totalWidth = IntStream.of(width).map(w -> w + 2).sum() - 2;
       int maxWidth = invocation.getShell().size().getWidth() - prefixLength - suffixLength;
       boolean multiline = totalWidth > maxWidth;

@@ -7,8 +7,8 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.clustering.Codecs;
 import io.hyperfoil.clustering.ControllerVerticle;
-import io.hyperfoil.internal.Properties;
 import io.hyperfoil.internal.Controller;
+import io.hyperfoil.internal.Properties;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;

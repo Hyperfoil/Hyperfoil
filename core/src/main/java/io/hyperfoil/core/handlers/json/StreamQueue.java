@@ -3,8 +3,8 @@ package io.hyperfoil.core.handlers.json;
 import java.io.Serializable;
 import java.util.Arrays;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This serves as an abstraction over several {@link ByteStream bytestreams} so that users can just append
@@ -67,7 +67,7 @@ public class StreamQueue {
       while (index < userIndex[i]) {
          i = (i + mask) & mask;
          if (i == end || parts[i] == null) {
-//            throw new IndexOutOfBoundsException("Underflowing the queue with index " + index);
+            //            throw new IndexOutOfBoundsException("Underflowing the queue with index " + index);
             return -1;
          }
       }
@@ -96,7 +96,7 @@ public class StreamQueue {
       while (startIndex < userIndex[i]) {
          i = (i + mask) & mask;
          if (i == end || parts[i] == null) {
-//            throw new IndexOutOfBoundsException("Underflowing the queue with index " + index);
+            //            throw new IndexOutOfBoundsException("Underflowing the queue with index " + index);
             ++i;
             break;
          }

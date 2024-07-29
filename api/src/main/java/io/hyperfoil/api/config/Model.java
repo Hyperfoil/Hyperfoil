@@ -91,7 +91,7 @@ public interface Model extends Serializable {
       public final double targetUsersPerSec;
 
       public RampRate(double initialUsersPerSec, double targetUsersPerSec,
-                      boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
+            boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
          super(variance, maxSessions, sessionLimitPolicy);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;

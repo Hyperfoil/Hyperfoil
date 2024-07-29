@@ -31,8 +31,8 @@ import java.util.List;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpVersion;
+import io.hyperfoil.impl.Util;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -149,7 +149,6 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
       this.port = port;
       return this;
    }
-
 
    public HttpBuilder allowHttp1x(boolean allowHttp1x) {
       this.allowHttp1x = allowHttp1x;

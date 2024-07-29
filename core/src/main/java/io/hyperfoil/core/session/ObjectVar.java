@@ -8,7 +8,8 @@ public class ObjectVar implements Session.Var {
 
    public static ObjectVar[] newArray(Session session, int size) {
       ObjectVar[] array = new ObjectVar[size];
-      for (int i = 0; i < array.length; ++i) array[i] = new ObjectVar((SessionImpl) session);
+      for (int i = 0; i < array.length; ++i)
+         array[i] = new ObjectVar((SessionImpl) session);
       return array;
    }
 

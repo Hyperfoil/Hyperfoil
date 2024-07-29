@@ -1,13 +1,13 @@
 package io.hyperfoil.http;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.http.api.HttpRequest;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
    private static final Logger log = LogManager.getLogger(HttpRequestPool.class);
@@ -62,7 +62,8 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
             if (!request.isCompleted()) {
                // Connection.close() cancels everything in flight but if this is called
                // from handleEnd() the request is not in flight anymore
-               log.trace("#{} Connection close did not complete the request.", request.session != null ? request.session.uniqueId() : 0);
+               log.trace("#{} Connection close did not complete the request.",
+                     request.session != null ? request.session.uniqueId() : 0);
                request.setCompleted();
                request.release();
             }

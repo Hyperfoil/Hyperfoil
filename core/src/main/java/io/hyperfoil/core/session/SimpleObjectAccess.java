@@ -18,7 +18,8 @@ class SimpleObjectAccess extends SimpleReadAccess implements ObjectAccess {
       } else if (existing instanceof ObjectVar) {
          return existing;
       } else {
-         throw new BenchmarkDefinitionException("Variable " + key + " should hold an object but it is defined to hold an integer elsewhere.");
+         throw new BenchmarkDefinitionException(
+               "Variable " + key + " should hold an object but it is defined to hold an integer elsewhere.");
       }
    }
 

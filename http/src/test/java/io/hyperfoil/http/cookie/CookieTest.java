@@ -8,9 +8,9 @@ import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.Cookie;
 import io.vertx.ext.unit.junit.VertxUnitRunner;

@@ -25,5 +25,4 @@ public class PoissonConstantRateGeneratorTest extends RateGeneratorTest {
       kolmogorovSmirnovTestVsExpDistr(interArrivalTimes, SEED, 1.0);
    }
 
-
 }

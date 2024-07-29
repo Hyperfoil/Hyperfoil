@@ -24,7 +24,15 @@ import io.hyperfoil.function.SerializableFunction;
 
 public enum HttpMethod {
 
-   GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, CONNECT;
+   GET,
+   HEAD,
+   POST,
+   PUT,
+   DELETE,
+   OPTIONS,
+   PATCH,
+   TRACE,
+   CONNECT;
 
    public final io.netty.handler.codec.http.HttpMethod netty;
 

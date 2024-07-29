@@ -8,21 +8,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class HtmlHandler implements Processor, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
    private static final Logger log = LogManager.getLogger(HtmlHandler.class);
@@ -305,11 +304,11 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * Since there's no buffering the element name might be only partial - check the <code>isLast</code> parameter.
        *
        * @param session Current session.
-       * @param close   Is it the closing (&lt;/foo&gt;) form?
-       * @param data    Buffer with element name.
-       * @param offset  Starting index in the buffer.
-       * @param length  Number of bytes in the buffer that contain the name.
-       * @param isLast  True if the element name is complete.
+       * @param close Is it the closing (&lt;/foo&gt;) form?
+       * @param data Buffer with element name.
+       * @param offset Starting index in the buffer.
+       * @param length Number of bytes in the buffer that contain the name.
+       * @param isLast True if the element name is complete.
        */
       // TODO: this API does not inform if the element is self-closing! Make close into enum
       void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast);

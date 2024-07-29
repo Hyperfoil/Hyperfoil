@@ -34,10 +34,9 @@ import io.hyperfoil.controller.model.Run;
 import io.hyperfoil.impl.Util;
 
 public abstract class ServerCommand implements Command<HyperfoilCommandInvocation> {
-   protected static final String MOVE_LINE_UP = new String(new byte[]{ 27, 91, 49, 65 }, StandardCharsets.US_ASCII);
-   protected static final String ERASE_WHOLE_LINE = new String(new byte[]{ 27, 91, 50, 75 }, StandardCharsets.US_ASCII);
+   protected static final String MOVE_LINE_UP = new String(new byte[] { 27, 91, 49, 65 }, StandardCharsets.US_ASCII);
+   protected static final String ERASE_WHOLE_LINE = new String(new byte[] { 27, 91, 50, 75 }, StandardCharsets.US_ASCII);
    protected static final String EDITOR;
-
 
    static {
       String editor = System.getenv("VISUAL");
@@ -82,7 +81,8 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       connect(invocation, false, "localhost", 8090, false, false, null);
    }
 
-   protected void connect(HyperfoilCommandInvocation invocation, boolean quiet, String host, int port, boolean ssl, boolean insecure, String password) throws CommandException {
+   protected void connect(HyperfoilCommandInvocation invocation, boolean quiet, String host, int port, boolean ssl,
+         boolean insecure, String password) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
       ctx.setClient(new RestClient(ctx.vertx(), host, port, ssl, insecure, password));
       if (ssl && insecure) {
@@ -91,7 +91,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       try {
          long preMillis, postMillis;
          io.hyperfoil.controller.model.Version version;
-         for (; ; ) {
+         for (;;) {
             try {
                preMillis = System.currentTimeMillis();
                version = ctx.client().version();
@@ -122,11 +122,14 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
             invocation.println("Connected to " + host + ":" + port + "!");
          }
          ctx.setOnline(true);
-         if (!quiet && version.serverTime != null && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {
-            invocation.warn("Controller time seems to be off by " + (postMillis + preMillis - 2 * version.serverTime.getTime()) / 2 + " ms");
+         if (!quiet && version.serverTime != null
+               && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {
+            invocation.warn("Controller time seems to be off by "
+                  + (postMillis + preMillis - 2 * version.serverTime.getTime()) / 2 + " ms");
          }
          if (!quiet && !Objects.equals(version.commitId, io.hyperfoil.api.Version.COMMIT_ID)) {
-            invocation.warn("Controller version is different from CLI version. Benchmark upload may fail due to binary incompatibility.");
+            invocation.warn(
+                  "Controller version is different from CLI version. Benchmark upload may fail due to binary incompatibility.");
          }
          String shortHost = host;
          if (host.equals(invocation.context().localControllerHost()) && port == invocation.context().localControllerPort()) {
@@ -152,7 +155,8 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
                }
             } catch (RestClientException e) {
                if (ctx.online()) {
-                  invocation.print("\n" + ANSI.YELLOW_TEXT + ANSI.BOLD + "WARNING: controller seems offline." + ANSI.RESET + "\n");
+                  invocation
+                        .print("\n" + ANSI.YELLOW_TEXT + ANSI.BOLD + "WARNING: controller seems offline." + ANSI.RESET + "\n");
                   ctx.setOnline(false);
                }
             }
@@ -212,7 +216,9 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
    }
 
    protected boolean interruptibleDelay(HyperfoilCommandInvocation invocation) {
-      invocation.println("Press [" + bold("s") + "] for status, [" + bold("t") + "] for stats, [" + bold("e") + "] for sessions, [" + bold("c") + "] for connections or " + invocation.context().interruptKey() + " to stop watching...");
+      invocation
+            .println("Press [" + bold("s") + "] for status, [" + bold("t") + "] for stats, [" + bold("e") + "] for sessions, ["
+                  + bold("c") + "] for connections or " + invocation.context().interruptKey() + " to stop watching...");
       try {
          KeyAction action = invocation.input(1, TimeUnit.SECONDS);
          if (action != null) {
@@ -260,7 +266,8 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
    }
 
    protected void failMissingRunId(HyperfoilCommandInvocation invocation) throws CommandException {
-      invocation.println("Command '" + getClass().getSimpleName().toLowerCase() + "' requires run ID as argument! Available runs:");
+      invocation
+            .println("Command '" + getClass().getSimpleName().toLowerCase() + "' requires run ID as argument! Available runs:");
       List<Run> runs = invocation.context().client().runs(false);
       printList(invocation, runs.stream().map(r -> r.id).sorted(Comparator.reverseOrder()).collect(Collectors.toList()), 15);
       throw new CommandException("Cannot run command without run ID.");
@@ -268,7 +275,8 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
 
    protected void printTemplateParams(HyperfoilCommandInvocation invocation, Map<String, String> params) {
       Table<ParamRow> table = new Table<>();
-      table.column("NAME", row -> row.name).column("DEFAULT", row -> row.defaultValue).column("CURRENT (CONTEXT)", row -> row.currentValue);
+      table.column("NAME", row -> row.name).column("DEFAULT", row -> row.defaultValue).column("CURRENT (CONTEXT)",
+            row -> row.currentValue);
       Map<String, String> current = invocation.context().currentParams();
       table.print(invocation, params.entrySet().stream()
             .map(entry -> {

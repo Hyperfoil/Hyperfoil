@@ -9,18 +9,18 @@ import javax.net.ssl.SSLException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.http.api.HttpConnectionPool;
-import io.hyperfoil.http.config.HttpBuilder;
-import io.hyperfoil.http.config.Protocol;
-import io.hyperfoil.http.api.HttpClientPool;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.http.api.HttpResponseHandlers;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.http.api.HttpClientPool;
+import io.hyperfoil.http.api.HttpConnectionPool;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.api.HttpResponseHandlers;
+import io.hyperfoil.http.config.HttpBuilder;
+import io.hyperfoil.http.config.Protocol;
+import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -104,9 +104,10 @@ public class CertificatesTest {
       test(context, true, server -> {
          try {
             HttpClientPool client = client(server.actualPort(), builder -> builder
-                    .trustManager().storeFile("keystore.jks").password("test123").end()
-                    .keyManager().storeFile("bad.jks").password("test123"));
-            client.start(context.asyncAssertSuccess(nil -> sendPingAndFailIfReceiveAnyStatus(context, server, client, context.async())));
+                  .trustManager().storeFile("keystore.jks").password("test123").end()
+                  .keyManager().storeFile("bad.jks").password("test123"));
+            client.start(context
+                  .asyncAssertSuccess(nil -> sendPingAndFailIfReceiveAnyStatus(context, server, client, context.async())));
          } catch (SSLException e) {
             context.fail(e);
          }
@@ -121,9 +122,10 @@ public class CertificatesTest {
                   .keyManager().certFile("clientcert.pem").keyFile("clientkey.pem").password("test123")));
    }
 
-   private void test(TestContext context, boolean requireClientTrust, Handler<HttpServer> handler, Set<String> enabledSecureTransportProtocols) {
+   private void test(TestContext context, boolean requireClientTrust, Handler<HttpServer> handler,
+         Set<String> enabledSecureTransportProtocols) {
       HttpServerOptions serverOptions = new HttpServerOptions().setSsl(true)
-              .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
+            .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
       if (requireClientTrust) {
          serverOptions.setClientAuth(ClientAuth.REQUIRED);
          if (enabledSecureTransportProtocols != null) {
@@ -132,7 +134,7 @@ public class CertificatesTest {
          serverOptions.setTrustStoreOptions(new JksOptions().setPath("client.jks").setPassword("test123"));
       }
       Vertx.vertx().createHttpServer(serverOptions).requestHandler(ctx -> ctx.response().end())
-              .listen(0, "localhost", context.asyncAssertSuccess(handler));
+            .listen(0, "localhost", context.asyncAssertSuccess(handler));
    }
 
    private void test(TestContext context, boolean requireClientTrust, Handler<HttpServer> handler) {
@@ -150,11 +152,13 @@ public class CertificatesTest {
       }
    }
 
-   private static void sendPingAndFailIfReceiveAnyStatus(TestContext context, HttpServer server, HttpClientPool client, Async async) {
+   private static void sendPingAndFailIfReceiveAnyStatus(TestContext context, HttpServer server, HttpClientPool client,
+         Async async) {
       sendPingAndReceiveStatus(context, server, client, async, null);
    }
 
-   private static void sendPingAndReceiveStatus(TestContext context, HttpServer server, HttpClientPool client, Async async, Integer expectedStatus) {
+   private static void sendPingAndReceiveStatus(TestContext context, HttpServer server, HttpClientPool client, Async async,
+         Integer expectedStatus) {
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
       HttpRequest request = HttpRequestPool.get(session).acquire();

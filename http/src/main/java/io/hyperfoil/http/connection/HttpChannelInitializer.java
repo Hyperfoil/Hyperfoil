@@ -3,6 +3,7 @@ package io.hyperfoil.http.connection;
 import java.io.IOException;
 import java.util.function.BiConsumer;
 
+import io.hyperfoil.http.api.HttpConnection;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -19,7 +20,6 @@ import io.netty.handler.codec.http2.DefaultHttp2Connection;
 import io.netty.handler.codec.http2.Http2ClientUpgradeCodec;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
-import io.hyperfoil.http.api.HttpConnection;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslMasterKeyHandler;
 import io.netty.util.internal.SystemPropertyUtil;
@@ -28,7 +28,8 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
    private final HttpClientPoolImpl clientPool;
    private final BiConsumer<HttpConnection, Throwable> handler;
    private final Http2ConnectionHandlerBuilder http2ConnectionHandlerBuilder;
-   private final ApplicationProtocolNegotiationHandler alpnHandler = new ApplicationProtocolNegotiationHandler(ApplicationProtocolNames.HTTP_1_1) {
+   private final ApplicationProtocolNegotiationHandler alpnHandler = new ApplicationProtocolNegotiationHandler(
+         ApplicationProtocolNames.HTTP_1_1) {
       @Override
       protected void configurePipeline(ChannelHandlerContext ctx, String protocol) {
          ChannelPipeline p = ctx.pipeline();
@@ -54,7 +55,8 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
    HttpChannelInitializer(HttpClientPoolImpl clientPool, BiConsumer<HttpConnection, Throwable> handler) {
       this.clientPool = clientPool;
       this.handler = handler;
-      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(clientPool, clientPool.sslContext == null, handler);
+      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(clientPool, clientPool.sslContext == null,
+            handler);
    }
 
    @Override
@@ -65,7 +67,7 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
          SslHandler sslHandler = clientPool.sslContext.newHandler(ch.alloc(), clientPool.host, clientPool.port);
          if (logMasterKey) {
             // the handler works only with TLSv1.2: https://github.com/netty/netty/issues/10957
-            sslHandler.engine().setEnabledProtocols(new String[]{ "TLSv1.2" });
+            sslHandler.engine().setEnabledProtocols(new String[] { "TLSv1.2" });
          }
          pipeline.addLast(sslHandler);
          pipeline.addLast(alpnHandler);

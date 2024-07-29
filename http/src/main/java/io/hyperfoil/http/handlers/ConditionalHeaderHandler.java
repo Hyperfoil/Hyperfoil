@@ -5,9 +5,9 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.core.builders.Condition;
+import io.hyperfoil.http.api.HeaderHandler;
+import io.hyperfoil.http.api.HttpRequest;
 
 public class ConditionalHeaderHandler extends BaseDelegatingHeaderHandler {
    private final Condition condition;

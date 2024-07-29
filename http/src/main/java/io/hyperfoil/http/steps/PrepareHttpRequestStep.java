@@ -2,6 +2,9 @@ package io.hyperfoil.http.steps;
 
 import java.util.Arrays;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -16,9 +19,6 @@ import io.hyperfoil.http.api.HttpDestinationTable;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.HttpRequest;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUtilizer {
    private static final Logger log = LogManager.getLogger(PrepareHttpRequestStep.class);
 
@@ -31,12 +31,12 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
    final HttpResponseHandlersImpl handler;
 
    public PrepareHttpRequestStep(int stepId, HttpRequestContext.Key contextKey,
-                                 SerializableFunction<Session, HttpMethod> method,
-                                 SerializableFunction<Session, String> endpoint,
-                                 SerializableFunction<Session, String> authority,
-                                 SerializableFunction<Session, String> pathGenerator,
-                                 MetricSelector metricSelector,
-                                 HttpResponseHandlersImpl handler) {
+         SerializableFunction<Session, HttpMethod> method,
+         SerializableFunction<Session, String> endpoint,
+         SerializableFunction<Session, String> authority,
+         SerializableFunction<Session, String> pathGenerator,
+         MetricSelector metricSelector,
+         HttpResponseHandlersImpl handler) {
       super(stepId);
       this.contextKey = contextKey;
       this.method = method;
@@ -82,8 +82,8 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
             return false;
          }
          request.authority = connectionPool.clientPool().authority();
-         String metric = destinations.hasSingleDestination() ?
-               metricSelector.apply(null, request.path) : metricSelector.apply(request.authority, request.path);
+         String metric = destinations.hasSingleDestination() ? metricSelector.apply(null, request.path)
+               : metricSelector.apply(request.authority, request.path);
          Statistics statistics = session.statistics(id(), metric);
          request.start(connectionPool, handler, session.currentSequence(), statistics);
          connectionPool.acquire(false, context);
@@ -101,7 +101,8 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
       return true;
    }
 
-   private HttpConnectionPool getConnectionPool(Session session, HttpDestinationTable destinations, String path, boolean isHttp, boolean isUrl) {
+   private HttpConnectionPool getConnectionPool(Session session, HttpDestinationTable destinations, String path, boolean isHttp,
+         boolean isUrl) {
       String endpoint = this.endpoint == null ? null : this.endpoint.apply(session);
       if (endpoint != null) {
          HttpConnectionPool connectionPool = destinations.getConnectionPoolByName(endpoint);
@@ -125,7 +126,8 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
       HttpConnectionPool connectionPool = destinations.getConnectionPoolByAuthority(authority);
       if (connectionPool == null) {
          if (authority == null) {
-            throw new IllegalStateException("There is no default authority and it was not set neither explicitly nor through URL in path.");
+            throw new IllegalStateException(
+                  "There is no default authority and it was not set neither explicitly nor through URL in path.");
          } else {
             throw new IllegalStateException("There is no connection pool with authority '" + authority +
                   "', available pools are: " + Arrays.asList(destinations.authorities()));

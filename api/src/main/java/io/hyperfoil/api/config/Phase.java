@@ -36,7 +36,10 @@ public final class Phase implements Serializable {
    public final Map<String, SLA[]> customSlas;
    public final StartWithDelay startWithDelay;
 
-   public Phase(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, boolean isWarmup, Model model, Map<String, SLA[]> customSlas, StartWithDelay startWithDelay) {
+   public Phase(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario,
+         long startTime, Collection<String> startAfter, Collection<String> startAfterStrict,
+         Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, boolean isWarmup,
+         Model model, Map<String, SLA[]> customSlas, StartWithDelay startWithDelay) {
       this.benchmark = benchmark;
       this.id = id;
       this.iteration = iteration;
@@ -73,7 +76,7 @@ public final class Phase implements Serializable {
 
    /**
     * @return Start time in milliseconds after benchmark start, or negative value if the phase should start immediately
-    * after its dependencies ({@link #startAfter()} and {@link #startAfterStrict()} are satisfied.
+    *         after its dependencies ({@link #startAfter()} and {@link #startAfterStrict()} are satisfied.
     */
    public long startTime() {
       return startTime;
@@ -109,7 +112,7 @@ public final class Phase implements Serializable {
 
    /**
     * @return Duration in milliseconds over which user sessions can run. After this time no more requests are allowed
-    * and the phase should terminate.
+    *         and the phase should terminate.
     */
    public long maxDuration() {
       return maxDuration;
@@ -125,7 +128,7 @@ public final class Phase implements Serializable {
 
    /**
     * @return Start with delay object defining the phase to which it is coupled, the current phase will start after a
-    * fixed time (delay) from the start of the coupled phase.
+    *         fixed time (delay) from the start of the coupled phase.
     */
    public StartWithDelay startWithDelay() {
       return startWithDelay;
@@ -133,6 +136,7 @@ public final class Phase implements Serializable {
 
    /**
     * Compute and return all phase's dependencies
+    *
     * @return list of phase names
     */
    public Collection<String> getDependencies() {

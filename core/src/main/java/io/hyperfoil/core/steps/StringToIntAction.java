@@ -1,5 +1,7 @@
 package io.hyperfoil.core.steps;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -10,9 +12,6 @@ import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class StringToIntAction implements Action {
    private static final Logger log = LogManager.getLogger(StringToIntAction.class);
@@ -96,7 +95,8 @@ public class StringToIntAction implements Action {
          if (fromVar == null || toVar == null) {
             throw new BenchmarkDefinitionException("Must set both `fromVar` and `toVar`.");
          } else if (fromVar.equals(toVar)) {
-            throw new BenchmarkDefinitionException("Variable type is set statically; cannot use the same variable for both `fromVar` and `toVar`.");
+            throw new BenchmarkDefinitionException(
+                  "Variable type is set statically; cannot use the same variable for both `fromVar` and `toVar`.");
          } else {
             return new StringToIntAction(SessionFactory.readAccess(fromVar), SessionFactory.intAccess(toVar));
          }

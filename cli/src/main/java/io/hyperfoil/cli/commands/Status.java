@@ -10,8 +10,8 @@ import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Phase;
 
 @CommandDefinition(name = "status", description = "Prints information about executing or completed run.")
@@ -48,11 +48,12 @@ public class Status extends BaseRunIdCommand {
       if (run.description != null) {
          invocation.println(run.description);
       }
-      for (; ; ) {
+      for (;;) {
          int lines = 0;
          if (run.agents != null && !run.agents.isEmpty()) {
             invocation.print("Agents: ");
-            invocation.println(String.join(", ", run.agents.stream().map(a -> a.name + "[" + a.status + "]").toArray(String[]::new)));
+            invocation.println(
+                  String.join(", ", run.agents.stream().map(a -> a.name + "[" + a.status + "]").toArray(String[]::new)));
             ++lines;
          }
          if (run.started != null) {

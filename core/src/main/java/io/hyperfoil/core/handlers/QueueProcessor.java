@@ -10,8 +10,8 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -30,7 +30,8 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
    private final Action onCompletion;
    private final Session.ResourceKey<Queue> key;
 
-   public QueueProcessor(Session.ResourceKey<Queue> key, ObjectAccess var, int maxSize, DataFormat format, String sequence, int concurrency, Action onCompletion) {
+   public QueueProcessor(Session.ResourceKey<Queue> key, ObjectAccess var, int maxSize, DataFormat format, String sequence,
+         int concurrency, Action onCompletion) {
       this.key = key;
       this.var = var;
       this.maxSize = maxSize;
@@ -205,7 +206,8 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
             throw new BenchmarkDefinitionException("Maximum size for queue to " + var + " must be set!");
          }
          Action completionAction = onCompletion == null ? null : onCompletion.build();
-         QueueProcessor processor = new QueueProcessor(key, varAccess, maxSize, format, sequenceBuilder.name(), concurrency, completionAction);
+         QueueProcessor processor = new QueueProcessor(key, varAccess, maxSize, format, sequenceBuilder.name(), concurrency,
+               completionAction);
          return fragmented ? new DefragProcessor(processor) : processor;
       }
    }

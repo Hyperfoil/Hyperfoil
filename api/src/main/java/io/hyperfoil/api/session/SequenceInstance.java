@@ -2,13 +2,13 @@ package io.hyperfoil.api.session;
 
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
+
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.FormattedMessage;
 
 public class SequenceInstance {
    private static final Logger log = LogManager.getLogger(SequenceInstance.class);
@@ -32,10 +32,12 @@ public class SequenceInstance {
          try {
             if (!step.invoke(session)) {
                if (trace) {
-                  log.trace("#{} {}[{}] step {} is blocked", session.uniqueId(), sequence.name(), index, StepBuilder.nameOf(step));
+                  log.trace("#{} {}[{}] step {} is blocked", session.uniqueId(), sequence.name(), index,
+                        StepBuilder.nameOf(step));
                }
                if (currentStep >= steps.length) {
-                  log.warn("#{} Last step reported being blocked but it has also interrupted the sequence.", session.uniqueId());
+                  log.warn("#{} Last step reported being blocked but it has also interrupted the sequence.",
+                        session.uniqueId());
                }
                return progressed;
             }
@@ -123,7 +125,8 @@ public class SequenceInstance {
       assert refCnt > 0;
       if (--refCnt == 0) {
          if (trace) {
-            log.trace("#{} Releasing sequence {}[{}]", session.uniqueId(), sequence == null ? "<noseq>" : sequence.name(), index);
+            log.trace("#{} Releasing sequence {}[{}]", session.uniqueId(), sequence == null ? "<noseq>" : sequence.name(),
+                  index);
          }
          if (releaseHandler != null) {
             releaseHandler.accept(this);

@@ -60,7 +60,8 @@ class StartAfterParser implements Parser<PhaseBuilder<?>> {
 
       MappingParser() {
          register("phase", new PropertyParser.String<>((ms, value) -> ms.phase = value));
-         register("iteration", new PropertyParser.String<>((ms, value) -> ms.iteration = RelativeIteration.valueOf(value.toUpperCase())));
+         register("iteration",
+               new PropertyParser.String<>((ms, value) -> ms.iteration = RelativeIteration.valueOf(value.toUpperCase())));
          register("fork", new PropertyParser.String<>((ms, value) -> ms.fork = value));
       }
    }

@@ -5,6 +5,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.SessionStatistics;
@@ -13,9 +16,6 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.CountDown;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class StatisticsCollector implements Consumer<SessionStatistics> {
    private static final Logger log = LogManager.getLogger(StatisticsCollector.class);
@@ -57,17 +57,20 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
    }
 
    public void visitStatistics(StatisticsConsumer consumer, CountDown countDown) {
-      for (Iterator<Map.Entry<Integer, Map<String, IntObjectMap<StatisticsSnapshot>>>> it1 = aggregated.entrySet().iterator(); it1.hasNext(); ) {
+      for (Iterator<Map.Entry<Integer, Map<String, IntObjectMap<StatisticsSnapshot>>>> it1 = aggregated.entrySet()
+            .iterator(); it1.hasNext();) {
          Map.Entry<Integer, Map<String, IntObjectMap<StatisticsSnapshot>>> entry = it1.next();
          int phaseAndStepId = entry.getKey();
          Map<String, IntObjectMap<StatisticsSnapshot>> metricMap = entry.getValue();
 
-         for (Iterator<Map.Entry<String, IntObjectMap<StatisticsSnapshot>>> it2 = metricMap.entrySet().iterator(); it2.hasNext(); ) {
+         for (Iterator<Map.Entry<String, IntObjectMap<StatisticsSnapshot>>> it2 = metricMap.entrySet().iterator(); it2
+               .hasNext();) {
             Map.Entry<String, IntObjectMap<StatisticsSnapshot>> se = it2.next();
             String metric = se.getKey();
             IntObjectMap<StatisticsSnapshot> snapshots = se.getValue();
 
-            for (Iterator<IntObjectMap.PrimitiveEntry<StatisticsSnapshot>> it3 = snapshots.entries().iterator(); it3.hasNext(); ) {
+            for (Iterator<IntObjectMap.PrimitiveEntry<StatisticsSnapshot>> it3 = snapshots.entries().iterator(); it3
+                  .hasNext();) {
                IntObjectMap.PrimitiveEntry<StatisticsSnapshot> pe = it3.next();
                if (pe.value().isEmpty()) {
                   it3.remove();
@@ -87,7 +90,6 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
          }
       }
    }
-
 
    public interface StatisticsConsumer {
       void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown);

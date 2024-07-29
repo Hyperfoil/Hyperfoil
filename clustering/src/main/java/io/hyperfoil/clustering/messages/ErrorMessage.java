@@ -18,5 +18,6 @@ public class ErrorMessage extends AgentStatusMessage {
       return fatal;
    }
 
-   public static class Codec extends ObjectCodec<ErrorMessage> {}
+   public static class Codec extends ObjectCodec<ErrorMessage> {
+   }
 }

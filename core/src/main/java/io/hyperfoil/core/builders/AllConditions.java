@@ -31,7 +31,8 @@ public class AllConditions implements Condition {
    /**
     * Test more conditions and combine the results using AND logic.
     */
-   public static class Builder<P> implements MappingListBuilder<Condition.Builder<?>>, BuilderBase<Builder<P>>, Condition.Builder<Builder<P>> {
+   public static class Builder<P>
+         implements MappingListBuilder<Condition.Builder<?>>, BuilderBase<Builder<P>>, Condition.Builder<Builder<P>> {
       private final P parent;
       private final List<TypesBuilder<Builder<P>>> list = new ArrayList<>();
 
@@ -63,7 +64,8 @@ public class AllConditions implements Condition {
          if (list.isEmpty()) {
             throw new BenchmarkDefinitionException("Condition list is empty!");
          }
-         return new AllConditions(list.stream().map(TypesBuilder::buildCondition).filter(Objects::nonNull).toArray(Condition[]::new));
+         return new AllConditions(
+               list.stream().map(TypesBuilder::buildCondition).filter(Objects::nonNull).toArray(Condition[]::new));
       }
    }
 }

@@ -6,8 +6,8 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.handlers.ExpectProcessor;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.HttpRunData;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 

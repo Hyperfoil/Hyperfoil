@@ -3,14 +3,15 @@ package io.hyperfoil.http;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableBiConsumer;
+import io.hyperfoil.http.api.HttpRequestWriter;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
 
-public class UserAgentAppender implements SerializableBiConsumer<Session, HttpRequestWriter>, ResourceUtilizer, Session.ResourceKey<UserAgentAppender.SessionId> {
+public class UserAgentAppender implements SerializableBiConsumer<Session, HttpRequestWriter>, ResourceUtilizer,
+      Session.ResourceKey<UserAgentAppender.SessionId> {
    private static final String HOSTNAME;
 
    static {

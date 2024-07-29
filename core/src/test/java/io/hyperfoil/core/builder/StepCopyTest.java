@@ -22,16 +22,14 @@ public class StepCopyTest {
       AtomicInteger invoked = new AtomicInteger();
       test(seq -> seq.step(StepCatalog.SC).loop("foo", 2).steps()
             .step(new NoopStep())
-            .stepBuilder(new TestStepBuilder(invoked)).endSequence()
-      );
+            .stepBuilder(new TestStepBuilder(invoked)).endSequence());
       assert invoked.get() == 2;
    }
 
    @Test
    public void testStopwatch() {
       test(seq -> seq.step(StepCatalog.SC).stopwatch()
-            .step(new NoopStep()).step(new NoopStep())
-      );
+            .step(new NoopStep()).step(new NoopStep()));
    }
 
    private void test(Consumer<SequenceBuilder> consumer) {

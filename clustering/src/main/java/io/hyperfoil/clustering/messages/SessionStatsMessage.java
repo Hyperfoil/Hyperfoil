@@ -14,5 +14,6 @@ public class SessionStatsMessage extends StatsMessage {
       this.sessionStats = sessionStats;
    }
 
-   public static class Codec extends ObjectCodec<SessionStatsMessage> {}
+   public static class Codec extends ObjectCodec<SessionStatsMessage> {
+   }
 }

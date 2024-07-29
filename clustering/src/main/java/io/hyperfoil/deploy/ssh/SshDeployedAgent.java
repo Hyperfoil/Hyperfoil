@@ -1,6 +1,5 @@
 package io.hyperfoil.deploy.ssh;
 
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,18 +13,20 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.future.OpenFuture;
-import org.apache.sshd.common.util.io.output.NullOutputStream;
-import org.apache.sshd.scp.client.ScpClient;
-import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.client.session.ClientSession;
-import org.apache.sshd.sftp.client.SftpClient;
-import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.io.IoReadFuture;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
+import org.apache.sshd.common.util.io.output.NullOutputStream;
+import org.apache.sshd.scp.client.ScpClient;
+import org.apache.sshd.scp.client.ScpClientCreator;
+import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.SftpClientFactory;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.deployment.DeployedAgent;
@@ -34,9 +35,6 @@ import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class SshDeployedAgent implements DeployedAgent {
    private static final Logger log = LogManager.getLogger(SshDeployedAgent.class);
@@ -61,7 +59,8 @@ public class SshDeployedAgent implements DeployedAgent {
    private ScpClient scpClient;
    private PrintStream commandStream;
 
-   public SshDeployedAgent(String name, String runId, String username, String hostname, String sshKey, int port, String dir, String extras, String cpu) {
+   public SshDeployedAgent(String name, String runId, String username, String hostname, String sshKey, int port, String dir,
+         String extras, String cpu) {
       this.name = name;
       this.runId = runId;
       this.username = username;
@@ -210,10 +209,13 @@ public class SshDeployedAgent implements DeployedAgent {
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
-      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_IP).append('=').append(Properties.get(Properties.CONTROLLER_CLUSTER_IP, ""));
-      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=').append(Properties.get(Properties.CONTROLLER_CLUSTER_PORT, ""));
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_IP).append('=')
+            .append(Properties.get(Properties.CONTROLLER_CLUSTER_IP, ""));
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=')
+            .append(Properties.get(Properties.CONTROLLER_CLUSTER_PORT, ""));
       if (DEBUG_ADDRESS != null) {
-         startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND).append(",address=").append(DEBUG_ADDRESS);
+         startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND)
+               .append(",address=").append(DEBUG_ADDRESS);
       }
       if (extras != null) {
          startAgentCommmand.append(" ").append(extras);
@@ -225,7 +227,8 @@ public class SshDeployedAgent implements DeployedAgent {
       log.debug("Command: {}", startAgent);
       runCommand(startAgent, false);
       onPrompt(new StringBuilder(), new ByteArrayBuffer(),
-            () -> exceptionHandler.accept(new BenchmarkExecutionException("Agent process terminated prematurely. Hint: type 'log " + name + "' to see agent output.")));
+            () -> exceptionHandler.accept(new BenchmarkExecutionException(
+                  "Agent process terminated prematurely. Hint: type 'log " + name + "' to see agent output.")));
    }
 
    private void onPrompt(StringBuilder sb, ByteArrayBuffer buffer, Runnable completion) {
@@ -257,7 +260,7 @@ public class SshDeployedAgent implements DeployedAgent {
       ByteArrayBuffer buffer = new ByteArrayBuffer();
       byte[] buf = new byte[buffer.capacity()];
       try {
-         for (; ; ) {
+         for (;;) {
             buffer.clear(false);
             IoReadFuture future = shellChannel.getAsyncOut().read(buffer);
             if (!future.await(10, TimeUnit.SECONDS)) {
@@ -276,7 +279,7 @@ public class SshDeployedAgent implements DeployedAgent {
                break;
             }
          }
-         for (; ; ) {
+         for (;;) {
             int prompt = lines.lastIndexOf(PROMPT + "\r\n");
             if (prompt >= 0) {
                lines.delete(prompt, lines.length());
@@ -343,7 +346,8 @@ public class SshDeployedAgent implements DeployedAgent {
             break;
          }
          int space = line.indexOf(' ');
-         if (space < 0) break;
+         if (space < 0)
+            break;
          String checksum = line.substring(0, space);
          int fileIndex = line.lastIndexOf('/');
          if (fileIndex < 0) {
@@ -361,7 +365,7 @@ public class SshDeployedAgent implements DeployedAgent {
             byte[] buffer = new byte[65536];
             try (FileOutputStream output = new FileOutputStream(destinationFile)) {
                long readOffset = offset;
-               for (; ; ) {
+               for (;;) {
                   int nread = sftpClient.read(handle, readOffset, buffer);
                   if (nread < 0) {
                      break;

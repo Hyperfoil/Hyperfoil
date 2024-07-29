@@ -5,14 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.api.config.SLA;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 final class Data {
    private static final Logger log = LogManager.getLogger(Data.class);
@@ -38,7 +38,8 @@ final class Data {
    private int highestSequenceId = 0;
    private boolean completed;
 
-   Data(StatisticsStore statisticsStore, String phase, boolean isWarmup, int stepId, String metric, Map<SLA, StatisticsStore.Window> periodSlas, SLA[] totalSlas) {
+   Data(StatisticsStore statisticsStore, String phase, boolean isWarmup, int stepId, String metric,
+         Map<SLA, StatisticsStore.Window> periodSlas, SLA[] totalSlas) {
       this.statisticsStore = statisticsStore;
       this.phase = phase;
       this.isWarmup = isWarmup;
@@ -50,7 +51,8 @@ final class Data {
 
    boolean record(String agentName, StatisticsSnapshot stats) {
       if (completed) {
-         log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, agentName, stats.requestCount);
+         log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, agentName,
+               stats.requestCount);
          return false;
       }
       total.add(stats);
@@ -79,7 +81,8 @@ final class Data {
          StatisticsSnapshot snapshot = entry.getValue().remove(sequenceId);
          if (snapshot != null) {
             sum.add(snapshot);
-            agentSeries.computeIfAbsent(entry.getKey(), a -> new ArrayList<>()).add(snapshot.summary(StatisticsStore.PERCENTILES));
+            agentSeries.computeIfAbsent(entry.getKey(), a -> new ArrayList<>())
+                  .add(snapshot.summary(StatisticsStore.PERCENTILES));
          }
       }
       if (!sum.isEmpty()) {

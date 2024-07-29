@@ -5,7 +5,8 @@ import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.handlers.StoreShortcuts;
 
-public class TagAttributeHandlerBuilder implements HtmlHandler.TagHandlerBuilder<TagAttributeHandlerBuilder>, StoreShortcuts.Host {
+public class TagAttributeHandlerBuilder
+      implements HtmlHandler.TagHandlerBuilder<TagAttributeHandlerBuilder>, StoreShortcuts.Host {
    private String tag;
    private String attribute;
    @SuppressWarnings("FieldMayBeFinal")
@@ -47,7 +48,7 @@ public class TagAttributeHandlerBuilder implements HtmlHandler.TagHandlerBuilder
 
    @Override
    public HtmlHandler.BaseTagAttributeHandler build() {
-      return new HtmlHandler.BaseTagAttributeHandler(new String[]{ tag }, new String[]{ attribute }, processors.build(false));
+      return new HtmlHandler.BaseTagAttributeHandler(new String[] { tag }, new String[] { attribute }, processors.build(false));
    }
 
    @Override

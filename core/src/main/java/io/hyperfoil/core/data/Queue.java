@@ -3,15 +3,15 @@ package io.hyperfoil.core.data;
 import java.util.Arrays;
 import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.ObjectVar;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class Queue implements Session.Resource {
    private static final Logger log = LogManager.getLogger(Queue.class);
@@ -28,7 +28,8 @@ public class Queue implements Session.Resource {
 
    public Queue(ObjectAccess var, int size, int concurrency, String sequence, Action onCompletion) {
       if (var.isSequenceScoped()) {
-         throw new BenchmarkDefinitionException("Queue variable should not be sequence-scoped for queue; use sequence-scoped access only for reading.");
+         throw new BenchmarkDefinitionException(
+               "Queue variable should not be sequence-scoped for queue; use sequence-scoped access only for reading.");
       }
       this.var = var;
       this.data = new Object[size];
@@ -69,7 +70,8 @@ public class Queue implements Session.Resource {
          ++size;
       } else {
          // TODO: add some stats for this? Or fail the session?
-         log.error("#{} Exceeded maximum size of queue {} ({}), dropping value {}", session.uniqueId(), var, data.length, value);
+         log.error("#{} Exceeded maximum size of queue {} ({}), dropping value {}", session.uniqueId(), var, data.length,
+               value);
       }
       if (active < concurrency && size > 0) {
          ++active;
@@ -81,7 +83,8 @@ public class Queue implements Session.Resource {
          }
          SequenceInstance instance = session.startSequence(sequence, false, Session.ConcurrencyPolicy.FAIL);
          if (trace) {
-            log.trace("#{} starting {} with queued value {} in {}[{}]", session.uniqueId(), sequence, queuedValue, var, instance.index());
+            log.trace("#{} starting {} with queued value {} in {}[{}]", session.uniqueId(), sequence, queuedValue, var,
+                  instance.index());
          }
          ObjectVar[] output = (ObjectVar[]) var.getObject(session);
          output[instance.index()].set(queuedValue);
@@ -131,5 +134,6 @@ public class Queue implements Session.Resource {
       }
    }
 
-   public static class Key implements Session.ResourceKey<Queue> {}
+   public static class Key implements Session.ResourceKey<Queue> {
+   }
 }

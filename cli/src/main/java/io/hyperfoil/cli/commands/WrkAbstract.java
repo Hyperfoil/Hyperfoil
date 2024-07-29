@@ -56,7 +56,6 @@ import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -67,11 +66,11 @@ import io.hyperfoil.controller.HistogramConverter;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.Protocol;
-
+import io.hyperfoil.http.statistics.HttpStats;
+import io.hyperfoil.impl.Util;
 
 public abstract class WrkAbstract {
 
@@ -92,9 +91,9 @@ public abstract class WrkAbstract {
          AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();
          runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
          @SuppressWarnings("unchecked")
-         AeshCommandRegistryBuilder<HyperfoilCommandInvocation> registry =
-               AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
-                     .commands(StartLocal.class, wrkClass, Exit.class);
+         AeshCommandRegistryBuilder<HyperfoilCommandInvocation> registry = AeshCommandRegistryBuilder
+               .<HyperfoilCommandInvocation> builder()
+               .commands(StartLocal.class, wrkClass, Exit.class);
          runtime.commandRegistry(registry.create());
          cr = runtime.build();
          try {
@@ -206,7 +205,7 @@ public abstract class WrkAbstract {
                }
                String header = h.substring(0, colonIndex).trim();
                String value = h.substring(colonIndex + 1).trim();
-               parsedHeaders[i] = new String[]{ header, value };
+               parsedHeaders[i] = new String[] { header, value };
             }
          } else {
             parsedHeaders = null;
@@ -236,7 +235,8 @@ public abstract class WrkAbstract {
                      .map(property -> {
                         String[] pair = property.split("=", 2);
                         if (pair.length != 2) {
-                           throw new IllegalArgumentException("Cannot parse " + property + " as a property: Agent should be formatted as -AagentName=key1=value1,key2=value2...");
+                           throw new IllegalArgumentException("Cannot parse " + property
+                                 + " as a property: Agent should be formatted as -AagentName=key1=value1,key2=value2...");
                         }
                         return pair;
                      })
@@ -277,7 +277,8 @@ public abstract class WrkAbstract {
             RequestStatisticsResponse total = run.statsTotal();
             RequestStats testStats = total.statistics.stream().filter(rs -> PhaseType.test.name().equals(rs.phase))
                   .findFirst().orElseThrow(() -> new IllegalStateException("Error running command: Missing Statistics"));
-            AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
+            AbstractHistogram histogram = HistogramConverter
+                  .convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
             List<StatisticsSummary> series = run.series(testStats.phase, testStats.stepId, testStats.metric);
             printStats(testStats.summary, histogram, series, invocation);
             return CommandResult.SUCCESS;
@@ -320,7 +321,8 @@ public abstract class WrkAbstract {
       protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs);
 
       public enum PhaseType {
-         calibration, test
+         calibration,
+         test
       }
 
       private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, PhaseType phaseType, String durationStr) {
@@ -360,7 +362,8 @@ public abstract class WrkAbstract {
          // @formatter:on
       }
 
-      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series, CommandInvocation invocation) {
+      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series,
+            CommandInvocation invocation) {
          TransferSizeRecorder.Stats transferStats = (TransferSizeRecorder.Stats) stats.extensions.get("transfer");
          HttpStats httpStats = HttpStats.get(stats);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
@@ -372,16 +375,20 @@ public abstract class WrkAbstract {
                String.format("%8.2f%%", statsWithinStdev(stats, histogram)));
          // Note: wrk samples #requests every 100 ms, Hyperfoil every 1s
          DoubleSummaryStatistics requestsStats = series.stream().mapToDouble(s -> s.requestCount).summaryStatistics();
-         double requestsStdDev = !series.isEmpty() ? Math.sqrt(series.stream().mapToDouble(s -> Math.pow(s.requestCount - requestsStats.getAverage(), 2)).sum() / series.size()) : 0;
+         double requestsStdDev = !series.isEmpty() ? Math.sqrt(
+               series.stream().mapToDouble(s -> Math.pow(s.requestCount - requestsStats.getAverage(), 2)).sum() / series.size())
+               : 0;
          invocation.println("    Req/Sec   " +
                String.format("%6.2f  ", requestsStats.getAverage()) +
                String.format("%8.2f  ", requestsStdDev) +
                String.format("%7.2f  ", requestsStats.getMax()) +
-               String.format("%8.2f", statsWithinStdev(requestsStats, requestsStdDev, series.stream().mapToInt(s -> s.requestCount), series.size())));
+               String.format("%8.2f", statsWithinStdev(requestsStats, requestsStdDev,
+                     series.stream().mapToInt(s -> s.requestCount), series.size())));
          if (latency) {
             invocation.println("  Latency Distribution");
             for (double percentile : Arrays.asList(50.0, 75.0, 90.0, 99.0, 99.9, 99.99, 99.999, 100.0)) {
-               invocation.println(String.format("    %7.3f%%", percentile) + " " + Util.prettyPrintNanos(histogram.getValueAtPercentile(percentile), "9", false));
+               invocation.println(String.format("    %7.3f%%", percentile) + " "
+                     + Util.prettyPrintNanos(histogram.getValueAtPercentile(percentile), "9", false));
             }
             invocation.println("");
             invocation.println("  Detailed Percentile Spectrum");
@@ -393,14 +400,18 @@ public abstract class WrkAbstract {
             }), 5, 1000_000.0);
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println("  " + stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(transferStats.sent + transferStats.received) + " read");
+         invocation.println("  " + stats.requestCount + " requests in " + durationSeconds + "s, "
+               + Util.prettyPrintData(transferStats.sent + transferStats.received) + " read");
          invocation.println("Requests/sec: " + String.format("%.02f", stats.requestCount / durationSeconds));
-         invocation.println("Transfer/sec: " + Util.prettyPrintData((transferStats.sent + transferStats.received) / durationSeconds));
+         invocation.println(
+               "Transfer/sec: " + Util.prettyPrintData((transferStats.sent + transferStats.received) / durationSeconds));
          if (stats.connectionErrors + stats.requestTimeouts + stats.internalErrors > 0) {
-            invocation.println("Socket errors: connectionErrors " + stats.connectionErrors + ", requestTimeouts " + stats.requestTimeouts);
+            invocation.println(
+                  "Socket errors: connectionErrors " + stats.connectionErrors + ", requestTimeouts " + stats.requestTimeouts);
          }
          if (httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other > 0) {
-            invocation.println("Non-2xx or 3xx responses: " + (httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other));
+            invocation.println(
+                  "Non-2xx or 3xx responses: " + (httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other));
          }
       }
 
@@ -415,7 +426,7 @@ public abstract class WrkAbstract {
          double lower = stats.meanResponseTime - stdDev;
          double upper = stats.meanResponseTime + stdDev;
          long sum = 0;
-         for (var it = histogram.allValues().iterator(); it.hasNext(); ) {
+         for (var it = histogram.allValues().iterator(); it.hasNext();) {
             HistogramIterationValue value = it.next();
             if (value.getValueIteratedFrom() >= lower && value.getValueIteratedTo() <= upper) {
                sum += value.getCountAddedInThisIterationStep();
