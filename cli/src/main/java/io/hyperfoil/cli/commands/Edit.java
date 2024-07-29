@@ -20,8 +20,8 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.core.impl.ProvidedBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
@@ -52,13 +52,14 @@ public class Edit extends BaseEditCommand {
             try {
                extraData.put(extraFile, Files.readAllBytes(Path.of(extraFile)));
             } catch (IOException e) {
-               invocation.error("Cannot read file " + extraFile + " (current directory is " + new File("").getAbsolutePath() + ")", e);
+               invocation.error(
+                     "Cannot read file " + extraFile + " (current directory is " + new File("").getAbsolutePath() + ")", e);
             }
          }
       }
       ProvidedBenchmarkData data = new ProvidedBenchmarkData(extraData);
       BenchmarkSource newSource;
-      for (; ; ) {
+      for (;;) {
          try {
             CliUtil.execProcess(invocation, true, this.editor == null ? EDITOR : this.editor, sourceFile.getAbsolutePath());
          } catch (IOException e) {
@@ -130,7 +131,8 @@ public class Edit extends BaseEditCommand {
       try {
          String prevVersion = source.version;
          if (!newSource.name.equals(benchmarkRef.name())) {
-            invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + newSource.name + "; old benchmark won't be deleted.");
+            invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + newSource.name
+                  + "; old benchmark won't be deleted.");
             prevVersion = null;
          }
          invocation.println("Uploading benchmark " + newSource.name + "...");

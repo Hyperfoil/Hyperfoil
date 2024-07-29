@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -18,6 +20,8 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.Step;
@@ -27,25 +31,21 @@ import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.builders.BaseStepBuilder;
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.handlers.GzipInflatorProcessor;
 import io.hyperfoil.core.handlers.StoreProcessor;
 import io.hyperfoil.core.metric.MetricSelector;
+import io.hyperfoil.core.metric.PathMetricSelector;
 import io.hyperfoil.core.metric.ProvidedMetricSelector;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.DelaySessionStartStep;
-import io.hyperfoil.core.metric.PathMetricSelector;
 import io.hyperfoil.core.steps.StatisticsStep;
 import io.hyperfoil.core.util.DoubleIncrementBuilder;
 import io.hyperfoil.core.util.Unique;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.function.SerializableFunction;
@@ -59,12 +59,11 @@ import io.hyperfoil.http.config.HttpErgonomics;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.cookie.CookieAppender;
 import io.hyperfoil.http.handlers.FilterHeaderHandler;
+import io.hyperfoil.http.statistics.HttpStats;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 /**
  * Issues a HTTP request and registers handlers for the response.
@@ -287,7 +286,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * HTTP authority (host:port) this request should target. Must match one of the entries in <code>http</code> section.
-    * The string can use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
+    * The string can use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+    * interpolation</a>.
     *
     * @param authority Host:port.
     * @return Self.
@@ -329,7 +329,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * HTTP path (absolute or relative), including query and fragment.
-    * The string can use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
+    * The string can use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+    * interpolation</a>.
     *
     * @return Self.
     */
@@ -361,7 +362,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    }
 
    /**
-    * HTTP request body (possibly a <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>).
+    * HTTP request body (possibly a
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>).
     *
     * @param string Request body.
     * @return Self.
@@ -400,7 +402,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       return this;
    }
 
-   public HttpRequestStepBuilder headerAppenders(Collection<? extends Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> appenders) {
+   public HttpRequestStepBuilder headerAppenders(
+         Collection<? extends Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> appenders) {
       headerAppenders.addAll(appenders);
       return this;
    }
@@ -587,7 +590,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       SerializableFunction<Session, String> endpoint = this.endpoint != null ? this.endpoint.build() : null;
       HttpBuilder http = null;
       if (authority != null && endpoint != null) {
-         throw new BenchmarkDefinitionException("You have set both endpoint (abstract name) and authority (host:port) as the request target; use only one.");
+         throw new BenchmarkDefinitionException(
+               "You have set both endpoint (abstract name) and authority (host:port) as the request target; use only one.");
       }
       if (endpoint != null) {
          checkAuthority = false;
@@ -622,25 +626,29 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
             // errors are allowed here
          }
          if (authority == null) {
-            throw new BenchmarkDefinitionException(String.format("%s to <default route>%s is invalid as we don't have a default route set.", method, guessedPath));
+            throw new BenchmarkDefinitionException(String
+                  .format("%s to <default route>%s is invalid as we don't have a default route set.", method, guessedPath));
          } else {
-            throw new BenchmarkDefinitionException(String.format("%s to %s%s is invalid - no HTTP configuration defined.", method, guessedAuthority, guessedPath));
+            throw new BenchmarkDefinitionException(String.format("%s to %s%s is invalid - no HTTP configuration defined.",
+                  method, guessedAuthority, guessedPath));
          }
       }
-      if (sla == null && http != null && (http.connectionStrategy() == ConnectionStrategy.OPEN_ON_REQUEST || http.connectionStrategy() == ConnectionStrategy.ALWAYS_NEW)) {
+      if (sla == null && http != null && (http.connectionStrategy() == ConnectionStrategy.OPEN_ON_REQUEST
+            || http.connectionStrategy() == ConnectionStrategy.ALWAYS_NEW)) {
          this.sla = new SLABuilder.ListBuilder<>(this).addItem().blockedRatio(1.01).endSLA();
       }
       @SuppressWarnings("unchecked")
-      SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
-            this.headerAppenders.isEmpty() ? null :
-                  this.headerAppenders.stream().map(Supplier::get).toArray(SerializableBiConsumer[]::new);
+      SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders = this.headerAppenders.isEmpty() ? null
+            : this.headerAppenders.stream().map(Supplier::get).toArray(SerializableBiConsumer[]::new);
 
       SLA[] sla = this.sla != null ? this.sla.build() : SLABuilder.DEFAULT;
       SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
 
       HttpRequestContext.Key contextKey = new HttpRequestContext.Key();
-      PrepareHttpRequestStep prepare = new PrepareHttpRequestStep(stepId, contextKey, method.build(), endpoint, authority, pathGenerator, metricSelector, handler.build());
-      SendHttpRequestStep step = new SendHttpRequestStep(stepId, contextKey, bodyGenerator, headerAppenders, injectHostHeader, timeout, sla);
+      PrepareHttpRequestStep prepare = new PrepareHttpRequestStep(stepId, contextKey, method.build(), endpoint, authority,
+            pathGenerator, metricSelector, handler.build());
+      SendHttpRequestStep step = new SendHttpRequestStep(stepId, contextKey, bodyGenerator, headerAppenders, injectHostHeader,
+            timeout, sla);
       return Arrays.asList(prepare, step);
    }
 
@@ -725,7 +733,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
       private void warnIfUsingHostHeader(CharSequence key) {
          if (key.toString().equalsIgnoreCase("host")) {
-            log.warn("Setting `host` header explicitly is not recommended. Use the HTTP host and adjust actual target using `addresses` property.");
+            log.warn(
+                  "Setting `host` header explicitly is not recommended. Use the HTTP host and adjust actual target using `addresses` property.");
             parent.injectHostHeader = false;
          }
       }
@@ -760,7 +769,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       }
 
       /**
-       * @param param The value. This can be a <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
+       * @param param The value. This can be a
+       *        <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
        * @return Self.
        */
       @Override
@@ -781,20 +791,23 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       }
 
       /**
-       * Load header value using a <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
+       * Load header value using a
+       * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
        *
        * @param patternString Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
        * @return Builder.
        */
       public PartialHeadersBuilder pattern(String patternString) {
          ensureOnce();
-         parent.parent.headerAppenders.add(() -> new PartialHeadersBuilder.PatternHeaderWriter(header, new Pattern(patternString, false)));
+         parent.parent.headerAppenders
+               .add(() -> new PartialHeadersBuilder.PatternHeaderWriter(header, new Pattern(patternString, false)));
          return this;
       }
 
       private void ensureOnce() {
          if (added) {
-            throw new BenchmarkDefinitionException("Trying to add header " + header + " twice. Use only one of: fromVar, pattern");
+            throw new BenchmarkDefinitionException(
+                  "Trying to add header " + header + " twice. Use only one of: fromVar, pattern");
          }
          added = true;
       }
@@ -911,9 +924,12 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
          if (!scenario.hasSequence(DELAY_SESSION_START)) {
             List<SequenceBuilder> prev = scenario.resetInitialSequences();
             scenario.initialSequence(DELAY_SESSION_START)
-                  .step(new DelaySessionStartStep(prev.stream().map(SequenceBuilder::name).toArray(String[]::new), targetRate, targetRateIncrement, true));
+                  .step(new DelaySessionStartStep(prev.stream().map(SequenceBuilder::name).toArray(String[]::new), targetRate,
+                        targetRateIncrement, true));
          } else {
-            log.warn("Scenario for phase {} contains multiple compensating HTTP requests: make sure that all use the same rate.", phaseBuilder.name());
+            log.warn(
+                  "Scenario for phase {} contains multiple compensating HTTP requests: make sure that all use the same rate.",
+                  phaseBuilder.name());
          }
          parent.handler.onCompletion(new CompensatedResponseRecorder.Builder().metric(metricSelector));
       }
@@ -987,7 +1003,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       }
 
       /**
-       * Encoding used for <code>Accept-Encoding</code>/<code>TE</code> header. The only currently supported is <code>gzip</code>.
+       * Encoding used for <code>Accept-Encoding</code>/<code>TE</code> header. The only currently supported is
+       * <code>gzip</code>.
        *
        * @param encoding Content encoding.
        * @return Self.
@@ -1032,7 +1049,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
             parent.handler.header(new FilterHeaderHandler.Builder()
                   .header().equalTo(expectedHeader.toString()).end()
                   .processor(new StoreProcessor.Builder().toVar(encoding)));
-            parent.handler.wrapBodyHandlers(handlers -> new GzipInflatorProcessor.Builder().processors(handlers).encodingVar(encoding));
+            parent.handler
+                  .wrapBodyHandlers(handlers -> new GzipInflatorProcessor.Builder().processors(handlers).encodingVar(encoding));
          }
       }
    }

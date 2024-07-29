@@ -18,11 +18,11 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.api.config.ScenarioBuilder;
-
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
+
+import io.hyperfoil.api.config.ScenarioBuilder;
 
 class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
    ScenarioParser() {

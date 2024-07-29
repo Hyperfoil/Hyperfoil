@@ -17,8 +17,8 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.project.MavenProject;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.yaml.snakeyaml.Yaml;
 
 import com.github.javaparser.StaticJavaParser;
@@ -125,12 +125,14 @@ public class OpenapiMojo extends AbstractMojo {
                   Map<String, Object> schema = requireNonNull(param, "schema", path, method, name);
                   Property property = createProperty(path + "." + method + ".", name, schema);
                   Object defaultValue = schema.get("default");
-                  params.add(new Param(property.originalName, property.fieldName, in, property.type, required, defaultValue == null ? null : String.valueOf(defaultValue)));
+                  params.add(new Param(property.originalName, property.fieldName, in, property.type, required,
+                        defaultValue == null ? null : String.valueOf(defaultValue)));
                }
             }
             for (String consume : consumes) {
                for (String produce : produces) {
-                  operations.add(new Operation(path, method, operationId, consume, produce, consumes.size(), produces.size(), params));
+                  operations.add(
+                        new Operation(path, method, operationId, consume, produce, consumes.size(), produces.size(), params));
                }
             }
          }
@@ -203,11 +205,13 @@ public class OpenapiMojo extends AbstractMojo {
             body.addStatement(raw.toString());
             if (param.required) {
                body.addStatement("if (_" + param.varName + " == null) {" +
-                     "ctx.response().setStatusCode(400).end(\"" + param.in + " parameter '" + param.originalName + "' was not set!\");" +
+                     "ctx.response().setStatusCode(400).end(\"" + param.in + " parameter '" + param.originalName
+                     + "' was not set!\");" +
                      "return; }");
             }
             body.addStatement(new StringBuilder().append(param.type).append(" ").append(param.varName)
-                  .append(" = convert(_").append(param.varName).append(", ").append(param.type.replaceAll("<.*>", "")).append(".class);").toString());
+                  .append(" = convert(_").append(param.varName).append(", ").append(param.type.replaceAll("<.*>", ""))
+                  .append(".class);").toString());
             invocation.append(", ").append(param.varName);
          }
          invocation.append(");");
@@ -254,12 +258,14 @@ public class OpenapiMojo extends AbstractMojo {
       convertBody.addStatement("if (type == String.class) return (T) value;");
       convertBody.addStatement("if (type == boolean.class) return (T) Boolean.valueOf(value);");
       convertBody.addStatement("if (type == int.class) return (T) Integer.valueOf(value);");
-      convertBody.addStatement("if (type == List.class) { if (value == null) return (T) Collections.emptyList(); if (value instanceof String) return (T) Collections.singletonList(value); }");
+      convertBody.addStatement(
+            "if (type == List.class) { if (value == null) return (T) Collections.emptyList(); if (value instanceof String) return (T) Collections.singletonList(value); }");
       convertBody.addStatement("if (value == null) { if (type == Map.class) return (T) Collections.emptyMap(); return null; }");
       convertBody.addStatement("return Json.decodeValue(value, type);");
 
       MethodDeclaration convertList = clazz.addMethod("convert");
-      convertList.addAnnotation(new SingleMemberAnnotationExpr(new Name("SuppressWarnings"), new StringLiteralExpr("unchecked")));
+      convertList
+            .addAnnotation(new SingleMemberAnnotationExpr(new Name("SuppressWarnings"), new StringLiteralExpr("unchecked")));
       convertList.addParameter("List<String>", "value").addParameter("Class<T>", "type").addTypeParameter("T").setType("T");
       BlockStmt convertListBody = new BlockStmt();
       convertList.setBody(convertListBody);
@@ -327,7 +333,8 @@ public class OpenapiMojo extends AbstractMojo {
       }
    }
 
-   private Map<String, Object> descend(Map<String, Object> root, boolean allowMissing, String... path) throws MojoExecutionException {
+   private Map<String, Object> descend(Map<String, Object> root, boolean allowMissing, String... path)
+         throws MojoExecutionException {
       Map<String, Object> target = root;
       for (String element : path) {
          @SuppressWarnings("unchecked")
@@ -372,14 +379,16 @@ public class OpenapiMojo extends AbstractMojo {
             })
             .collect(Collectors.toList());
       for (Property property : properties) {
-         FieldDeclaration fieldDeclaration = clazz.addField(property.type, property.fieldName, Modifier.Keyword.PUBLIC, Modifier.Keyword.FINAL);
+         FieldDeclaration fieldDeclaration = clazz.addField(property.type, property.fieldName, Modifier.Keyword.PUBLIC,
+               Modifier.Keyword.FINAL);
          property.fieldAnnotations.forEach(fieldDeclaration::addAnnotation);
       }
       ConstructorDeclaration ctor = clazz.addConstructor(Modifier.Keyword.PUBLIC);
       ctor.addAnnotation(new MarkerAnnotationExpr("JsonCreator"));
       BlockStmt ctorBody = new BlockStmt();
       for (Property property : properties) {
-         com.github.javaparser.ast.body.Parameter p = new com.github.javaparser.ast.body.Parameter(StaticJavaParser.parseType(property.type), property.fieldName);
+         com.github.javaparser.ast.body.Parameter p = new com.github.javaparser.ast.body.Parameter(
+               StaticJavaParser.parseType(property.type), property.fieldName);
          p.addAnnotation(new SingleMemberAnnotationExpr(new Name("JsonProperty"), new StringLiteralExpr(property.fieldName)));
          ctor.addParameter(p);
          ctorBody.addStatement("this." + property.fieldName + " = " + property.fieldName + ";");
@@ -398,7 +407,8 @@ public class OpenapiMojo extends AbstractMojo {
          if (!ref.startsWith(COMPONENTS_SCHEMAS)) {
             throw fail(name, propertyName, "Invalid reference to " + ref + " (should start with " + COMPONENTS_SCHEMAS + ")");
          }
-         return new Property(propertyName, sanitizeProperty(propertyName), ref.substring(COMPONENTS_SCHEMAS.length()), Collections.emptyList());
+         return new Property(propertyName, sanitizeProperty(propertyName), ref.substring(COMPONENTS_SCHEMAS.length()),
+               Collections.emptyList());
       }
       String type = (String) from.get("type");
       String propertyType;
@@ -449,7 +459,8 @@ public class OpenapiMojo extends AbstractMojo {
       }
       String jsonInclude = (String) from.get("x-json-include");
       if (jsonInclude != null) {
-         fieldAnnotations.add(new SingleMemberAnnotationExpr(new Name("JsonInclude"), new NameExpr("JsonInclude.Include." + jsonInclude)));
+         fieldAnnotations.add(
+               new SingleMemberAnnotationExpr(new Name("JsonInclude"), new NameExpr("JsonInclude.Include." + jsonInclude)));
       }
       return new Property(propertyName, sanitizeProperty(propertyName), propertyType, fieldAnnotations);
    }
@@ -501,7 +512,8 @@ public class OpenapiMojo extends AbstractMojo {
       private final List<Param> params;
       private final String methodName;
 
-      private Operation(String path, String method, String operationId, String consumes, String produces, int numConsumes, int numProduces, List<Param> params) {
+      private Operation(String path, String method, String operationId, String consumes, String produces, int numConsumes,
+            int numProduces, List<Param> params) {
          this.path = path;
          this.method = method;
          this.operationId = operationId;
@@ -510,7 +522,8 @@ public class OpenapiMojo extends AbstractMojo {
          this.numConsumes = numConsumes;
          this.numProduces = numProduces;
          this.params = params;
-         this.methodName = operationId + (numConsumes > 1 ? "$" + consumes.replaceAll("[-./*]", "_") : "") + (numProduces > 1 ? "$" + produces.replaceAll("[-./*]", "_") : "");
+         this.methodName = operationId + (numConsumes > 1 ? "$" + consumes.replaceAll("[-./*]", "_") : "")
+               + (numProduces > 1 ? "$" + produces.replaceAll("[-./*]", "_") : "");
       }
 
       public String name() {

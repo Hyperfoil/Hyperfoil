@@ -1,5 +1,19 @@
 package io.hyperfoil.benchmark.clustering;
 
+import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
@@ -18,20 +32,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.util.concurrent.TimeUnit;
-
-import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
-import static org.assertj.core.api.Assertions.assertThat;
 
 // Note: this test won't run from IDE (probably) as SshDeployer copies just .jar files for the agents;
 // since it inspects classpath for .jars it won't copy the class files in the hyperfoil-clustering module.
@@ -81,7 +81,7 @@ public class ClusterTestCase extends BaseClusteredTest {
          try {
             Thread.sleep(10);
          } catch (InterruptedException e) {
-            e.printStackTrace();  // TODO: Customise this generated block
+            e.printStackTrace(); // TODO: Customise this generated block
          }
          req.response().end("test");
       };
@@ -103,12 +103,14 @@ public class ClusterTestCase extends BaseClusteredTest {
       Promise<HttpResponse<Buffer>> uploadPromise = Promise.promise();
       client.post("/benchmark")
             .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
-            .sendBuffer(Buffer.buffer(serialize(testBenchmark(AGENTS, httpServer.actualPort()))), ctx.asyncAssertSuccess(uploadPromise::complete));
+            .sendBuffer(Buffer.buffer(serialize(testBenchmark(AGENTS, httpServer.actualPort()))),
+                  ctx.asyncAssertSuccess(uploadPromise::complete));
 
       Promise<HttpResponse<Buffer>> benchmarkPromise = Promise.promise();
       uploadPromise.future().onSuccess(response -> {
          ctx.assertEquals(response.statusCode(), 204);
-         ctx.assertEquals(response.getHeader(HttpHeaders.LOCATION.toString()), "http://localhost:" + controllerPort + "/benchmark/test");
+         ctx.assertEquals(response.getHeader(HttpHeaders.LOCATION.toString()),
+               "http://localhost:" + controllerPort + "/benchmark/test");
          // list benchmarks
          client.get("/benchmark").send(ctx.asyncAssertSuccess(benchmarkPromise::complete));
       });

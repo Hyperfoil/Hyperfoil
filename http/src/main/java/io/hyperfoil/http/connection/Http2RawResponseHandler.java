@@ -2,14 +2,14 @@ package io.hyperfoil.http.connection;
 
 import static io.netty.handler.codec.http2.Http2CodecUtil.FRAME_HEADER_LENGTH;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
-import io.hyperfoil.http.api.HttpConnection;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class Http2RawResponseHandler extends BaseResponseHandler {
    private static final Logger log = LogManager.getLogger(Http2RawResponseHandler.class);

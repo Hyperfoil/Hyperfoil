@@ -1,6 +1,5 @@
 package io.hyperfoil.core.api;
 
-
 import java.util.ServiceLoader;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -15,7 +14,8 @@ public interface Plugin {
       return ServiceLoader.load(Plugin.class).stream()
             .map(ServiceLoader.Provider::get)
             .filter(p -> p.configClass() == config.getClass())
-            .findFirst().orElseThrow(() -> new IllegalStateException("Missing plugin for config " + config.getClass().getName()));
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Missing plugin for config " + config.getClass().getName()));
    }
 
    Class<? extends PluginConfig> configClass();

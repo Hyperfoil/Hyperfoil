@@ -2,18 +2,18 @@ package io.hyperfoil.http.html;
 
 import java.nio.charset.StandardCharsets;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.HttpUtil;
 import io.hyperfoil.http.api.HttpDestinationTable;
 import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.internal.AppendableCharSequence;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 class EmbeddedResourceProcessor extends Processor.BaseDelegating {
    private static final Logger log = LogManager.getLogger(EmbeddedResourceProcessor.class);
@@ -82,8 +82,10 @@ class EmbeddedResourceProcessor extends Processor.BaseDelegating {
             log.trace("#{} Matched URL {}", session.uniqueId(), Util.toString(data, offset, length));
          }
          if (fetchResource != null) {
-            int pathStart = data.indexOf(offset + (isHttp ? HTTP_PREFIX.length : HTTPS_PREFIX.length), offset + length, (byte) '/');
-            CharSequence path = pathStart < 0 ? "/" : data.toString(pathStart, offset + length - pathStart, StandardCharsets.UTF_8);
+            int pathStart = data.indexOf(offset + (isHttp ? HTTP_PREFIX.length : HTTPS_PREFIX.length), offset + length,
+                  (byte) '/');
+            CharSequence path = pathStart < 0 ? "/"
+                  : data.toString(pathStart, offset + length - pathStart, StandardCharsets.UTF_8);
             fetchResource.handle(session, authority, path);
          }
          if (delegate != null) {
@@ -132,7 +134,8 @@ class EmbeddedResourceProcessor extends Processor.BaseDelegating {
                buffer.ensureWritable(length);
                buffer.writeBytes(data, offset, length);
                if (trace) {
-                  log.trace("#{} Rewritten relative URL to {}", session.uniqueId(), Util.toString(buffer, buffer.readerIndex(), buffer.readableBytes()));
+                  log.trace("#{} Rewritten relative URL to {}", session.uniqueId(),
+                        Util.toString(buffer, buffer.readerIndex(), buffer.readableBytes()));
                }
                delegate.process(session, buffer, buffer.readerIndex(), buffer.readableBytes(), true);
             } finally {

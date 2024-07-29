@@ -9,11 +9,11 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.core.builders.Condition;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -83,7 +83,8 @@ public class BreakSequenceStep extends DependencyStep {
          if (condition == null) {
             throw new BenchmarkDefinitionException("In breakSequence step the condition must be defined.");
          }
-         Action[] onBreak = this.onBreak.isEmpty() ? null : this.onBreak.stream().map(Action.Builder::build).toArray(Action[]::new);
+         Action[] onBreak = this.onBreak.isEmpty() ? null
+               : this.onBreak.stream().map(Action.Builder::build).toArray(Action[]::new);
          return Collections.singletonList(new BreakSequenceStep(dependencies(), condition, onBreak));
       }
    }

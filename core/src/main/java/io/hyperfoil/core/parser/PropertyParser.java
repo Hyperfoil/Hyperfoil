@@ -26,7 +26,8 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import io.hyperfoil.impl.Util;
 
 public class PropertyParser {
-   private PropertyParser() {}
+   private PropertyParser() {
+   }
 
    public static class String<T> implements Parser<T> {
       private final BiConsumer<T, java.lang.String> consumer;
@@ -136,7 +137,8 @@ public class PropertyParser {
                return;
             }
          }
-         throw new ParserException("No match for enum value '" + event.getValue() + "', options are: " + Arrays.toString(values));
+         throw new ParserException(
+               "No match for enum value '" + event.getValue() + "', options are: " + Arrays.toString(values));
       }
    }
 

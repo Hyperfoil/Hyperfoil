@@ -1,18 +1,17 @@
 package io.hyperfoil.core.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.session.Session;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class StoreProcessor implements Processor {
    private static final Logger log = LogManager.getLogger(StoreProcessor.class);
@@ -95,5 +94,6 @@ public class StoreProcessor implements Processor {
    @MetaInfServices(Processor.Builder.class)
    @Name("simple")
    @Deprecated
-   public static class LegacyBuilder extends Builder {}
+   public static class LegacyBuilder extends Builder {
+   }
 }

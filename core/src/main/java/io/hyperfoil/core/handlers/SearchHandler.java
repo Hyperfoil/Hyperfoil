@@ -3,9 +3,9 @@ package io.hyperfoil.core.handlers;
 import java.nio.charset.StandardCharsets;
 
 import io.hyperfoil.api.processor.Processor;
-import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
+import io.netty.buffer.ByteBuf;
 
 /**
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.

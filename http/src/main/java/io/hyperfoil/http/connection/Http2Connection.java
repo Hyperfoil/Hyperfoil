@@ -6,10 +6,12 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.api.session.SessionStopException;
-import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
@@ -17,6 +19,7 @@ import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.http.api.HttpResponseHandlers;
+import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
@@ -34,9 +37,6 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.netty.util.internal.AppendableCharSequence;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -60,10 +60,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private long lastUsed = System.nanoTime();
 
    Http2Connection(ChannelHandlerContext context,
-                   io.netty.handler.codec.http2.Http2Connection connection,
-                   Http2ConnectionEncoder encoder,
-                   Http2ConnectionDecoder decoder,
-                   HttpClientPool clientPool) {
+         io.netty.handler.codec.http2.Http2Connection connection,
+         Http2ConnectionEncoder encoder,
+         Http2ConnectionDecoder decoder,
+         HttpClientPool clientPool) {
       this.context = context;
       this.connection = connection;
       this.encoder = encoder;
@@ -126,9 +126,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    public void request(HttpRequest request,
-                       BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                       boolean injectHostHeader,
-                       BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+         BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+         boolean injectHostHeader,
+         BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       assert aboutToSend > 0;
       aboutToSend--;
       HttpClientPool httpClientPool = pool.clientPool();
@@ -284,7 +284,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    void cancelRequests(Throwable cause) {
-      for (Iterator<HttpRequest> iterator = streams.values().iterator(); iterator.hasNext(); ) {
+      for (Iterator<HttpRequest> iterator = streams.values().iterator(); iterator.hasNext();) {
          HttpRequest request = iterator.next();
          iterator.remove();
          pool.release(this, false, true);
@@ -304,7 +304,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       }
 
       @Override
-      public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) {
+      public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency,
+            short weight, boolean exclusive, int padding, boolean endStream) {
          HttpRequest request = streams.get(streamId);
          if (request != null && !request.isCompleted()) {
             HttpResponseHandlers handlers = request.handlers();
@@ -333,7 +334,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       }
 
       @Override
-      public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
+      public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream)
+            throws Http2Exception {
          int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
          HttpRequest request = streams.get(streamId);
          if (request != null && !request.isCompleted()) {

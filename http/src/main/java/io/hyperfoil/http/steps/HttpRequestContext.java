@@ -53,5 +53,6 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
       }
    }
 
-   public static final class Key implements Session.ResourceKey<HttpRequestContext> {}
+   public static final class Key implements Session.ResourceKey<HttpRequestContext> {
+   }
 }

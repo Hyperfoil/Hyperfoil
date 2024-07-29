@@ -21,30 +21,30 @@ package io.hyperfoil.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hyperfoil.http.config.Http;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.HttpClientPool;
-import io.hyperfoil.http.api.HttpConnectionPool;
-import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.api.session.SequenceInstance;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.http.config.HttpBuilder;
-import io.hyperfoil.http.connection.HttpClientPoolImpl;
-import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import io.hyperfoil.api.session.SequenceInstance;
+import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.http.api.HttpClientPool;
+import io.hyperfoil.http.api.HttpConnectionPool;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.config.Http;
+import io.hyperfoil.http.config.HttpBuilder;
+import io.hyperfoil.http.connection.HttpClientPoolImpl;
+import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpClientPoolHandlerTest {
@@ -81,7 +81,6 @@ public class HttpClientPoolHandlerTest {
          }
       });
       assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
-
 
       CountDownLatch latch = new CountDownLatch(4);
       HttpConnectionPool pool = client.next();

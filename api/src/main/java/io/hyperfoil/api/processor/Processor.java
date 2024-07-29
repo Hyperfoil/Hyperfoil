@@ -38,9 +38,7 @@ public interface Processor extends Serializable {
       }
    }
 
-   @IncludeBuilders(
-         @IncludeBuilders.Conversion(from = Action.Builder.class, adapter = Processor.ActionBuilderConverter.class)
-   )
+   @IncludeBuilders(@IncludeBuilders.Conversion(from = Action.Builder.class, adapter = Processor.ActionBuilderConverter.class))
    interface Builder extends BuilderBase<Builder> {
       Processor build(boolean fragmented);
    }

@@ -35,21 +35,22 @@ public final class SessionFactory {
          new SpecialAccess.Object("hyperfoil.phase.start.time.as.string", s -> s.phase().absoluteStartTimeAsString()),
          new SpecialAccess.Object("hyperfoil.run.id", Session::runId),
          new SpecialAccess.Int("hyperfoil.session.id", Session::uniqueId),
-         };
+   };
 
    public static Session create(Scenario scenario, int executorId, int uniqueId) {
       return new SessionImpl(scenario, executorId, uniqueId);
    }
 
    public static Session forTesting(WriteAccess... accesses) {
-      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[]{
+      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[] {
             new Sequence("dummy", 0, 1, 0, new Step[0]) {
                WriteAccess[] dummyAccesses = accesses;
             }
       }, 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0);
       Phase dummyPhase = new Phase(Benchmark::forTesting, 0, 0, "dummy", dummyScenario, 0,
-            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy", Collections.emptyMap(), null);
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy",
+            Collections.emptyMap(), null);
       session.resetPhase(new PhaseInstanceImpl(dummyPhase, "dummy", 0) {
          @Override
          public void proceed(EventExecutorGroup executorGroup) {
@@ -90,7 +91,8 @@ public final class SessionFactory {
       return access(key, SimpleIntAccess::new, SequenceScopedIntAccess::new);
    }
 
-   public static <A extends ReadAccess> A access(Object key, Function<Object, A> simple, BiFunction<Object, Integer, A> sequenceScoped) {
+   public static <A extends ReadAccess> A access(Object key, Function<Object, A> simple,
+         BiFunction<Object, Integer, A> sequenceScoped) {
       // This should be invoked only from prepareBuild() or build()
       assert Locator.current() != null;
       if (key == null) {

@@ -27,7 +27,8 @@ public class StatusToStatsHandler implements StatusHandler {
       } else {
          statusString = "status_" + status;
       }
-      request.statistics().update("exact_status", request.startTimestampMillis(), Counters::new, Counters::increment, statusString);
+      request.statistics().update("exact_status", request.startTimestampMillis(), Counters::new, Counters::increment,
+            statusString);
    }
 
    /**

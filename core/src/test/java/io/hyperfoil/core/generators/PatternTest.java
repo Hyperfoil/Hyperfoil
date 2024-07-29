@@ -9,8 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;

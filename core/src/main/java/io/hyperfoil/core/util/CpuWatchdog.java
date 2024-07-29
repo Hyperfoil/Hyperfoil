@@ -22,7 +22,8 @@ public class CpuWatchdog implements Runnable {
    private static final Logger log = LogManager.getLogger(CpuWatchdog.class);
    private static final Path PROC_STAT = Path.of("/proc/stat");
    private static final long PERIOD = Properties.getLong(Properties.CPU_WATCHDOG_PERIOD, 5000);
-   private static final double IDLE_THRESHOLD = Double.parseDouble(Properties.get(Properties.CPU_WATCHDOG_IDLE_THRESHOLD, "0.2"));
+   private static final double IDLE_THRESHOLD = Double
+         .parseDouble(Properties.get(Properties.CPU_WATCHDOG_IDLE_THRESHOLD, "0.2"));
    // On most architectures the tick is defined as 1/100 of second (10 ms)
    // where the value of 100 can be obtained using sysconf(_SC_CLK_TCK)
    private static final long TICK_NANOS = Properties.getLong("io.hyperfoil.clock.tick.nanos", 10_000_000);
@@ -87,12 +88,15 @@ public class CpuWatchdog implements Runnable {
    private boolean readProcStat(Consumer<String[]> consumer) {
       try {
          for (String line : Files.readAllLines(PROC_STAT)) {
-            if (!line.startsWith("cpu")) continue;
+            if (!line.startsWith("cpu"))
+               continue;
             String[] parts = line.split(" ");
             // ignore overall stats
-            if ("cpu".equals(parts[0])) continue;
+            if ("cpu".equals(parts[0]))
+               continue;
             // weird format?
-            if (parts.length < 5) continue;
+            if (parts.length < 5)
+               continue;
 
             consumer.accept(parts);
          }
@@ -115,7 +119,8 @@ public class CpuWatchdog implements Runnable {
          double idleRatio = (double) (TICK_NANOS * (idle - prevIdle)) / (now - lastTimestamp);
          if (idleRatio < IDLE_THRESHOLD) {
             String message = String.format("%s | CPU %d was used for %.0f%% which is more than the threshold of %.0f%%",
-                  new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), cpuIndex, 100 * (1 - idleRatio), 100 * (1 - IDLE_THRESHOLD));
+                  new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), cpuIndex, 100 * (1 - idleRatio),
+                  100 * (1 - IDLE_THRESHOLD));
             log.warn(message);
             if (warmupTest.getAsBoolean()) {
                errorHandler.accept(new BenchmarkExecutionException(message));
@@ -139,7 +144,8 @@ public class CpuWatchdog implements Runnable {
    }
 
    public synchronized void notifyPhaseStart(String name) {
-      if (nCpu <= 0) return;
+      if (nCpu <= 0)
+         return;
       PhaseRecord record = new PhaseRecord(System.nanoTime(), new long[nCpu]);
       if (readProcStat(parts -> {
          int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);

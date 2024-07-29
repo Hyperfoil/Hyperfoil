@@ -7,8 +7,8 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.RawBytesHandler;
-import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.api.statistics.StatsExtension;
 import io.netty.buffer.ByteBuf;
 
 public class TransferSizeRecorder implements RawBytesHandler {

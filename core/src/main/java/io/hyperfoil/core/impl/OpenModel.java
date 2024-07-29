@@ -23,9 +23,11 @@ final class OpenModel {
       double targetUsersPerSec = def.benchmark().slice(model.targetUsersPerSec, agentId);
       long durationMs = def.duration;
       if (model.variance) {
-         return new OpenModelPhase(RateGenerator.poissonRampRate(initialUsersPerSec, targetUsersPerSec, durationMs), def, runId, agentId);
+         return new OpenModelPhase(RateGenerator.poissonRampRate(initialUsersPerSec, targetUsersPerSec, durationMs), def, runId,
+               agentId);
       } else {
-         return new OpenModelPhase(RateGenerator.rampRate(initialUsersPerSec, targetUsersPerSec, durationMs), def, runId, agentId);
+         return new OpenModelPhase(RateGenerator.rampRate(initialUsersPerSec, targetUsersPerSec, durationMs), def, runId,
+               agentId);
       }
    }
 }

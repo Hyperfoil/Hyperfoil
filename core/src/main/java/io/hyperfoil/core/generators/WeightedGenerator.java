@@ -65,7 +65,7 @@ public class WeightedGenerator implements Serializable {
       /**
        * Item as the key and weight (arbitrary floating-point number, defaults to 1.0) as the value.
        *
-       * @param item   Item.
+       * @param item Item.
        * @param weight Weight.
        */
       @Override

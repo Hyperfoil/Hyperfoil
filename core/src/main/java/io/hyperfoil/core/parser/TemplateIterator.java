@@ -25,7 +25,6 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-
 public class TemplateIterator implements Iterator<Event> {
    private final Iterator<Event> delegate;
    private final Map<String, AnchorInfo> anchors = new HashMap<>();
@@ -85,7 +84,8 @@ public class TemplateIterator implements Iterator<Event> {
          if (nodeEvent instanceof AliasEvent) {
             AnchorInfo anchorInfo = anchors.get(nodeEvent.getAnchor());
             if (anchorInfo == null) {
-               throw new RuntimeException(new ParserException(nodeEvent, "No anchor for alias '" + nodeEvent.getAnchor() + "'"));
+               throw new RuntimeException(
+                     new ParserException(nodeEvent, "No anchor for alias '" + nodeEvent.getAnchor() + "'"));
             } else {
                Iterator<Event> iterator = anchorInfo.events.iterator();
                replaying.push(iterator);
@@ -162,19 +162,23 @@ public class TemplateIterator implements Iterator<Event> {
          if (paramStack == null || paramStack.isEmpty()) {
             if (parts.length > 1) {
                String defaultValue = parts[1];
-               if (defaultValue.startsWith("\"") && defaultValue.endsWith("\"") || defaultValue.startsWith("'") && defaultValue.endsWith("'")) {
+               if (defaultValue.startsWith("\"") && defaultValue.endsWith("\"")
+                     || defaultValue.startsWith("'") && defaultValue.endsWith("'")) {
                   defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
                }
                paramValue = defaultValue;
             } else {
-               throw new RuntimeException(new ParserException(event, "Cannot replace parameter '" + parts[0] + "': not defined and no default value"));
+               throw new RuntimeException(new ParserException(event,
+                     "Cannot replace parameter '" + parts[0] + "': not defined and no default value"));
             }
          } else {
             paramValue = paramStack.peek();
          }
-         return new ScalarEvent(null, null, scalar.getImplicit(), paramValue, scalar.getStartMark(), scalar.getEndMark(), scalar.getScalarStyle());
+         return new ScalarEvent(null, null, scalar.getImplicit(), paramValue, scalar.getStartMark(), scalar.getEndMark(),
+               scalar.getScalarStyle());
       } else {
-         throw new RuntimeException(new ParserException(event, "Parameter in template assumes scalar - example: 'foo: !param FOO optional default"));
+         throw new RuntimeException(
+               new ParserException(event, "Parameter in template assumes scalar - example: 'foo: !param FOO optional default"));
       }
    }
 
@@ -186,12 +190,15 @@ public class TemplateIterator implements Iterator<Event> {
             if (itemEvent instanceof ScalarEvent) {
                sb.append(((ScalarEvent) itemEvent).getValue());
             } else {
-               throw new RuntimeException(new ParserException(itemEvent, "Concatenation expects only scalar events in the list."));
+               throw new RuntimeException(
+                     new ParserException(itemEvent, "Concatenation expects only scalar events in the list."));
             }
          }
-         return new ScalarEvent(null, null, new ImplicitTuple(true, true), sb.toString(), event.getStartMark(), event.getEndMark(), DumperOptions.ScalarStyle.PLAIN);
+         return new ScalarEvent(null, null, new ImplicitTuple(true, true), sb.toString(), event.getStartMark(),
+               event.getEndMark(), DumperOptions.ScalarStyle.PLAIN);
       } else {
-         throw new RuntimeException(new ParserException(event, "Concatenation expects a sequence - example: 'foo: !concat [ \"http://\", !param SERVER ]'"));
+         throw new RuntimeException(new ParserException(event,
+               "Concatenation expects a sequence - example: 'foo: !concat [ \"http://\", !param SERVER ]'"));
       }
    }
 
@@ -221,11 +228,13 @@ public class TemplateIterator implements Iterator<Event> {
                            if (itemEvent instanceof ScalarEvent) {
                               items.add(((ScalarEvent) itemEvent).getValue());
                            } else {
-                              throw new RuntimeException(new ParserException(itemsEvent, "ForEach.items as a sequence must only contain scalars!"));
+                              throw new RuntimeException(
+                                    new ParserException(itemsEvent, "ForEach.items as a sequence must only contain scalars!"));
                            }
                         }
                      } else {
-                        throw new RuntimeException(new ParserException(itemsEvent, "ForEach.items must be scalar or sequence!"));
+                        throw new RuntimeException(
+                              new ParserException(itemsEvent, "ForEach.items must be scalar or sequence!"));
                      }
                      break;
                   case "separator":
@@ -264,7 +273,8 @@ public class TemplateIterator implements Iterator<Event> {
                      } while (depth > 0);
                      break;
                   default:
-                     throw new RuntimeException(new ParserException(mappingEvent, "Unknown ForEach property: '" + property + "', valid options are 'items', 'param', 'separator' and 'do'"));
+                     throw new RuntimeException(new ParserException(mappingEvent, "Unknown ForEach property: '" + property
+                           + "', valid options are 'items', 'param', 'separator' and 'do'"));
                }
             } else {
                throw new RuntimeException(new ParserException(mappingEvent, "ForEach expect scalar property names"));
@@ -280,22 +290,26 @@ public class TemplateIterator implements Iterator<Event> {
             if (scalarItems != null) {
                items = Stream.of(scalarItems.split(separator)).map(String::trim).collect(Collectors.toList());
                // drop empty elements at end - an empty string results in an empty list
-               for (ListIterator<String> it = items.listIterator(items.size()); it.hasPrevious(); ) {
+               for (ListIterator<String> it = items.listIterator(items.size()); it.hasPrevious();) {
                   if (it.previous().isEmpty()) {
                      it.remove();
                   }
                }
             } else {
-               throw new RuntimeException(new ParserException("ForEach.items must be defined (set to empty string if you want an empty list)"));
+               throw new RuntimeException(
+                     new ParserException("ForEach.items must be defined (set to empty string if you want an empty list)"));
             }
          }
          if (rawEvents == null) {
             throw new RuntimeException(new ParserException("ForEach.do must be defined: that's what you want repeat."));
          }
-         replaying.push(new ForeachIterator(items, rawEvents, param, new SequenceEndEvent(mappingEvent.getStartMark(), mappingEvent.getEndMark())));
-         return new SequenceStartEvent(null, null, true, event.getStartMark(), event.getEndMark(), DumperOptions.FlowStyle.BLOCK);
+         replaying.push(new ForeachIterator(items, rawEvents, param,
+               new SequenceEndEvent(mappingEvent.getStartMark(), mappingEvent.getEndMark())));
+         return new SequenceStartEvent(null, null, true, event.getStartMark(), event.getEndMark(),
+               DumperOptions.FlowStyle.BLOCK);
       } else {
-         throw new RuntimeException(new ParserException(event, "ForEach expects a mapping with 'items', 'do' and optional 'param' and 'separator' properties."));
+         throw new RuntimeException(new ParserException(event,
+               "ForEach expects a mapping with 'items', 'do' and optional 'param' and 'separator' properties."));
       }
    }
 
@@ -338,7 +352,7 @@ public class TemplateIterator implements Iterator<Event> {
             if (started) {
                paramStack.pop();
             }
-            currentEventsIterator = Collections.<Event>singletonList(endEvent).iterator();
+            currentEventsIterator = Collections.<Event> singletonList(endEvent).iterator();
             atEnd = true;
          }
       }

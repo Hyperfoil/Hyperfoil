@@ -18,18 +18,16 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.BenchmarkSource;
-import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.core.api.Plugin;
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.impl.Util;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.ServiceLoader;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-
+import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.events.CollectionEndEvent;
 import org.yaml.snakeyaml.events.CollectionStartEvent;
@@ -40,13 +38,14 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.StreamEndEvent;
 import org.yaml.snakeyaml.events.StreamStartEvent;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.ServiceLoader;
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BenchmarkSource;
+import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.core.api.Plugin;
+import io.hyperfoil.impl.Util;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
    private static final Logger log = LogManager.getLogger(BenchmarkParser.class);
@@ -91,11 +90,13 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       return builder(source, templateParams).build();
    }
 
-   public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data, Map<String, String> templateParams) throws ParserException, IOException {
+   public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data, Map<String, String> templateParams)
+         throws ParserException, IOException {
       return builder(createSource(Util.toString(inputStream), data), templateParams).build();
    }
 
-   public BenchmarkBuilder builder(InputStream inputStream, BenchmarkData data, Map<String, String> templateParams) throws ParserException, IOException {
+   public BenchmarkBuilder builder(InputStream inputStream, BenchmarkData data, Map<String, String> templateParams)
+         throws ParserException, IOException {
       return builder(createSource(Util.toString(inputStream), data), templateParams);
    }
 

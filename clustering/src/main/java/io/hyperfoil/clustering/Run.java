@@ -36,7 +36,7 @@ class Run {
    Map<String, GlobalData.Element> newGlobalData = new HashMap<>();
 
    Run(String id, Path dir, Benchmark benchmark) {
-      this (id, dir, benchmark, false);
+      this(id, dir, benchmark, false);
    }
 
    Run(String id, Path dir, Benchmark benchmark, Boolean validation) {
@@ -59,7 +59,8 @@ class Run {
             .filter(phase -> phase.status() == ControllerPhase.Status.RUNNING)
             .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().duration()).min().orElse(Long.MAX_VALUE);
       long nextPhaseTerminate = phases.values().stream()
-            .filter(phase -> (phase.status() == ControllerPhase.Status.RUNNING || phase.status() == ControllerPhase.Status.FINISHED) && phase.definition().maxDuration() >= 0)
+            .filter(phase -> (phase.status() == ControllerPhase.Status.RUNNING
+                  || phase.status() == ControllerPhase.Status.FINISHED) && phase.definition().maxDuration() >= 0)
             .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().maxDuration()).min().orElse(Long.MAX_VALUE);
       return Math.min(Math.min(nextPhaseStart, nextPhaseFinish), nextPhaseTerminate);
    }
@@ -71,7 +72,8 @@ class Run {
             phase.definition().startAfterStrict().stream().allMatch(dep -> phases.get(dep).status().isTerminated()) &&
             (phase.definition().startWithDelay() == null ||
                   phases.get(phase.definition().startWithDelay().phase).status().isStarted() &&
-                  phases.get(phase.definition().startWithDelay().phase).absoluteStartTime() + phase.definition().startWithDelay().delay <= System.currentTimeMillis()))
+                        phases.get(phase.definition().startWithDelay().phase).absoluteStartTime()
+                              + phase.definition().startWithDelay().delay <= System.currentTimeMillis()))
             .toArray(ControllerPhase[]::new);
    }
 

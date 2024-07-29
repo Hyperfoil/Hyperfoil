@@ -198,15 +198,15 @@ public class ThreadDataImpl implements ThreadData {
       @SuppressWarnings("unchecked")
       IndexedSharedMapSet(Object indexKey, int entries) {
          super(entries);
-         this.indices = new Object[]{ indexKey };
-         this.positions = new Map[]{ new HashMap<>() };
+         this.indices = new Object[] { indexKey };
+         this.positions = new Map[] { new HashMap<>() };
       }
 
       @SuppressWarnings("unchecked")
       IndexedSharedMapSet(SharedMapSet set, Object indexKey, int entries) {
          super(set, entries);
-         this.indices = new Object[]{ indexKey };
-         this.positions = new Map[]{ new HashMap<>() };
+         this.indices = new Object[] { indexKey };
+         this.positions = new Map[] { new HashMap<>() };
       }
 
       @Override
@@ -216,7 +216,8 @@ public class ThreadDataImpl implements ThreadData {
 
       IndexedSharedMapSet ensureIndex(Object index) {
          for (Object key : indices) {
-            if (key.equals(index)) return this;
+            if (key.equals(index))
+               return this;
          }
          indices = Arrays.copyOf(indices, indices.length + 1);
          positions = Arrays.copyOf(positions, positions.length + 1);
@@ -360,7 +361,8 @@ public class ThreadDataImpl implements ThreadData {
                return values[i];
             }
          }
-         throw new IllegalArgumentException("Looking for variable '" + key + "' but this is not set; Available: " + Arrays.asList(keys));
+         throw new IllegalArgumentException(
+               "Looking for variable '" + key + "' but this is not set; Available: " + Arrays.asList(keys));
       }
    }
 

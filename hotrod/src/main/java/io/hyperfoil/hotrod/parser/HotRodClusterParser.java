@@ -1,6 +1,5 @@
 package io.hyperfoil.hotrod.parser;
 
-
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.hyperfoil.core.parser.AbstractParser;

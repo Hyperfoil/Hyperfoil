@@ -33,7 +33,8 @@ public abstract class AbstractParser<T, S> implements Parser<T> {
    private Parser<S> getSubBuilder(ScalarEvent event) throws ParserException {
       Parser<S> builder = subBuilders.get(event.getValue());
       if (builder == null) {
-         throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
+         throw new ParserException(event,
+               "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
       }
       return builder;
    }

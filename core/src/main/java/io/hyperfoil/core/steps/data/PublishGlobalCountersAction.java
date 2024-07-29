@@ -64,7 +64,8 @@ public class PublishGlobalCountersAction implements Action {
     * Gathers values from session variables and publishes them globally (to all agents). <br>
     * You can name the counters individually (example 1) or use the variable names (example 2):
     *
-    * <pre><code>
+    * <pre>
+    * <code>
     * # Example 1:
     * - publishGlobalCounters:
     *     key: myKey
@@ -75,7 +76,8 @@ public class PublishGlobalCountersAction implements Action {
     *     vars:
     *     - foo: myFoo
     *     - bar: bbb
-    * </code></pre>
+    * </code>
+    * </pre>
     */
    @MetaInfServices(Action.Builder.class)
    @Name("publishGlobalCounters")

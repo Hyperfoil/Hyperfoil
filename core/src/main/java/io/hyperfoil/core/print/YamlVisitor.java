@@ -171,7 +171,8 @@ public class YamlVisitor implements Visitor {
 
    private void printCollection(Type fieldType, Collection<?> collection) {
       Type itemType = Object.class;
-      if (fieldType instanceof ParameterizedType && Collection.class.isAssignableFrom((Class<?>) ((ParameterizedType) fieldType).getRawType())) {
+      if (fieldType instanceof ParameterizedType
+            && Collection.class.isAssignableFrom((Class<?>) ((ParameterizedType) fieldType).getRawType())) {
          Type[] types = ((ParameterizedType) fieldType).getActualTypeArguments();
          // this won't work with some strange hierarchy of maps
          if (types.length >= 1) {
@@ -203,7 +204,8 @@ public class YamlVisitor implements Visitor {
 
    private void printMap(Type fieldType, Map<?, ?> map) {
       Type valueType = Object.class;
-      if (fieldType instanceof ParameterizedType && Map.class.isAssignableFrom((Class<?>) ((ParameterizedType) fieldType).getRawType())) {
+      if (fieldType instanceof ParameterizedType
+            && Map.class.isAssignableFrom((Class<?>) ((ParameterizedType) fieldType).getRawType())) {
          Type[] types = ((ParameterizedType) fieldType).getActualTypeArguments();
          // this won't work with some strange hierarchy of maps
          if (types.length >= 2) {

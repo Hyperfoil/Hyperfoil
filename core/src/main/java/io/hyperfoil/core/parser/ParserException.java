@@ -68,7 +68,8 @@ public class ParserException extends Exception {
    }
 
    static StringBuilder location(Event event) {
-      StringBuilder lineInfo = new StringBuilder("line ").append(event.getStartMark().getLine() + 1).append(", column ").append(event.getStartMark().getColumn() + 1);
+      StringBuilder lineInfo = new StringBuilder("line ").append(event.getStartMark().getLine() + 1).append(", column ")
+            .append(event.getStartMark().getColumn() + 1);
       if (Locator.isAvailable()) {
          lineInfo.append(": ").append(Locator.current().locationMessage());
       }

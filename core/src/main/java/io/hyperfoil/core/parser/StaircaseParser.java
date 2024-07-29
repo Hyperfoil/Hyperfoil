@@ -1,5 +1,8 @@
 package io.hyperfoil.core.parser;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.PhaseBuilder;
@@ -7,9 +10,6 @@ import io.hyperfoil.api.config.PhaseReference;
 import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.impl.Util;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 /**
  * This provides a convenient way to define alternating ramp-ups and steady-states.

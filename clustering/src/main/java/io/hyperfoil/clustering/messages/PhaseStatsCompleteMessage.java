@@ -10,5 +10,6 @@ public class PhaseStatsCompleteMessage extends StatsMessage {
       this.phase = Objects.requireNonNull(phase);
    }
 
-   public static class Codec extends ObjectCodec<PhaseStatsCompleteMessage> {}
+   public static class Codec extends ObjectCodec<PhaseStatsCompleteMessage> {
+   }
 }

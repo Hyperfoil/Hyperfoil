@@ -9,8 +9,8 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.api.config.PhaseReferenceDelay;
+import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.impl.Util;
 
 class StartWithParser implements Parser<PhaseBuilder<?>> {
@@ -53,7 +53,8 @@ class StartWithParser implements Parser<PhaseBuilder<?>> {
 
       MappingParser() {
          register("phase", new PropertyParser.String<>((b, value) -> b.phase = value));
-         register("iteration", new PropertyParser.String<>((b, value) -> b.iteration = RelativeIteration.valueOf(value.toUpperCase())));
+         register("iteration",
+               new PropertyParser.String<>((b, value) -> b.iteration = RelativeIteration.valueOf(value.toUpperCase())));
          register("fork", new PropertyParser.String<>((b, value) -> b.fork = value));
          register("delay", new PropertyParser.String<>((b, value) -> b.delay = Util.parseToMillis(value)));
       }

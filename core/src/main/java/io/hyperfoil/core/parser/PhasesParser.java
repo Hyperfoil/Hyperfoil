@@ -18,15 +18,14 @@
  */
 package io.hyperfoil.core.parser;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 class PhasesParser extends AbstractParser<BenchmarkBuilder, PhaseBuilder.Catalog> {
    private static Logger log = LogManager.getLogger(PhasesParser.class);
@@ -69,7 +68,8 @@ class PhasesParser extends AbstractParser<BenchmarkBuilder, PhaseBuilder.Catalog
       event = ctx.expectEvent(ScalarEvent.class);
       Parser<PhaseBuilder.Catalog> builder = subBuilders.get(event.getValue());
       if (builder == null) {
-         throw new ParserException(event, "Invalid phase type: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
+         throw new ParserException(event,
+               "Invalid phase type: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
       }
       builder.parse(ctx, target.addPhase(name));
       ctx.expectEvent(MappingEndEvent.class);

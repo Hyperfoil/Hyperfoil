@@ -50,9 +50,12 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
 
    static class AtOnce extends BasePhaseParser {
       AtOnce() {
-         register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.AtOnce) builder).users(base, inc)));
-         register("usersPerAgent", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.AtOnce) builder).usersPerAgent(users)));
-         register("usersPerThread", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.AtOnce) builder).usersPerThread(users)));
+         register("users",
+               new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.AtOnce) builder).users(base, inc)));
+         register("usersPerAgent",
+               new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.AtOnce) builder).usersPerAgent(users)));
+         register("usersPerThread",
+               new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.AtOnce) builder).usersPerThread(users)));
       }
 
       @Override
@@ -63,9 +66,12 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
 
    static class Always extends BasePhaseParser {
       Always() {
-         register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.Always) builder).users(base, inc)));
-         register("usersPerAgent", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.Always) builder).usersPerAgent(users)));
-         register("usersPerThread", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.Always) builder).usersPerThread(users)));
+         register("users",
+               new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.Always) builder).users(base, inc)));
+         register("usersPerAgent",
+               new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.Always) builder).usersPerAgent(users)));
+         register("usersPerThread",
+               new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.Always) builder).usersPerThread(users)));
       }
 
       @Override
@@ -76,9 +82,12 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
 
    abstract static class OpenModel extends BasePhaseParser {
       OpenModel() {
-         register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.OpenModel<?>) builder).maxSessions(sessions)));
-         register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.OpenModel<?>) builder).variance(variance)));
-         register("sessionLimitPolicy", new PropertyParser.Enum<>(SessionLimitPolicy.values(), (builder, policy) -> ((PhaseBuilder.OpenModel<?>) builder).sessionLimitPolicy(policy)));
+         register("maxSessions",
+               new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.OpenModel<?>) builder).maxSessions(sessions)));
+         register("variance",
+               new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.OpenModel<?>) builder).variance(variance)));
+         register("sessionLimitPolicy", new PropertyParser.Enum<>(SessionLimitPolicy.values(),
+               (builder, policy) -> ((PhaseBuilder.OpenModel<?>) builder).sessionLimitPolicy(policy)));
       }
    }
 
@@ -87,8 +96,10 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       String constraintMessage;
 
       RampRate() {
-         register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampRate) builder).initialUsersPerSec(base, inc)));
-         register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampRate) builder).targetUsersPerSec(base, inc)));
+         register("initialUsersPerSec", new IncrementPropertyParser.Double<>(
+               (builder, base, inc) -> ((PhaseBuilder.RampRate) builder).initialUsersPerSec(base, inc)));
+         register("targetUsersPerSec", new IncrementPropertyParser.Double<>(
+               (builder, base, inc) -> ((PhaseBuilder.RampRate) builder).targetUsersPerSec(base, inc)));
       }
 
       @Override
@@ -105,7 +116,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
 
    static class ConstantRate extends OpenModel {
       ConstantRate() {
-         register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantRate) builder).usersPerSec(base, inc)));
+         register("usersPerSec", new IncrementPropertyParser.Double<>(
+               (builder, base, inc) -> ((PhaseBuilder.ConstantRate) builder).usersPerSec(base, inc)));
       }
 
       @Override

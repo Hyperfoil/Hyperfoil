@@ -12,8 +12,8 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
@@ -153,7 +153,8 @@ public class SetAction implements Action {
       }
    }
 
-   private abstract static class ValueSupplier<T> implements SerializableFunction<Session, Object>, Session.ResourceKey<ValueResource<T>>, ResourceUtilizer {
+   private abstract static class ValueSupplier<T>
+         implements SerializableFunction<Session, Object>, Session.ResourceKey<ValueResource<T>>, ResourceUtilizer {
       @Override
       public T apply(Session session) {
          return session.getResource(this).object;
@@ -335,7 +336,8 @@ public class SetAction implements Action {
                if (value == null) {
                   // ignore
                } else if (value instanceof ObjectVar[]) {
-                  session.fail(new BenchmarkExecutionException("Type mismatch - are you trying to copy integers into objects?"));
+                  session
+                        .fail(new BenchmarkExecutionException("Type mismatch - are you trying to copy integers into objects?"));
                } else if (value instanceof IntVar[]) {
                   IntVar[] vars = (IntVar[]) value;
                   for (int i = 0; i < Math.min(size, vars.length); ++i) {

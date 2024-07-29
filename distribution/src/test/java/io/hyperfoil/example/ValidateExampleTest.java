@@ -32,9 +32,9 @@ import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.hyperfoil.impl.Util;
 
 @RunWith(Parameterized.class)
 public class ValidateExampleTest {
@@ -49,7 +49,7 @@ public class ValidateExampleTest {
       return Files.list(Paths.get("examples"))
             .filter(p -> p.toString().endsWith(".hf.yaml"))
             .filter(p -> p.toFile().isFile())
-            .map(p -> new Object[]{ p.toString() })
+            .map(p -> new Object[] { p.toString() })
             .collect(Collectors.toList());
    }
 
@@ -64,8 +64,10 @@ public class ValidateExampleTest {
    @Test
    public void testSerializable() {
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
-         assertThat(benchmark.name()).isEqualTo(exampleFile.replace(".hf.yaml", "").replaceFirst("[^" + File.separatorChar + "]*.", ""));
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(),
+               new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
+         assertThat(benchmark.name())
+               .isEqualTo(exampleFile.replace(".hf.yaml", "").replaceFirst("[^" + File.separatorChar + "]*.", ""));
          byte[] bytes = Util.serialize(benchmark);
          assertThat(bytes).isNotNull();
       } catch (Exception e) {
@@ -96,7 +98,8 @@ public class ValidateExampleTest {
 
    @Test
    public void testPrint() throws IOException, ParserException {
-      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
+      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(),
+            new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       try (PrintStream stream = new PrintStream(output, false, StandardCharsets.UTF_8.name())) {
          new YamlVisitor(stream, 20).walk(benchmark);

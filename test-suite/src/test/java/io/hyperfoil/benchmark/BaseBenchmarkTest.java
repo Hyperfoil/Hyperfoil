@@ -1,15 +1,15 @@
 package io.hyperfoil.benchmark;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.runner.RunWith;
+
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public abstract class BaseBenchmarkTest {

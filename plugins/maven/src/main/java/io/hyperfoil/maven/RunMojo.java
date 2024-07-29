@@ -1,25 +1,5 @@
 package io.hyperfoil.maven;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.core.impl.LocalBenchmarkData;
-import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.hyperfoil.core.parser.BenchmarkParser;
-import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.impl.Util;
-import io.hyperfoil.http.statistics.HttpStats;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.plugins.annotations.ResolutionScope;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,6 +12,25 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
+
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.impl.LocalBenchmarkData;
+import io.hyperfoil.core.impl.LocalSimulationRunner;
+import io.hyperfoil.core.parser.BenchmarkParser;
+import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.http.statistics.HttpStats;
+import io.hyperfoil.impl.Util;
 
 @Mojo(name = "run", defaultPhase = LifecyclePhase.INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class RunMojo extends AbstractMojo {
@@ -80,13 +79,13 @@ public class RunMojo extends AbstractMojo {
       log.info("Phase {} used {} - {} sessions.", phase, min, max);
    }
 
-
    private Benchmark buildBenchmark(InputStream inputStream, Path path) throws MojoFailureException {
       if (inputStream == null)
          log.error("Could not find benchmark configuration");
 
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, new LocalBenchmarkData(path), Collections.emptyMap());
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, new LocalBenchmarkData(path),
+               Collections.emptyMap());
 
          if (benchmark == null)
             log.info("Failed to parse benchmark configuration");
@@ -104,7 +103,8 @@ public class RunMojo extends AbstractMojo {
       log.info("{} requests in {} s, ", stats.histogram.getTotalCount(), durationSeconds);
       log.info("                  Avg     Stdev       Max");
       log.info("Latency:    {} {} {}", Util.prettyPrintNanosFixed((long) stats.histogram.getMean()),
-            Util.prettyPrintNanosFixed((long) stats.histogram.getStdDeviation()), Util.prettyPrintNanosFixed(stats.histogram.getMaxValue()));
+            Util.prettyPrintNanosFixed((long) stats.histogram.getStdDeviation()),
+            Util.prettyPrintNanosFixed(stats.histogram.getMaxValue()));
       log.info("Requests/sec: {}", String.format("%.2f", stats.histogram.getTotalCount() / durationSeconds));
 
       if (outputPercentileDistribution) {

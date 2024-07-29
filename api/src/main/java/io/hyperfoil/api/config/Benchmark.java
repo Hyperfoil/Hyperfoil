@@ -61,10 +61,10 @@ public class Benchmark implements Serializable {
    }
 
    public Benchmark(String name, String version, BenchmarkSource source, Map<String, String> params, Map<String, byte[]> files,
-                    Agent[] agents, int defaultThreads,
-                    Map<Class<? extends PluginConfig>, PluginConfig> plugins, Collection<Phase> phases,
-                    Map<String, Object> tags, long statisticsCollectionPeriod, String triggerUrl,
-                    List<RunHook> preHooks, List<RunHook> postHooks, FailurePolicy failurePolicy) {
+         Agent[] agents, int defaultThreads,
+         Map<Class<? extends PluginConfig>, PluginConfig> plugins, Collection<Phase> phases,
+         Map<String, Object> tags, long statisticsCollectionPeriod, String triggerUrl,
+         List<RunHook> preHooks, List<RunHook> postHooks, FailurePolicy failurePolicy) {
       this.name = name;
       this.params = params;
       this.source = source;
@@ -73,7 +73,8 @@ public class Benchmark implements Serializable {
       this.defaultThreads = defaultThreads;
       this.plugins = plugins;
       this.failurePolicy = failurePolicy;
-      this.totalThreads = agents.length == 0 ? defaultThreads : Stream.of(agents).mapToInt(Agent::threads).map(n -> n <= 0 ? defaultThreads : n).sum();
+      this.totalThreads = agents.length == 0 ? defaultThreads
+            : Stream.of(agents).mapToInt(Agent::threads).map(n -> n <= 0 ? defaultThreads : n).sum();
       this.phases = phases;
       this.tags = tags;
       this.statisticsCollectionPeriod = statisticsCollectionPeriod;

@@ -4,10 +4,10 @@ import org.kohsuke.MetaInfServices;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.api.statistics.StatsExtension;
 
 @MetaInfServices(StatsExtension.class)
 @JsonTypeName("http")
@@ -69,7 +69,7 @@ public class HttpStats implements StatsExtension {
    }
 
    public int[] statuses() {
-      return new int[]{ status_2xx, status_3xx, status_4xx, status_5xx, status_other };
+      return new int[] { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
    }
 
    @Override

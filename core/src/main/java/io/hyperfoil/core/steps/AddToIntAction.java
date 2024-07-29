@@ -45,7 +45,8 @@ public class AddToIntAction implements Action {
       }
 
       /**
-       * @param param Accepting one of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
+       * @param param Accepting one of: <code>var++</code>, <code>var--</code>, <code>var += value</code>,
+       *        <code>var -= value</code>.
        * @return Self.
        */
       @Override

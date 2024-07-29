@@ -35,7 +35,6 @@ public abstract class BaseDelegatingAction implements Action {
          return self();
       }
 
-
       public S actions(Collection<? extends Action.Builder> actions) {
          this.actions.addAll(actions);
          return self();

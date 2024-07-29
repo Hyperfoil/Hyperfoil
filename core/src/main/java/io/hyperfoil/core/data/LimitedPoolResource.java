@@ -35,5 +35,6 @@ public class LimitedPoolResource<T> extends LimitedPool<T> implements Session.Re
       reset(originalObjects);
    }
 
-   public static class Key<T> implements Session.ResourceKey<LimitedPoolResource<T>> {}
+   public static class Key<T> implements Session.ResourceKey<LimitedPoolResource<T>> {
+   }
 }

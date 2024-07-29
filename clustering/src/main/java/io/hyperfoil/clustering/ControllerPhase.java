@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.GlobalData;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class ControllerPhase {
    private static final Logger log = LogManager.getLogger(ControllerPhase.class);

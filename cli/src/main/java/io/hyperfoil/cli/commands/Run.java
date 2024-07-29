@@ -16,8 +16,8 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.core.impl.ProvidedBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
@@ -45,11 +45,12 @@ public class Run extends ParamsCommand {
             }
             if (source.isTemplate()) {
                boolean firstMissing = true;
-               for (; ; ) {
+               for (;;) {
                   try {
                      BenchmarkParser.instance().buildBenchmark(source, currentParams);
                      if (!data.files().isEmpty()) {
-                        invocation.context().client().register(yaml, data.files(), benchmarkSource.version, benchmarkRef.name());
+                        invocation.context().client().register(yaml, data.files(), benchmarkSource.version,
+                              benchmarkRef.name());
                      }
                      break;
                   } catch (BenchmarkData.MissingFileException e) {

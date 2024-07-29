@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.FormattedMessage;
 import org.kohsuke.MetaInfServices;
 
@@ -18,16 +20,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 // Based on java.util.zip.GZIPInputStream
-public class GzipInflatorProcessor extends MultiProcessor implements ResourceUtilizer, Session.ResourceKey<GzipInflatorProcessor.InflaterResource> {
+public class GzipInflatorProcessor extends MultiProcessor
+      implements ResourceUtilizer, Session.ResourceKey<GzipInflatorProcessor.InflaterResource> {
    private static final Logger log = LogManager.getLogger(GzipInflatorProcessor.class);
-   private static final int FHCRC = 2;    // Header CRC
-   private static final int FEXTRA = 4;    // Extra field
-   private static final int FNAME = 8;    // File name
-   private static final int FCOMMENT = 16;   // File comment
+   private static final int FHCRC = 2; // Header CRC
+   private static final int FEXTRA = 4; // Extra field
+   private static final int FNAME = 8; // File name
+   private static final int FCOMMENT = 16; // File comment
 
    private final ReadAccess encodingVar;
 
@@ -181,7 +181,8 @@ public class GzipInflatorProcessor extends MultiProcessor implements ResourceUti
                      int n;
                      while ((n = inflater.inflate(nioOutput)) == 0) {
                         if (inflater.needsDictionary()) {
-                           log.error("#{} decompression requires a pre-set dictionary but it is not available.", session.uniqueId());
+                           log.error("#{} decompression requires a pre-set dictionary but it is not available.",
+                                 session.uniqueId());
                            invalidate(session);
                            break;
                         } else if (inflater.finished()) {

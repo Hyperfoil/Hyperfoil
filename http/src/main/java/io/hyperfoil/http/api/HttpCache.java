@@ -3,7 +3,8 @@ package io.hyperfoil.http.api;
 import io.hyperfoil.api.session.Session;
 
 public interface HttpCache extends Session.Resource {
-   Session.ResourceKey<HttpCache> KEY = new Session.ResourceKey<>() {};
+   Session.ResourceKey<HttpCache> KEY = new Session.ResourceKey<>() {
+   };
 
    void beforeRequestHeaders(HttpRequest request);
 
@@ -22,7 +23,8 @@ public interface HttpCache extends Session.Resource {
 
    void clear();
 
-   interface Record {}
+   interface Record {
+   }
 
    static HttpCache get(Session session) {
       return session.getResource(KEY);

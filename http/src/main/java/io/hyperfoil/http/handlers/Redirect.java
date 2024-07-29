@@ -3,16 +3,15 @@ package io.hyperfoil.http.handlers;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.session.ReadAccess;
-import io.hyperfoil.http.HttpUtil;
-import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.http.api.HeaderHandler;
-import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -22,12 +21,13 @@ import io.hyperfoil.core.handlers.BaseDelegatingAction;
 import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableFunction;
+import io.hyperfoil.http.HttpUtil;
+import io.hyperfoil.http.api.HeaderHandler;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class Redirect {
    private static final Logger log = LogManager.getLogger(Redirect.class);
@@ -38,7 +38,8 @@ public class Redirect {
       private final LimitedPoolResource.Key<Coords> poolKey;
       private final int concurrency;
 
-      public StatusHandler(ObjectAccess coordsVar, io.hyperfoil.http.api.StatusHandler[] handlers, LimitedPoolResource.Key<Coords> poolKey, int concurrency) {
+      public StatusHandler(ObjectAccess coordsVar, io.hyperfoil.http.api.StatusHandler[] handlers,
+            LimitedPoolResource.Key<Coords> poolKey, int concurrency) {
          super(handlers);
          this.coordsVar = coordsVar;
          this.poolKey = poolKey;
@@ -130,7 +131,8 @@ public class Redirect {
       private final String sequence;
       private final SerializableFunction<Session, SequenceInstance> originalSequenceSupplier;
 
-      public LocationRecorder(int concurrency, Session.ResourceKey<Queue> queueKey, ReadAccess inputVar, ObjectAccess outputVar, String sequence, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
+      public LocationRecorder(int concurrency, Session.ResourceKey<Queue> queueKey, ReadAccess inputVar, ObjectAccess outputVar,
+            String sequence, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
          this.concurrency = concurrency;
          this.queueKey = queueKey;
          this.inputVar = inputVar;
@@ -167,7 +169,8 @@ public class Redirect {
                Queue queue = session.getResource(queueKey);
                queue.push(session, coords);
             } else {
-               log.error("Duplicate location header: previously got {}, now {}. Ignoring the second match.", coords.path, value);
+               log.error("Duplicate location header: previously got {}, now {}. Ignoring the second match.", coords.path,
+                     value);
             }
          }
       }
@@ -196,7 +199,8 @@ public class Redirect {
          private String sequence;
          private Supplier<SerializableFunction<Session, SequenceInstance>> originalSequenceSupplier;
 
-         public Builder() {}
+         public Builder() {
+         }
 
          public Builder concurrency(int concurrency) {
             this.concurrency = concurrency;
@@ -231,12 +235,14 @@ public class Redirect {
          @Override
          public LocationRecorder build() {
             if (Objects.equals(inputVar, outputVar)) {
-               throw new BenchmarkDefinitionException("Input (" + inputVar + ") and output (" + outputVar + ") variables must differ");
+               throw new BenchmarkDefinitionException(
+                     "Input (" + inputVar + ") and output (" + outputVar + ") variables must differ");
             }
             assert inputVar != null;
             assert outputVar != null;
             assert sequence != null;
-            return new LocationRecorder(concurrency, queueKey, SessionFactory.readAccess(inputVar), SessionFactory.objectAccess(outputVar), this.sequence, originalSequenceSupplier.get());
+            return new LocationRecorder(concurrency, queueKey, SessionFactory.readAccess(inputVar),
+                  SessionFactory.objectAccess(outputVar), this.sequence, originalSequenceSupplier.get());
          }
       }
    }

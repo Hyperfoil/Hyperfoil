@@ -17,7 +17,7 @@ public abstract class BaseEditCommand extends BenchmarkCommand {
    protected ConflictResolution askForConflictResolution(HyperfoilCommandInvocation invocation) {
       invocation.println("Conflict: the benchmark was modified while being edited.");
       try {
-         for (; ; ) {
+         for (;;) {
             invocation.print("Options: [C]ancel edit, [r]etry edits, [o]verwrite: ");
             switch (invocation.inputLine().trim().toLowerCase()) {
                case "":
@@ -36,7 +36,8 @@ public abstract class BaseEditCommand extends BenchmarkCommand {
       }
    }
 
-   protected Client.BenchmarkSource ensureSource(HyperfoilCommandInvocation invocation, Client.BenchmarkRef benchmarkRef) throws CommandException {
+   protected Client.BenchmarkSource ensureSource(HyperfoilCommandInvocation invocation, Client.BenchmarkRef benchmarkRef)
+         throws CommandException {
       Client.BenchmarkSource source;
       try {
          source = benchmarkRef.source();

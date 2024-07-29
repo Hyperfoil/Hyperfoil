@@ -14,14 +14,14 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.steps.SetAction;
 import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.handlers.RangeStatusValidator;
 import io.hyperfoil.http.handlers.RecordHeaderTimeHandler;
-import io.hyperfoil.core.steps.SetAction;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;

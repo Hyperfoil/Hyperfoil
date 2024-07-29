@@ -36,8 +36,8 @@ import org.aesh.command.registry.CommandRegistry;
 
 import io.hyperfoil.cli.Pager;
 import io.hyperfoil.cli.ProcessPager;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClient;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Run;
 import io.vertx.core.Vertx;
 

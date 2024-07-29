@@ -3,19 +3,19 @@ package io.hyperfoil.http.api;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
+
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SessionStopException;
-import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.http.HttpRequestPool;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.netty.buffer.ByteBuf;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.FormattedMessage;
 
 public class HttpRequest extends Request {
    public static final Logger log = LogManager.getLogger(HttpRequest.class);
@@ -48,9 +48,9 @@ public class HttpRequest extends Request {
    }
 
    public void send(HttpConnection connection,
-                    BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                    boolean injectHostHeader,
-                    BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+         BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+         boolean injectHostHeader,
+         BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       if (session.currentRequest() != null) {
          // Refuse to fire request from other request's handler as the other handlers
          // would have messed up current request in session.

@@ -10,8 +10,8 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -36,7 +36,8 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
    private final Queue.Key queueKey;
    private final LimitedPoolResource.Key<Location> locationPoolKey;
 
-   public FetchResourceHandler(Queue.Key queueKey, LimitedPoolResource.Key<Location> locationPoolKey, ObjectAccess var, int maxResources, String sequence, int concurrency, Action onCompletion) {
+   public FetchResourceHandler(Queue.Key queueKey, LimitedPoolResource.Key<Location> locationPoolKey, ObjectAccess var,
+         int maxResources, String sequence, int concurrency, Action onCompletion) {
       this.queueKey = queueKey;
       this.locationPoolKey = locationPoolKey;
       this.var = var;
@@ -73,7 +74,8 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
          var.setObject(session, ObjectVar.newArray(session, concurrency));
       }
       session.declareResource(queueKey, () -> new Queue(var, maxResources, concurrency, sequence, onCompletion), true);
-      session.declareResource(locationPoolKey, () -> LimitedPoolResource.create(maxResources, Location.class, Location::new), true);
+      session.declareResource(locationPoolKey, () -> LimitedPoolResource.create(maxResources, Location.class, Location::new),
+            true);
    }
 
    /**
@@ -153,7 +155,8 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
          locationPoolKey = new LimitedPoolResource.Key<>();
 
          Locator locator = Locator.current();
-         sequenceName = String.format("%s_fetchResources_%08x", locator.sequence().name(), ThreadLocalRandom.current().nextInt());
+         sequenceName = String.format("%s_fetchResources_%08x", locator.sequence().name(),
+               ThreadLocalRandom.current().nextInt());
          Unique locationVar = new Unique();
          varAccess = SessionFactory.objectAccess(locationVar);
 
@@ -172,7 +175,8 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
          sequence.stepBuilder(requestBuilder);
          var myQueueKey = queueKey; // prevent capturing self reference
          var myPoolKey = locationPoolKey;
-         requestBuilder.handler().onCompletion(() -> new Location.Complete<>(myPoolKey, myQueueKey, sequenceScopedObjectAccess(locationVar)));
+         requestBuilder.handler()
+               .onCompletion(() -> new Location.Complete<>(myPoolKey, myQueueKey, sequenceScopedObjectAccess(locationVar)));
          // As we're preparing build, the list of sequences-to-be-prepared is already final and we need to prepare
          // this one manually
          sequence.prepareBuild();
@@ -183,7 +187,8 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
             throw new BenchmarkDefinitionException("Maximum size for queue must be set!");
          }
          Action onCompletion = this.onCompletion == null ? null : this.onCompletion.build();
-         return new FetchResourceHandler(queueKey, locationPoolKey, varAccess, maxResources, sequenceName, concurrency, onCompletion);
+         return new FetchResourceHandler(queueKey, locationPoolKey, varAccess, maxResources, sequenceName, concurrency,
+               onCompletion);
       }
    }
 }

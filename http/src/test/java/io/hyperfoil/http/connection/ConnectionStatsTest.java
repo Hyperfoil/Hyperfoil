@@ -137,7 +137,6 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       testSingle("/close", false);
    }
 
-
    @Test
    public void testSharedHttp1x(TestContext ctx) {
       startServer(ctx, false);
@@ -207,7 +206,7 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       Map<String, LowHigh> stats = testConcurrent(true);
       assertThat(stats.get(HTTP_2_TLS).high).isEqualTo(connections);
       // Too many false positives
-//      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isBetween(connections + 1, 50);
+      //      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isBetween(connections + 1, 50);
       assertThat(stats.get(USED_CONNECTIONS).high).isEqualTo(connections);
    }
 
@@ -223,7 +222,7 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       assertThat(stats.get(HTTP_2_TLS).high).isEqualTo(connections);
       assertThat(stats.get(BLOCKED_SESSIONS).high).isEqualTo(0);
       // Too many false positives
-//      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isBetween(connections + 1, 50);
+      //      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isBetween(connections + 1, 50);
       assertThat(stats.get(USED_CONNECTIONS).high).isEqualTo(connections);
    }
 
@@ -284,7 +283,7 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       http().connectionStrategy(ConnectionStrategy.ALWAYS_NEW);
 
       Map<String, LowHigh> stats = testConcurrent(true);
-//      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isEqualTo(stats.get(USED_CONNECTIONS).high);
+      //      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isEqualTo(stats.get(USED_CONNECTIONS).high);
    }
 
    @Test
@@ -294,7 +293,7 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       http().connectionStrategy(ConnectionStrategy.OPEN_ON_REQUEST);
 
       Map<String, LowHigh> stats = testConcurrent(true);
-//      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isEqualTo(stats.get(USED_CONNECTIONS).high);
+      //      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isEqualTo(stats.get(USED_CONNECTIONS).high);
    }
 
    private ConnectionPoolStats testSingle(String path, boolean response) {
@@ -335,7 +334,8 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       assertThat(snapshot.responseCount).isEqualTo(response ? 1 : 0);
       assertThat(snapshot.connectionErrors).isEqualTo(response ? 0 : 1);
 
-      connectionStats.stats.forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isLessThanOrEqualTo(lowHigh.high));
+      connectionStats.stats
+            .forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isLessThanOrEqualTo(lowHigh.high));
       connectionStats.stats.forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isGreaterThanOrEqualTo(0));
       return connectionPool;
    }
@@ -367,14 +367,15 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       assertThat(snapshot.responseCount).isEqualTo(snapshot.requestCount - snapshot.connectionErrors);
       assertThat(snapshot.connectionErrors).isEqualTo(snapshot.requestCount - http.status_2xx - http.status_4xx);
       // Too many false positives
-//      assertThat(http.status_2xx).isGreaterThan(30);
+      //      assertThat(http.status_2xx).isGreaterThan(30);
       if (errors) {
-//         assertThat(http.status_4xx).isGreaterThan(30);
+         //         assertThat(http.status_4xx).isGreaterThan(30);
       } else {
          assertThat(http.status_4xx).isEqualTo(0);
       }
 
-      connectionStats.stats.forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isLessThanOrEqualTo(lowHigh.high));
+      connectionStats.stats
+            .forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isLessThanOrEqualTo(lowHigh.high));
       connectionStats.stats.forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isGreaterThanOrEqualTo(0));
       return connectionStats.stats;
    }

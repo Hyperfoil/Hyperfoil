@@ -10,10 +10,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.hyperfoil.api.config.BenchmarkData;
-
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.hyperfoil.api.config.BenchmarkData;
 
 public class PersistedBenchmarkData implements BenchmarkData {
    private static final Logger log = LogManager.getLogger(PersistedBenchmarkData.class);

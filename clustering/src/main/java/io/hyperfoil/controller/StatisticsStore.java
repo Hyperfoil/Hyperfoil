@@ -1,14 +1,5 @@
 package io.hyperfoil.controller;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.controller.model.Histogram;
-import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.core.util.LowHigh;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,11 +15,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.controller.model.Histogram;
+import io.hyperfoil.controller.model.RequestStats;
+import io.hyperfoil.core.util.LowHigh;
+
 public class StatisticsStore {
-   static final double[] PERCENTILES = new double[]{ 0.5, 0.9, 0.99, 0.999, 0.9999 };
-   private static final Comparator<RequestStats> REQUEST_STATS_COMPARATOR =
-         Comparator.<RequestStats, Long>comparing(rs -> rs.summary.startTime)
-               .thenComparing(rs -> rs.phase).thenComparing(rs -> rs.metric);
+   static final double[] PERCENTILES = new double[] { 0.5, 0.9, 0.99, 0.999, 0.9999 };
+   private static final Comparator<RequestStats> REQUEST_STATS_COMPARATOR = Comparator
+         .<RequestStats, Long> comparing(rs -> rs.summary.startTime)
+         .thenComparing(rs -> rs.phase).thenComparing(rs -> rs.metric);
 
    private final Benchmark benchmark;
    final Map<Integer, Map<String, Data>> data = new HashMap<>();
@@ -66,8 +66,8 @@ public class StatisticsStore {
          } else {
             sla = phase.customSlas.get(metric);
          }
-         Map<SLA, Window> rings = sla == null ? Collections.emptyMap() :
-               Stream.of(sla).filter(s -> s.window() > 0).collect(
+         Map<SLA, Window> rings = sla == null ? Collections.emptyMap()
+               : Stream.of(sla).filter(s -> s.window() > 0).collect(
                      Collectors.toMap(Function.identity(), s -> new Window((int) (s.window() / collectionPeriod))));
          SLA[] total = sla == null ? new SLA[0] : Stream.of(sla).filter(s -> s.window() <= 0).toArray(SLA[]::new);
          map.put(metric, data = new Data(this, phase.name, phase.isWarmup, stepId, metric, rings, total));
@@ -96,7 +96,8 @@ public class StatisticsStore {
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             if (!data.isCompleted()) {
-               String message = String.format("Data for %s/%d/%s were not completed when the phase terminated - was the data received after that?",
+               String message = String.format(
+                     "Data for %s/%d/%s were not completed when the phase terminated - was the data received after that?",
                      data.phase, data.stepId, data.metric);
                errorHandler.accept(message);
                data.completePhase();
@@ -143,7 +144,8 @@ public class StatisticsStore {
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(SLA.Failure::message).collect(Collectors.toList());
-            result.add(new RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures, data.isWarmup));
+            result.add(
+                  new RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures, data.isWarmup));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
@@ -192,7 +194,8 @@ public class StatisticsStore {
 
    public void recordSessionStats(String address, long timestamp, String phase, int minSessions, int maxSessions) {
       SessionPoolStats sps = this.sessionPoolStats.computeIfAbsent(phase, p -> new SessionPoolStats());
-      sps.records.computeIfAbsent(address, a -> new ArrayList<>()).add(new SessionPoolRecord(timestamp, minSessions, maxSessions));
+      sps.records.computeIfAbsent(address, a -> new ArrayList<>())
+            .add(new SessionPoolRecord(timestamp, minSessions, maxSessions));
    }
 
    public Map<String, Map<String, LowHigh>> recentSessionPoolSummary(long minValidTimestamp) {
@@ -329,7 +332,8 @@ public class StatisticsStore {
 
    public List<Data> getData() {
       Data[] rtrn = data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
-      Arrays.sort(rtrn, Comparator.comparing((Data data) -> data.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
+      Arrays.sort(rtrn,
+            Comparator.comparing((Data data) -> data.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
       return Arrays.asList(rtrn);
    }
 
@@ -349,7 +353,7 @@ public class StatisticsStore {
          int max = 0;
          List<Iterator<SessionPoolRecord>> iterators = records.values().stream()
                .map(List::iterator).collect(Collectors.toList());
-         for (; ; ) {
+         for (;;) {
             LowHigh combined = iterators.stream()
                   .filter(Iterator::hasNext).map(Iterator::next).map(LowHigh.class::cast)
                   .reduce(LowHigh::sum).orElse(null);

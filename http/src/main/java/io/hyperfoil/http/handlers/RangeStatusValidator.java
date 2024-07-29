@@ -1,5 +1,7 @@
 package io.hyperfoil.http.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -8,9 +10,6 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.impl.Util;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class RangeStatusValidator implements StatusHandler {
    private static final Logger log = LogManager.getLogger(RangeStatusValidator.class);
@@ -52,7 +51,8 @@ public class RangeStatusValidator implements StatusHandler {
          for (int i = param.length() - 1; i >= 0; --i) {
             if (param.charAt(i) == 'x') {
                ++xn;
-            } else break;
+            } else
+               break;
          }
          try {
             int dash = param.indexOf('-');

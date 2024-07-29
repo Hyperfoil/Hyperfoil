@@ -35,5 +35,6 @@ public class PhaseControlMessage implements Serializable {
       TERMINATE
    }
 
-   public static class Codec extends ObjectCodec<PhaseControlMessage> {}
+   public static class Codec extends ObjectCodec<PhaseControlMessage> {
+   }
 }

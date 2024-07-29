@@ -1,5 +1,7 @@
 package io.hyperfoil.core.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -7,9 +9,6 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class NewSequenceAction implements Action {
    private static final Logger log = LogManager.getLogger(NewSequenceAction.class);

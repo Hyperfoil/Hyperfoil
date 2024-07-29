@@ -4,9 +4,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.IntPredicate;
 
 import io.hyperfoil.api.processor.Processor;
-import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
+import io.netty.buffer.ByteBuf;
 
 /**
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
@@ -19,7 +19,7 @@ public class SearchValidator implements Processor, ResourceUtilizer, Session.Res
    private final IntPredicate match;
 
    /**
-    * @param text  Search pattern.
+    * @param text Search pattern.
     * @param match Expected number of matches.
     */
    public SearchValidator(String text, IntPredicate match) {

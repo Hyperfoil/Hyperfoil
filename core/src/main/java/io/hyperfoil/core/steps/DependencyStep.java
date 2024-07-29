@@ -1,11 +1,11 @@
 package io.hyperfoil.core.steps;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public abstract class DependencyStep implements Step {
    private static final Logger log = LogManager.getLogger(Step.class);

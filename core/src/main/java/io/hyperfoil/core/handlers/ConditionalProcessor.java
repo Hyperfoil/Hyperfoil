@@ -95,7 +95,8 @@ public class ConditionalProcessor implements Processor {
          if (condition == null) {
             throw new BenchmarkDefinitionException("Conditional processor must specify a condition.");
          }
-         return new ConditionalProcessor(condition, processors.stream().map(pb -> pb.build(fragmented)).toArray(Processor[]::new));
+         return new ConditionalProcessor(condition,
+               processors.stream().map(pb -> pb.build(fragmented)).toArray(Processor[]::new));
       }
    }
 }

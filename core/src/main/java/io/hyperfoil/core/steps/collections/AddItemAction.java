@@ -41,7 +41,8 @@ public class AddItemAction implements Action {
                return;
             }
          }
-         log.warn("#{} The array in variable {} is full ({} items), cannot add {}", session.uniqueId(), toVar, array.length, item);
+         log.warn("#{} The array in variable {} is full ({} items), cannot add {}", session.uniqueId(), toVar, array.length,
+               item);
       } else {
          throw new IllegalStateException("Variable " + toVar + " should contain ObjectVar array but it contains " + dest);
       }

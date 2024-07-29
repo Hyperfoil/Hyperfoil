@@ -1,20 +1,21 @@
 package io.hyperfoil.http.cookie;
 
-import io.hyperfoil.impl.Util;
-import io.hyperfoil.http.api.HttpRequestWriter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.http.HttpUtil;
+import io.hyperfoil.http.api.HttpRequestWriter;
+import io.hyperfoil.impl.Util;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 class CookieStore implements Session.Resource {
    private static final Logger log = LogManager.getLogger(CookieRecorder.class);
 
    // We need only single object for all cookies
-   public static final Session.ResourceKey<CookieStore> COOKIES = new Session.ResourceKey<CookieStore>() {};
+   public static final Session.ResourceKey<CookieStore> COOKIES = new Session.ResourceKey<CookieStore>() {
+   };
 
    private static final Attribute[] ATTRIBUTES = Attribute.values();
    private static final int MAX_SITES = 16;
@@ -49,7 +50,8 @@ class CookieStore implements Session.Resource {
       long expires = Long.MAX_VALUE;
       ++valueEnd;
       while (valueEnd < seq.length()) {
-         for (; valueEnd < seq.length() && seq.charAt(valueEnd) == ' '; ++valueEnd) ;
+         for (; valueEnd < seq.length() && seq.charAt(valueEnd) == ' '; ++valueEnd)
+            ;
          int semIndex = HttpUtil.indexOf(seq, valueEnd, ';');
          for (int a = 0; a < ATTRIBUTES.length; ++a) {
             Attribute attribute = ATTRIBUTES[a];
@@ -107,10 +109,9 @@ class CookieStore implements Session.Resource {
          expires = now + maxAge * 1000;
       }
       for (int i = 0; i < cookies.length; ++i) {
-         if (cookies[i].name == null || cookies[i].name.length() == 0 || (
-               AsciiString.contentEquals(cookies[i].name, name) &&
-                     AsciiString.contentEquals(cookies[i].domain, domain) &&
-                     AsciiString.contentEquals(cookies[i].path, path))) {
+         if (cookies[i].name == null || cookies[i].name.length() == 0 || (AsciiString.contentEquals(cookies[i].name, name) &&
+               AsciiString.contentEquals(cookies[i].domain, domain) &&
+               AsciiString.contentEquals(cookies[i].path, path))) {
             if (nameValue.length() == valueEnd + 1 || expires <= now) {
                cookies[i].name = ""; // invalidate this entry as it's expired
             } else {
@@ -199,7 +200,13 @@ class CookieStore implements Session.Resource {
    }
 
    private enum Attribute {
-      EXPIRES("expires="), MAX_AGE("max-age="), DOMAIN("domain="), PATH("path="), SECURE("secure"), HTTPONLY("httponly"), EXTENSION("");
+      EXPIRES("expires="),
+      MAX_AGE("max-age="),
+      DOMAIN("domain="),
+      PATH("path="),
+      SECURE("secure"),
+      HTTPONLY("httponly"),
+      EXTENSION("");
 
       final CharSequence text;
 

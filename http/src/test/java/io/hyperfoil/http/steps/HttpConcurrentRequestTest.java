@@ -1,5 +1,14 @@
 package io.hyperfoil.http.steps;
 
+import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.ArrayList;
+import java.util.Map;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.handlers.NewSequenceAction;
 import io.hyperfoil.http.HttpScenarioTest;
@@ -8,43 +17,35 @@ import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.handlers.RangeStatusValidator;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import java.util.ArrayList;
-import java.util.Map;
-
-import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpConcurrentRequestTest extends HttpScenarioTest {
 
-    private ArrayList<Integer> responsesReceived = new ArrayList<>();
+   private ArrayList<Integer> responsesReceived = new ArrayList<>();
 
-    @Override
-    protected void initRouter() {
-        router.route().handler(BodyHandler.create());
-        router.get("/test").handler(ctx -> {
-            responsesReceived.add(Integer.parseInt(ctx.request().getParam("concurrency")));
-            ctx.response().setStatusCode(200).end();
-        });
-    }
+   @Override
+   protected void initRouter() {
+      router.route().handler(BodyHandler.create());
+      router.get("/test").handler(ctx -> {
+         responsesReceived.add(Integer.parseInt(ctx.request().getParam("concurrency")));
+         ctx.response().setStatusCode(200).end();
+      });
+   }
 
-       @Test
+   @Test
    public void testConcurrencyZeroWithPipelining() {
       testConcurrencyWithPipelining(0);
    }
 
-    @Test
-    public void testConcurrencyOneWithPipelining() {
+   @Test
+   public void testConcurrencyOneWithPipelining() {
       testConcurrencyWithPipelining(1);
-    }
+   }
 
-    @Test
-    public void testConcurrencyManyWithPipelining() {
+   @Test
+   public void testConcurrencyManyWithPipelining() {
       testConcurrencyWithPipelining(16);
-    }
+   }
 
    private void testConcurrencyWithPipelining(int concurrency) {
       int sequenceInvocation = concurrency == 0 ? 1 : concurrency;

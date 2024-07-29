@@ -247,7 +247,8 @@ public class DocsGenerator extends BaseGenerator {
             out.printf("| %s ", d.type);
          } else {
             out.printf("| [%s](#%s) ", d.type, reverseLookup.get(d)
-                  .replaceAll("&lt;", "lt").replaceAll("&gt;", "gt").replaceAll(" ", "-").replaceAll("[^a-zA-Z0-9-_]", "").toLowerCase());
+                  .replaceAll("&lt;", "lt").replaceAll("&gt;", "gt").replaceAll(" ", "-").replaceAll("[^a-zA-Z0-9-_]", "")
+                  .toLowerCase());
          }
          out.printf("| %s |%n", d.ownerDescription == null ? NO_DESCRIPTION : d.ownerDescription);
          ++printed;
@@ -273,8 +274,7 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private MethodDeclaration findMatching(List<MethodDeclaration> methods, Method method) {
-      METHODS:
-      for (MethodDeclaration m : methods) {
+      METHODS: for (MethodDeclaration m : methods) {
          int parameterCount = m.getParameters().size();
          if (m.getName().asString().equals(method.getName()) && parameterCount == method.getParameterCount()) {
             for (int i = 0; i < parameterCount; ++i) {
@@ -345,13 +345,15 @@ public class DocsGenerator extends BaseGenerator {
 
    private ClassOrInterfaceDeclaration findClass(Class<?> builder) {
       Node node = findClassOrEnum(builder, ClassOrInterfaceDeclaration.class);
-      if (node == null) return null;
+      if (node == null)
+         return null;
       return (ClassOrInterfaceDeclaration) node;
    }
 
    private EnumDeclaration findEnum(Class<?> builder) {
       Node node = findClassOrEnum(builder, EnumDeclaration.class);
-      if (node == null) return null;
+      if (node == null)
+         return null;
       return (EnumDeclaration) node;
    }
 
@@ -374,7 +376,8 @@ public class DocsGenerator extends BaseGenerator {
          if (classes.isEmpty()) {
             node = node.findFirst(type, cd -> cd.getNameAsString().equals(simpleName)).orElse(null);
          } else {
-            node = node.findFirst(ClassOrInterfaceDeclaration.class, cd -> cd.getNameAsString().equals(simpleName)).orElse(null);
+            node = node.findFirst(ClassOrInterfaceDeclaration.class, cd -> cd.getNameAsString().equals(simpleName))
+                  .orElse(null);
          }
          if (node == null) {
             System.err.printf("Cannot describe builder %s%n", builder);
@@ -385,20 +388,23 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private String getJavadocDescription(NodeWithJavadoc<?> declaration) {
-      return declaration == null ? null : declaration.getJavadoc()
-            .map(javadoc -> trimEmptyLines(javadoc.getDescription().toText()))
-            .map(DocsGenerator::javadocToMarkdown)
-            .orElse(null);
+      return declaration == null ? null
+            : declaration.getJavadoc()
+                  .map(javadoc -> trimEmptyLines(javadoc.getDescription().toText()))
+                  .map(DocsGenerator::javadocToMarkdown)
+                  .orElse(null);
    }
 
    private String trimEmptyLines(String description) {
       String[] lines = description.split("\n");
       int firstLine = 0, lastLine = lines.length - 1;
       for (; firstLine < lines.length; ++firstLine) {
-         if (!lines[firstLine].trim().isEmpty()) break;
+         if (!lines[firstLine].trim().isEmpty())
+            break;
       }
       for (; lastLine >= firstLine; --lastLine) {
-         if (!lines[lastLine].trim().isEmpty()) break;
+         if (!lines[lastLine].trim().isEmpty())
+            break;
       }
       StringBuilder sb = new StringBuilder();
       boolean preformatted = false;
@@ -511,8 +517,10 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private Docs describeMethod(Class<?> builder, Method m, MethodDeclaration declaration) {
-      StringBuilder description = declaration == null ? new StringBuilder() : declaration.getJavadoc()
-            .map(javadoc -> new StringBuilder(trimEmptyLines(javadoc.getDescription().toText()))).orElse(new StringBuilder());
+      StringBuilder description = declaration == null ? new StringBuilder()
+            : declaration.getJavadoc()
+                  .map(javadoc -> new StringBuilder(trimEmptyLines(javadoc.getDescription().toText())))
+                  .orElse(new StringBuilder());
 
       // Return early to not recurse into self
       if (m.getReturnType().isAssignableFrom(builder)) {
@@ -611,7 +619,8 @@ public class DocsGenerator extends BaseGenerator {
             }
             Docs inner;
             if (innerBuilder == ServiceLoadedBuilderProvider.class) {
-               Class<?> implBuilder = getRawClass(((ParameterizedType) withKey.getGenericReturnType()).getActualTypeArguments()[0]);
+               Class<?> implBuilder = getRawClass(
+                     ((ParameterizedType) withKey.getGenericReturnType()).getActualTypeArguments()[0]);
                inner = new Docs(ownerDescription);
                setServiceLoaded(inner, implBuilder);
             } else {
@@ -652,7 +661,9 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private String getMethodJavadoc(ClassOrInterfaceDeclaration cd, String methodName, int paramCount) {
-      return cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals(methodName) && md.getParameters().size() == paramCount)
+      return cd
+            .findFirst(MethodDeclaration.class,
+                  md -> md.getNameAsString().equals(methodName) && md.getParameters().size() == paramCount)
             .map(this::getJavadocDescription).orElse(null);
    }
 
@@ -724,7 +735,7 @@ public class DocsGenerator extends BaseGenerator {
 
    private static class Docs {
       private static final Comparator<? super Docs> DOCS_COMPARATOR = Comparator
-            .<Docs, Integer>comparing(d -> d.params.size())
+            .<Docs, Integer> comparing(d -> d.params.size())
             .thenComparing(d -> d.inlineParam == null ? "" : d.inlineParam)
             .thenComparing(d -> d.typeDescription == null ? "" : d.typeDescription)
             .thenComparing(d -> d.ownerDescription == null ? "" : d.ownerDescription)

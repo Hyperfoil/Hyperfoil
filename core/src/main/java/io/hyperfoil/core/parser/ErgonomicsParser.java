@@ -20,7 +20,8 @@ public class ErgonomicsParser implements Parser<BenchmarkBuilder> {
       ctx.parseMapping(target, event -> {
          PluginTuple<?, ?> tuple = subParsers.get(event.getValue());
          if (tuple == null) {
-            throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subParsers.keySet());
+            throw new ParserException(event,
+                  "Invalid configuration label: '" + event.getValue() + "', expected one of " + subParsers.keySet());
          }
          return tuple;
       });
@@ -29,7 +30,8 @@ public class ErgonomicsParser implements Parser<BenchmarkBuilder> {
    public <T extends PluginBuilder<E>, E> void register(String name, Class<T> plugin, Parser<E> parser) {
       PluginTuple<?, ?> prev = subParsers.putIfAbsent(name, new PluginTuple<>(plugin, parser));
       if (prev != null) {
-         throw new IllegalStateException("Ergonomics property '" + name + "' already registered by " + prev.plugin.getName() + ", now trying to register by " + plugin.getName());
+         throw new IllegalStateException("Ergonomics property '" + name + "' already registered by " + prev.plugin.getName()
+               + ", now trying to register by " + plugin.getName());
       }
    }
 

@@ -3,6 +3,8 @@ package io.hyperfoil.core.steps;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -15,9 +17,6 @@ import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.core.builders.IntSourceBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableToIntFunction;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class SetIntAction implements Action {
    private static final Logger log = LogManager.getLogger(SetIntAction.class);
@@ -40,7 +39,8 @@ public class SetIntAction implements Action {
       if (onlyIfNotSet && var.isSet(session)) {
          if (trace) {
             int value = input.applyAsInt(session);
-            log.trace("#{} Not setting {} to {} as it is already set to {}", session.uniqueId(), var, value, var.getInt(session));
+            log.trace("#{} Not setting {} to {} as it is already set to {}", session.uniqueId(), var, value,
+                  var.getInt(session));
          }
          return;
       }
@@ -135,7 +135,6 @@ public class SetIntAction implements Action {
          return max = new IntSourceBuilder.ListBuilder();
       }
 
-
       /**
        * Set variable to the value only if it is not already set.
        *
@@ -162,7 +161,8 @@ public class SetIntAction implements Action {
             throw new BenchmarkDefinitionException("No variable set!");
          }
          if (Stream.of(value, fromVar, min, max).filter(Objects::nonNull).count() != 1) {
-            throw new BenchmarkDefinitionException("Must set exactly one of these properties: 'value', 'fromVar', 'min', 'max'");
+            throw new BenchmarkDefinitionException(
+                  "Must set exactly one of these properties: 'value', 'fromVar', 'min', 'max'");
          }
          SerializableToIntFunction<Session> input;
          if (value != null) {

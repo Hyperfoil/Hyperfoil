@@ -34,7 +34,8 @@ public class PhaseChangeMessage extends AgentStatusMessage {
    private final Throwable error;
    private final Map<String, GlobalData.Element> globalData;
 
-   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean sessionLimitExceeded, String cpuUsage, Throwable error, Map<String, GlobalData.Element> globalData) {
+   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status,
+         boolean sessionLimitExceeded, String cpuUsage, Throwable error, Map<String, GlobalData.Element> globalData) {
       super(senderId, runId);
       this.phase = phase;
       this.status = status;
@@ -81,6 +82,6 @@ public class PhaseChangeMessage extends AgentStatusMessage {
       return globalData;
    }
 
-   public static class Codec extends ObjectCodec<PhaseChangeMessage> {}
+   public static class Codec extends ObjectCodec<PhaseChangeMessage> {
+   }
 }
-

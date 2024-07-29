@@ -34,7 +34,8 @@ public class StoreIntProcessor implements Processor {
             long value = Util.parseLong(data, offset, length);
             toVar.setInt(session, (int) value);
          } catch (NumberFormatException e) {
-            log.warn("#{} Not storing anything because it cannot be parsed to integer: {}", session.uniqueId(), Util.toString(data, offset, length));
+            log.warn("#{} Not storing anything because it cannot be parsed to integer: {}", session.uniqueId(),
+                  Util.toString(data, offset, length));
          }
       }
    }

@@ -41,7 +41,8 @@ public class ErrorRatioTest extends HttpScenarioTest {
    }
 
    protected Action validateConnection(TestContext ctx) {
-      return session -> { };
+      return session -> {
+      };
    }
 
    @Test
@@ -62,8 +63,8 @@ public class ErrorRatioTest extends HttpScenarioTest {
       scenario().initialSequence("throw")
             .step(SC).httpRequest(HttpMethod.GET).path("/get200")
             .handler().body(fragmented -> (session, data, offset, length, isLastPart) -> {
-         throw new RuntimeException("Induced failure");
-      }).endHandler().endStep();
+               throw new RuntimeException("Induced failure");
+            }).endHandler().endStep();
 
       StatisticsSnapshot stats = runScenario().get("throw");
       HttpStats http = HttpStats.get(stats);
@@ -84,8 +85,8 @@ public class ErrorRatioTest extends HttpScenarioTest {
       scenario().initialSequence("throw")
             .step(SC).httpRequest(HttpMethod.GET).path("/get200")
             .handler().onCompletion(() -> session -> {
-         throw new RuntimeException("Induced failure");
-      }).endHandler().endStep();
+               throw new RuntimeException("Induced failure");
+            }).endHandler().endStep();
 
       StatisticsSnapshot stats = runScenario().get("throw");
       HttpStats http = HttpStats.get(stats);

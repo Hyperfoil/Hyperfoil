@@ -214,7 +214,8 @@ public class BenchmarkBuilder {
             String suggestion = phases.keySet().stream()
                   .filter(name -> name.toLowerCase().startsWith(dep)).findAny()
                   .map(name -> " Did you mean " + name + "?").orElse("");
-            throw new BenchmarkDefinitionException("Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);
+            throw new BenchmarkDefinitionException(
+                  "Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);
          }
       }
    }
@@ -225,8 +226,10 @@ public class BenchmarkBuilder {
     * @param phase phase to check
     */
    private void checkStartWith(Phase phase) {
-      if (phase.startWithDelay != null && (!phase.startAfter.isEmpty() || !phase.startAfterStrict.isEmpty() || phase.startTime > 0)) {
-         throw new BenchmarkDefinitionException("Phase " + phase.name + " has both startWith and one of startAfter, startAfterStrict and startTime set.");
+      if (phase.startWithDelay != null
+            && (!phase.startAfter.isEmpty() || !phase.startAfterStrict.isEmpty() || phase.startTime > 0)) {
+         throw new BenchmarkDefinitionException(
+               "Phase " + phase.name + " has both startWith and one of startAfter, startAfterStrict and startTime set.");
       }
    }
 

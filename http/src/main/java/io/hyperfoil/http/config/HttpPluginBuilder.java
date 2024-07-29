@@ -103,7 +103,8 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
    }
 
    public boolean validateAuthority(String authority) {
-      if (authority == null) return defaultHttp != null;
+      if (authority == null)
+         return defaultHttp != null;
       return isValidAuthority(authority);
    }
 

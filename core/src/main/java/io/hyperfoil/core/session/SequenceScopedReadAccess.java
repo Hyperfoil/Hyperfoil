@@ -102,7 +102,8 @@ class SequenceScopedReadAccess extends BaseAccess {
       }
       int index = session.currentSequence().index();
       if (index >= maxConcurrency) {
-         throw new IllegalStateException("Variable " + key + " reads item at index " + index + " but the maximum concurrency is " + maxConcurrency);
+         throw new IllegalStateException(
+               "Variable " + key + " reads item at index " + index + " but the maximum concurrency is " + maxConcurrency);
       }
       if (collection.getClass().isArray()) {
          return Array.get(collection, index);

@@ -74,10 +74,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
    final RawBytesHandler[] rawBytesHandlers;
 
    private HttpResponseHandlersImpl(StatusHandler[] statusHandlers,
-                                    HeaderHandler[] headerHandlers,
-                                    Processor[] bodyHandlers,
-                                    Action[] completionHandlers,
-                                    RawBytesHandler[] rawBytesHandlers) {
+         HeaderHandler[] headerHandlers,
+         Processor[] bodyHandlers,
+         Action[] completionHandlers,
+         RawBytesHandler[] rawBytesHandlers) {
       this.statusHandlers = statusHandlers;
       this.headerHandlers = headerHandlers;
       this.bodyHandlers = bodyHandlers;
@@ -219,7 +219,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          throw e;
       } catch (Throwable t) {
          t.addSuppressed(throwable);
-         log.error(new FormattedMessage("#{} Exception {} thrown while handling another exception: ", session.uniqueId(), throwable.toString()), t);
+         log.error(new FormattedMessage("#{} Exception {} thrown while handling another exception: ", session.uniqueId(),
+               throwable.toString()), t);
          request.statistics().incrementInternalErrors(request.startTimestampMillis());
          session.stop();
       } finally {
@@ -304,7 +305,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.error(new FormattedMessage("#{} Response completion failed on {}, stopping the session.", request.session.uniqueId(), this), t);
+         log.error(new FormattedMessage("#{} Response completion failed on {}, stopping the session.",
+               request.session.uniqueId(), this), t);
          request.statistics().incrementInternalErrors(request.startTimestampMillis());
          request.markInvalid();
          session.stop();
@@ -571,7 +573,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
                   .step(() -> {
                      ReadAccess inputVar = sequenceScopedReadAccess(delayedCoordVar);
                      ObjectAccess delayVar = sequenceScopedObjectAccess(delay);
-                     SerializableToLongFunction<Session> delayFunc = session -> TimeUnit.SECONDS.toMillis(((Redirect.Coords) inputVar.getObject(session)).delay);
+                     SerializableToLongFunction<Session> delayFunc = session -> TimeUnit.SECONDS
+                           .toMillis(((Redirect.Coords) inputVar.getObject(session)).delay);
                      return new ScheduleDelayStep(delayVar, ScheduleDelayStep.Type.FROM_NOW, delayFunc);
                   })
                   .step(() -> new AwaitDelayStep(sequenceScopedReadAccess(delay)))
@@ -610,14 +613,17 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
             if (location) {
                httpRequest.handler()
                      .status(new Redirect.StatusHandler.Builder()
-                           .poolKey(poolKey).concurrency(redirectConcurrency).coordsVar(newTempCoordsVar).handlers(statusHandlers))
+                           .poolKey(poolKey).concurrency(redirectConcurrency).coordsVar(newTempCoordsVar)
+                           .handlers(statusHandlers))
                      .header(new Redirect.LocationRecorder.Builder()
-                           .originalSequenceSupplier(() -> new Redirect.GetOriginalSequence(sequenceScopedReadAccess(coordsVar)))
+                           .originalSequenceSupplier(
+                                 () -> new Redirect.GetOriginalSequence(sequenceScopedReadAccess(coordsVar)))
                            .concurrency(redirectConcurrency).inputVar(newTempCoordsVar).outputVar(coordsVar)
                            .queueKey(queueKey).sequence(redirectSequenceName));
             }
             if (!headerHandlers.isEmpty()) {
-               Redirect.WrappingHeaderHandler.Builder wrappingHandler = new Redirect.WrappingHeaderHandler.Builder().coordVar(coordsVar).handlers(headerHandlers);
+               Redirect.WrappingHeaderHandler.Builder wrappingHandler = new Redirect.WrappingHeaderHandler.Builder()
+                     .coordVar(coordsVar).handlers(headerHandlers);
                if (location) {
                   httpRequest.handler().header(new ConditionalHeaderHandler.Builder()
                         .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
@@ -629,7 +635,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
             if (!bodyHandlers.isEmpty() || html) {
                Consumer<Processor.Builder> handlerConsumer;
                ConditionalProcessor.Builder conditionalBodyHandler;
-               Redirect.WrappingProcessor.Builder wrappingProcessor = new Redirect.WrappingProcessor.Builder().coordVar(coordsVar).processors(bodyHandlers);
+               Redirect.WrappingProcessor.Builder wrappingProcessor = new Redirect.WrappingProcessor.Builder()
+                     .coordVar(coordsVar).processors(bodyHandlers);
                if (location) {
                   if (!bodyHandlers.isEmpty() || html) {
                      conditionalBodyHandler = new ConditionalProcessor.Builder()
@@ -648,8 +655,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
                if (html) {
                   handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
                         .processor(fragmented -> new RefreshHandler(
-                              queueKey, delayedQueueKey, poolKey, redirectConcurrency, objectAccess(coordsVar), objectAccess(delayedCoordVar),
-                              redirectSequenceName, delaySequenceName, objectAccess(newTempCoordsVar), new Redirect.GetOriginalSequence(sequenceScopedReadAccess(coordsVar))))));
+                              queueKey, delayedQueueKey, poolKey, redirectConcurrency, objectAccess(coordsVar),
+                              objectAccess(delayedCoordVar),
+                              redirectSequenceName, delaySequenceName, objectAccess(newTempCoordsVar),
+                              new Redirect.GetOriginalSequence(sequenceScopedReadAccess(coordsVar))))));
                }
             }
             if (!completionHandlers.isEmpty()) {
@@ -657,7 +666,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
                      .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
                      .action(new Redirect.WrappingAction.Builder().coordVar(coordsVar).actions(completionHandlers)));
             }
-            httpRequest.handler().onCompletion(() -> new Location.Complete<>(poolKey, queueKey, sequenceScopedObjectAccess(coordsVar)));
+            httpRequest.handler()
+                  .onCompletion(() -> new Location.Complete<>(poolKey, queueKey, sequenceScopedObjectAccess(coordsVar)));
             SequenceBuilder redirectSequence = locator.scenario().sequence(redirectSequenceName)
                   .concurrency(redirectConcurrency)
                   .stepBuilder(httpRequest)
@@ -671,11 +681,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
 
          if (location) {
             statusHandlers = Collections.singletonList(
-                  new Redirect.StatusHandler.Builder().poolKey(poolKey).concurrency(redirectConcurrency).coordsVar(tempCoordsVar).handlers(statusHandlers));
+                  new Redirect.StatusHandler.Builder().poolKey(poolKey).concurrency(redirectConcurrency)
+                        .coordsVar(tempCoordsVar).handlers(statusHandlers));
             List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
             headerHandlers.add(new Redirect.LocationRecorder.Builder()
                   .originalSequenceSupplier(() -> Session::currentSequence)
-                  .concurrency(redirectConcurrency).inputVar(tempCoordsVar).outputVar(coordsVar).queueKey(queueKey).sequence(redirectSequenceName));
+                  .concurrency(redirectConcurrency).inputVar(tempCoordsVar).outputVar(coordsVar).queueKey(queueKey)
+                  .sequence(redirectSequenceName));
             if (!this.headerHandlers.isEmpty()) {
                // Note: we are using stringCondition.isSet despite the variable is not a string - it doesn't matter for the purpose of this check
                headerHandlers.add(new ConditionalHeaderHandler.Builder()
@@ -699,7 +711,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
             if (html) {
                handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
                      .processor(fragmented -> new RefreshHandler(
-                           queueKey, delayedQueueKey, poolKey, redirectConcurrency, objectAccess(coordsVar), objectAccess(delayedCoordVar),
+                           queueKey, delayedQueueKey, poolKey, redirectConcurrency, objectAccess(coordsVar),
+                           objectAccess(delayedCoordVar),
                            redirectSequenceName, delaySequenceName, objectAccess(tempCoordsVar), Session::currentSequence))));
             }
             if (location) {
@@ -740,7 +753,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
       public void run(Session session) {
          Request request = session.currentRequest();
          if (!request.isValid()) {
-            log.info("#{} Stopping session due to invalid response {} on connection {}", session.uniqueId(), request, request.connection());
+            log.info("#{} Stopping session due to invalid response {} on connection {}", session.uniqueId(), request,
+                  request.connection());
             session.stop();
          }
       }

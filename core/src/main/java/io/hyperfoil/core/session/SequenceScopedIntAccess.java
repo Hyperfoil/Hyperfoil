@@ -17,7 +17,8 @@ class SequenceScopedIntAccess extends SequenceScopedReadAccess implements IntAcc
       if (existing == null) {
          existing = new ObjectVar(impl);
       } else if (!(existing instanceof ObjectVar)) {
-         throw new BenchmarkDefinitionException("Variable " + key + " should hold an object but it is defined to hold an integer elsewhere.");
+         throw new BenchmarkDefinitionException(
+               "Variable " + key + " should hold an object but it is defined to hold an integer elsewhere.");
       }
       Object contents = existing.objectValue(session);
       if (contents == null) {
@@ -32,7 +33,8 @@ class SequenceScopedIntAccess extends SequenceScopedReadAccess implements IntAcc
             ((ObjectVar) existing).set(newArray);
          }
       } else {
-         throw new BenchmarkDefinitionException("Unexpected content in " + key + ": should hold array of IntVar but holds " + contents);
+         throw new BenchmarkDefinitionException(
+               "Unexpected content in " + key + ": should hold array of IntVar but holds " + contents);
       }
       return existing;
    }
@@ -87,7 +89,8 @@ class SequenceScopedIntAccess extends SequenceScopedReadAccess implements IntAcc
          ((IntVar) o).unset();
       } else {
          int index = session.currentSequence().index();
-         throw new IllegalStateException("Variable " + key + "[" + index + "] should contain Session.Var(Object) but contains " + o);
+         throw new IllegalStateException(
+               "Variable " + key + "[" + index + "] should contain Session.Var(Object) but contains " + o);
       }
    }
 }

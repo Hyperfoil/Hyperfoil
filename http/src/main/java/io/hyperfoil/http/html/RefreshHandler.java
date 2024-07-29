@@ -2,7 +2,9 @@ package io.hyperfoil.http.html;
 
 import java.nio.charset.StandardCharsets;
 
-import io.hyperfoil.http.api.HttpMethod;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -10,16 +12,14 @@ import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
-import io.hyperfoil.http.handlers.Redirect;
 import io.hyperfoil.core.session.ObjectVar;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.http.HttpUtil;
+import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.handlers.Redirect;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class RefreshHandler implements Processor, ResourceUtilizer {
    private static final Logger log = LogManager.getLogger(RefreshHandler.class);
@@ -36,7 +36,10 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
    private final ObjectAccess tempCoordsVar;
    private final SerializableFunction<Session, SequenceInstance> originalSequenceSupplier;
 
-   public RefreshHandler(Queue.Key immediateQueueKey, Queue.Key delayedQueueKey, LimitedPoolResource.Key<Redirect.Coords> poolKey, int concurrency, ObjectAccess immediateQueueVar, ObjectAccess delayedQueueVar, String redirectSequence, String delaySequence, ObjectAccess tempCoordsVar, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
+   public RefreshHandler(Queue.Key immediateQueueKey, Queue.Key delayedQueueKey,
+         LimitedPoolResource.Key<Redirect.Coords> poolKey, int concurrency, ObjectAccess immediateQueueVar,
+         ObjectAccess delayedQueueVar, String redirectSequence, String delaySequence, ObjectAccess tempCoordsVar,
+         SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
       this.immediateQueueKey = immediateQueueKey;
       this.delayedQueueKey = delayedQueueKey;
       this.poolKey = poolKey;
@@ -70,22 +73,28 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
             if (data.getByte(offset + i) == ';') {
                seconds = Util.parseLong(data, offset, i);
                ++i;
-               while (Character.isWhitespace(data.getByte(offset + i))) ++i;
-               while (length > 0 && Character.isWhitespace(data.getByte(offset + length - 1))) --length;
+               while (Character.isWhitespace(data.getByte(offset + i)))
+                  ++i;
+               while (length > 0 && Character.isWhitespace(data.getByte(offset + length - 1)))
+                  --length;
                for (int j = 0; j < URL.length; ++j, ++i) {
                   if (Util.toLowerCase(data.getByte(offset + i)) != URL[j]) {
-                     log.warn("#{} Failed to parse META refresh content (missing URL): {}", session.uniqueId(), Util.toString(data, offset, length));
+                     log.warn("#{} Failed to parse META refresh content (missing URL): {}", session.uniqueId(),
+                           Util.toString(data, offset, length));
                      return;
                   }
                }
-               while (Character.isWhitespace(data.getByte(offset + i))) ++i;
+               while (Character.isWhitespace(data.getByte(offset + i)))
+                  ++i;
                if (data.getByte(offset + i) != '=') {
-                  log.warn("#{} Failed to parse META refresh content (missing = after URL): {}", session.uniqueId(), Util.toString(data, offset, length));
+                  log.warn("#{} Failed to parse META refresh content (missing = after URL): {}", session.uniqueId(),
+                        Util.toString(data, offset, length));
                   return;
                } else {
                   ++i;
                }
-               while (Character.isWhitespace(data.getByte(offset + i))) ++i;
+               while (Character.isWhitespace(data.getByte(offset + i)))
+                  ++i;
                url = Util.toString(data, offset + i, length - i);
                break;
             }
@@ -98,7 +107,6 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
          coords.method = HttpMethod.GET;
          coords.originalSequence = originalSequenceSupplier.apply(session);
          coords.delay = (int) seconds;
-
 
          if (url == null) {
 
@@ -132,9 +140,12 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(poolKey, () -> LimitedPoolResource.create(concurrency, Redirect.Coords.class, Redirect.Coords::new), true);
-      session.declareResource(immediateQueueKey, () -> new Queue(immediateQueueVar, concurrency, concurrency, redirectSequence, null), true);
-      session.declareResource(delayedQueueKey, () -> new Queue(delayedQueueVar, concurrency, concurrency, delaySequence, null), true);
+      session.declareResource(poolKey,
+            () -> LimitedPoolResource.create(concurrency, Redirect.Coords.class, Redirect.Coords::new), true);
+      session.declareResource(immediateQueueKey,
+            () -> new Queue(immediateQueueVar, concurrency, concurrency, redirectSequence, null), true);
+      session.declareResource(delayedQueueKey, () -> new Queue(delayedQueueVar, concurrency, concurrency, delaySequence, null),
+            true);
       initQueueVar(session, immediateQueueVar);
       initQueueVar(session, delayedQueueVar);
    }

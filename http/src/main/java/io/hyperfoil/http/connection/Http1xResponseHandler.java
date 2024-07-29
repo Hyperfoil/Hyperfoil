@@ -1,8 +1,11 @@
 package io.hyperfoil.http.connection;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.session.SessionStopException;
-import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpConnection;
+import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpResponseHandlers;
 import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
@@ -13,12 +16,8 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AsciiString;
-
 import io.netty.util.ByteProcessor;
 import io.netty.util.CharsetUtil;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class Http1xResponseHandler extends BaseResponseHandler {
    private static final Logger log = LogManager.getLogger(Http1xResponseHandler.class);
@@ -105,7 +104,6 @@ public class Http1xResponseHandler extends BaseResponseHandler {
       }
    }
 
-
    private int readStatus(ChannelHandlerContext ctx, ByteBuf buf, int readerIndex) {
       int lineStartIndex = buf.readerIndex();
       for (; readerIndex < buf.writerIndex(); ++readerIndex) {
@@ -148,7 +146,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
    private int readHeaders(ChannelHandlerContext ctx, ByteBuf buf, int readerIndex) throws Exception {
       int lineStartIndex = readerIndex;
       int lineEndIndex;
-      for (; readerIndex < buf.writerIndex(); ) {
+      for (; readerIndex < buf.writerIndex();) {
          if (!crRead) {
             final int indexOfCr = buf.indexOf(readerIndex, buf.writerIndex(), CR);
             if (indexOfCr == -1) {
@@ -195,16 +193,19 @@ public class Http1xResponseHandler extends BaseResponseHandler {
                if (matches(lineBuf, lineStartIndex, HttpHeaderNames.CONTENT_LENGTH)) {
                   contentLength = readDecNumber(lineBuf, lineStartIndex + HttpHeaderNames.CONTENT_LENGTH.length() + 1);
                } else if (matches(lineBuf, lineStartIndex, HttpHeaderNames.TRANSFER_ENCODING)) {
-                  chunked = matches(lineBuf, lineStartIndex + HttpHeaderNames.TRANSFER_ENCODING.length() + 1, HttpHeaderValues.CHUNKED);
+                  chunked = matches(lineBuf, lineStartIndex + HttpHeaderNames.TRANSFER_ENCODING.length() + 1,
+                        HttpHeaderValues.CHUNKED);
                   skipChunkBytes = 0;
                }
                int endOfNameIndex = lineEndIndex, startOfValueIndex = lineStartIndex;
                final int indexOfColon = lineBuf.indexOf(lineStartIndex, lineEndIndex, (byte) ':');
                if (indexOfColon != -1) {
                   final int i = indexOfColon;
-                  for (endOfNameIndex = i - 1; endOfNameIndex >= lineStartIndex && lineBuf.getByte(endOfNameIndex) == ' '; --endOfNameIndex)
+                  for (endOfNameIndex = i - 1; endOfNameIndex >= lineStartIndex
+                        && lineBuf.getByte(endOfNameIndex) == ' '; --endOfNameIndex)
                      ;
-                  for (startOfValueIndex = i + 1; startOfValueIndex < lineEndIndex && lineBuf.getByte(startOfValueIndex) == ' '; ++startOfValueIndex)
+                  for (startOfValueIndex = i + 1; startOfValueIndex < lineEndIndex
+                        && lineBuf.getByte(startOfValueIndex) == ' '; ++startOfValueIndex)
                      ;
                }
                onHeaderRead(lineBuf, lineStartIndex, endOfNameIndex + 1, startOfValueIndex, lineEndIndex);

@@ -32,10 +32,12 @@ public class HttpPlugin implements Plugin {
    @Override
    public void enhanceErgonomics(ErgonomicsParser parser) {
       parser.register("repeatCookies", HttpPluginBuilder.class, new PropertyParser.Boolean<>(HttpErgonomics::repeatCookies));
-      parser.register("userAgentFromSession", HttpPluginBuilder.class, new PropertyParser.Boolean<>(HttpErgonomics::userAgentFromSession));
+      parser.register("userAgentFromSession", HttpPluginBuilder.class,
+            new PropertyParser.Boolean<>(HttpErgonomics::userAgentFromSession));
       parser.register("autoRangeCheck", HttpPluginBuilder.class, new PropertyParser.Boolean<>(HttpErgonomics::autoRangeCheck));
       parser.register("stopOnInvalid", HttpPluginBuilder.class, new PropertyParser.Boolean<>(HttpErgonomics::stopOnInvalid));
-      parser.register("followRedirect", HttpPluginBuilder.class, new PropertyParser.Enum<>(FollowRedirect.values(), HttpErgonomics::followRedirect));
+      parser.register("followRedirect", HttpPluginBuilder.class,
+            new PropertyParser.Enum<>(FollowRedirect.values(), HttpErgonomics::followRedirect));
    }
 
    @Override

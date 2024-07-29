@@ -2,19 +2,19 @@ package io.hyperfoil.http.steps;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.core.steps.StatisticsStep;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.netty.buffer.ByteBuf;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class SendHttpRequestStep extends StatisticsStep implements SLA.Provider {
    private static final Logger log = LogManager.getLogger(SendHttpRequestStep.class);
@@ -29,10 +29,10 @@ public class SendHttpRequestStep extends StatisticsStep implements SLA.Provider 
    final SLA[] sla;
 
    public SendHttpRequestStep(int stepId, HttpRequestContext.Key contextKey,
-                              SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
-                              SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                              boolean injectHostHeader,
-                              long timeout, SLA[] sla) {
+         SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
+         SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+         boolean injectHostHeader,
+         long timeout, SLA[] sla) {
       super(stepId);
       this.contextKey = contextKey;
       this.bodyGenerator = bodyGenerator;

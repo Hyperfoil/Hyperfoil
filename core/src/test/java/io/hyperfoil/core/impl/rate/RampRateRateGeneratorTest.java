@@ -7,7 +7,8 @@ import org.junit.Test;
 
 public class RampRateRateGeneratorTest extends RateGeneratorTest {
 
-   private static double computeRateAtTime(final double initialRate, final double targetRate, final long duration, final double currentTime) {
+   private static double computeRateAtTime(final double initialRate, final double targetRate, final long duration,
+         final double currentTime) {
       return initialRate + (targetRate - initialRate) * (currentTime / duration);
    }
 

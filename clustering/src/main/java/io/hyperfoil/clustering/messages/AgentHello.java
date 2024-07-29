@@ -31,5 +31,6 @@ public class AgentHello implements Serializable {
       return runId;
    }
 
-   public static class Codec extends ObjectCodec<AgentHello> {}
+   public static class Codec extends ObjectCodec<AgentHello> {
+   }
 }

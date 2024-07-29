@@ -64,6 +64,7 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
       }
       Processor processor = processors.isEmpty() ? null : processors.build(false);
       FetchResourceHandler fetchResource = this.fetchResource != null ? this.fetchResource.build() : null;
-      return new HtmlHandler.BaseTagAttributeHandler(TAGS, ATTRS, new EmbeddedResourceProcessor(ignoreExternal, processor, fetchResource));
+      return new HtmlHandler.BaseTagAttributeHandler(TAGS, ATTRS,
+            new EmbeddedResourceProcessor(ignoreExternal, processor, fetchResource));
    }
 }

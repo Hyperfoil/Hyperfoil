@@ -31,7 +31,8 @@ public class Util {
    private static final NumberFormatException NUMBER_FORMAT_EXCEPTION = new NumberFormatException();
    private static final int[] HEX = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-   private Util() {}
+   private Util() {
+   }
 
    public static boolean compareIgnoreCase(byte b1, byte b2) {
       return b1 == b2 || toUpperCase(b1) == toUpperCase(b2) || toLowerCase(b1) == toLowerCase(b2);
@@ -44,7 +45,6 @@ public class Util {
    public static byte toUpperCase(byte b) {
       return b >= 'a' && b <= 'z' ? (byte) (b - 32) : b;
    }
-
 
    /**
     * Pretty prints timeNanos in 9 spaces
@@ -59,8 +59,8 @@ public class Util {
    /**
     * Pretty prints time
     *
-    * @param timeNanos       Time in nanoseconds.
-    * @param width           Number of characters in the number, as string
+    * @param timeNanos Time in nanoseconds.
+    * @param width Number of characters in the number, as string
     * @param spaceBeforeUnit Separate number and unit with a space.
     * @return Formatted string.
     */
@@ -168,7 +168,7 @@ public class Util {
       ByteBuffer output = buffer.nioBuffer(buffer.writerIndex(), buffer.capacity() - buffer.writerIndex());
       CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
       int accumulatedBytes = buffer.writerIndex();
-      for (; ; ) {
+      for (;;) {
          CoderResult result = encoder.encode(input, output, true);
          if (result.isError()) {
             throw new RuntimeException("Cannot encode: " + result + ", string is " + str);
@@ -252,18 +252,23 @@ public class Util {
 
    public static int pow(int base, int exp) {
       int res = 1;
-      while (exp-- > 0) res *= base;
+      while (exp-- > 0)
+         res *= base;
       return res;
    }
 
    public static long parseLong(ByteBuf data, int offset, int length) {
       long value = 0;
       int i = offset;
-      while (Character.isWhitespace(data.getByte(i))) ++i;
+      while (Character.isWhitespace(data.getByte(i)))
+         ++i;
       byte sign = data.getByte(i);
-      if (sign == '-' || sign == '+') ++i;
-      while (Character.isWhitespace(data.getByte(i))) ++i;
-      while (length > 0 && Character.isWhitespace(data.getByte(offset + length - 1))) --length;
+      if (sign == '-' || sign == '+')
+         ++i;
+      while (Character.isWhitespace(data.getByte(i)))
+         ++i;
+      while (length > 0 && Character.isWhitespace(data.getByte(offset + length - 1)))
+         --length;
       for (; i < offset + length; ++i) {
          byte digit = data.getByte(i);
          if (digit < '0' || digit > '9') {
@@ -368,10 +373,12 @@ public class Util {
       long value = 0;
       int i = begin;
       char sign = string.charAt(begin);
-      if (sign == '-' || sign == '+') ++i;
+      if (sign == '-' || sign == '+')
+         ++i;
       for (; i < end; ++i) {
          int digit = string.charAt(i);
-         if (digit < '0' || digit > '9') return defaultValue;
+         if (digit < '0' || digit > '9')
+            return defaultValue;
          value *= 10;
          value += digit - '0';
       }
@@ -507,7 +514,7 @@ public class Util {
       return String.format("%6.2f%s", scaled, suffix);
    }
 
-   private static final int[] SIZE_TABLE = new int[]{
+   private static final int[] SIZE_TABLE = new int[] {
          1_000_000_000, 100_000_000, 10_000_000, 1_000_000, 100_000, 10_000, 1000, 100, 10
    };
 
@@ -518,7 +525,8 @@ public class Util {
       }
       int i = 0;
       for (; i < SIZE_TABLE.length; ++i) {
-         if (value >= SIZE_TABLE[i]) break;
+         if (value >= SIZE_TABLE[i])
+            break;
       }
       for (; i < SIZE_TABLE.length; ++i) {
          int q = value / SIZE_TABLE[i];

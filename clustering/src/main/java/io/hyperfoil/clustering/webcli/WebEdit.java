@@ -43,7 +43,7 @@ public class WebEdit extends BaseEditCommand {
       ProvidedBenchmarkData filesData = new ProvidedBenchmarkData(extraData);
       String updatedSource = source.source;
       String updatedName;
-      for (; ; ) {
+      for (;;) {
          updatedSource = edit(invocation, context, benchmarkRef, updatedSource);
          if (updatedSource == null) {
             return CommandResult.FAILURE;
@@ -105,7 +105,8 @@ public class WebEdit extends BaseEditCommand {
       }
       String prevVersion = source.version;
       if (!updatedName.equals(benchmarkRef.name())) {
-         invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updatedName + "; old benchmark won't be deleted.");
+         invocation.println(
+               "NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updatedName + "; old benchmark won't be deleted.");
          prevVersion = null;
       }
       CountDownLatch latch;
@@ -127,7 +128,8 @@ public class WebEdit extends BaseEditCommand {
       return CommandResult.SUCCESS;
    }
 
-   private String edit(HyperfoilCommandInvocation invocation, WebCliContext context, Client.BenchmarkRef benchmarkRef, String source) {
+   private String edit(HyperfoilCommandInvocation invocation, WebCliContext context, Client.BenchmarkRef benchmarkRef,
+         String source) {
       CountDownLatch latch;
       synchronized (context) {
          latch = context.latch = new CountDownLatch(1);

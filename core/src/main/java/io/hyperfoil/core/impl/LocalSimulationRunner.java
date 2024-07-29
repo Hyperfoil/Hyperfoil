@@ -31,8 +31,10 @@ public class LocalSimulationRunner extends SimulationRunner {
       this(benchmark, null, null, null);
    }
 
-   public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer, ConnectionStatsConsumer connectionsStatsConsumer) {
-      super(benchmark, "local-run", 0, error -> { });
+   public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer,
+         SessionStatsConsumer sessionPoolStatsConsumer, ConnectionStatsConsumer connectionsStatsConsumer) {
+      super(benchmark, "local-run", 0, error -> {
+      });
       statisticsCollector = new StatisticsCollector(benchmark);
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
@@ -47,17 +49,18 @@ public class LocalSimulationRunner extends SimulationRunner {
       CountDownLatch latch = new CountDownLatch(1);
       init();
       openConnections(callable -> {
-               try {
-                  callable.call();
-               } catch (Exception e) {
-                  return Future.failedFuture(e);
-               }
-               return Future.succeededFuture();
-            },
+         try {
+            callable.call();
+         } catch (Exception e) {
+            return Future.failedFuture(e);
+         }
+         return Future.succeededFuture();
+      },
             result -> latch.countDown());
       try {
          latch.await();
-         statsExecutor.scheduleAtFixedRate(this::collectStats, 0, benchmark.statisticsCollectionPeriod(), TimeUnit.MILLISECONDS);
+         statsExecutor.scheduleAtFixedRate(this::collectStats, 0, benchmark.statisticsCollectionPeriod(),
+               TimeUnit.MILLISECONDS);
          // Exec is blocking and therefore must not run on the event-loop thread
          exec();
          for (PhaseInstance phase : instances.values()) {
@@ -79,13 +82,16 @@ public class LocalSimulationRunner extends SimulationRunner {
       do {
          now = System.currentTimeMillis();
          for (PhaseInstance phase : instances.values()) {
-            if (phase.status() == PhaseInstance.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
+            if (phase.status() == PhaseInstance.Status.RUNNING
+                  && phase.absoluteStartTime() + phase.definition().duration() <= now) {
                finishPhase(phase.definition().name());
             }
             if (phase.status() == PhaseInstance.Status.FINISHED) {
-               if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
+               if (phase.definition().maxDuration() >= 0
+                     && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
                   terminatePhase(phase.definition().name());
-               } else if (phase.definition().terminateAfterStrict().stream().map(instances::get).allMatch(p -> p.status().isTerminated())) {
+               } else if (phase.definition().terminateAfterStrict().stream().map(instances::get)
+                     .allMatch(p -> p.status().isTerminated())) {
                   tryTerminatePhase(phase.definition().name());
                }
             }
@@ -101,7 +107,8 @@ public class LocalSimulationRunner extends SimulationRunner {
                .filter(phase -> phase.status() == PhaseInstance.Status.RUNNING)
                .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().duration()).min().orElse(Long.MAX_VALUE);
          long nextPhaseTerminate = instances.values().stream()
-               .filter(phase -> (phase.status() == PhaseInstance.Status.RUNNING || phase.status() == PhaseInstance.Status.FINISHED) && phase.definition().maxDuration() >= 0)
+               .filter(phase -> (phase.status() == PhaseInstance.Status.RUNNING
+                     || phase.status() == PhaseInstance.Status.FINISHED) && phase.definition().maxDuration() >= 0)
                .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().maxDuration()).min().orElse(Long.MAX_VALUE);
          long delay = Math.min(Math.min(nextPhaseStart, nextPhaseFinish), nextPhaseTerminate) - System.currentTimeMillis();
 
@@ -123,7 +130,8 @@ public class LocalSimulationRunner extends SimulationRunner {
    }
 
    @Override
-   protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+   protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded,
+         Throwable error) {
       return super.phaseChanged(phase, status, sessionLimitExceeded, error).thenRun(() -> {
          if (status == PhaseInstance.Status.TERMINATED) {
             publishStats(phase);
@@ -162,12 +170,14 @@ public class LocalSimulationRunner extends SimulationRunner {
             phase.definition().startAfterStrict().stream().allMatch(dep -> instances.get(dep).status().isTerminated()) &&
             (phase.definition().startWithDelay() == null ||
                   instances.get(phase.definition().startWithDelay().phase).status().isStarted() &&
-                  instances.get(phase.definition().startWithDelay().phase).absoluteStartTime() + phase.definition().startWithDelay().delay <= System.currentTimeMillis()))
+                        instances.get(phase.definition().startWithDelay().phase).absoluteStartTime()
+                              + phase.definition().startWithDelay().delay <= System.currentTimeMillis()))
             .toArray(PhaseInstance[]::new);
    }
 
    /**
     * More for testing purposes, allow internal phases inspection
+    *
     * @return the phase instances map
     */
    public Map<String, PhaseInstance> instances() {

@@ -19,7 +19,7 @@ public class RandomUUIDStepTest {
    public void testStringGenerator() {
 
       // builder
-      String[] vars = new String[]{ "first", "second", "third", "fourth" };
+      String[] vars = new String[] { "first", "second", "third", "fourth" };
       for (String varName : vars) {
          RandomUUIDStep.Builder builder = new RandomUUIDStep.Builder();
          builder.init(String.format("%s", varName));

@@ -81,9 +81,10 @@ public class WebUpload extends BaseUploadCommand {
       return CommandResult.SUCCESS;
    }
 
-   private BenchmarkSource loadProvided(HyperfoilCommandInvocation invocation, WebCliContext context, String updatedSource, Map<String, byte[]> extraData) throws CommandException {
+   private BenchmarkSource loadProvided(HyperfoilCommandInvocation invocation, WebCliContext context, String updatedSource,
+         Map<String, byte[]> extraData) throws CommandException {
       ProvidedBenchmarkData data = new ProvidedBenchmarkData(extraData);
-      for (; ; ) {
+      for (;;) {
          try {
             return loadBenchmarkSource(invocation, updatedSource, data);
          } catch (CommandException e) {

@@ -20,10 +20,9 @@
 
 package io.hyperfoil.cli.commands;
 
-import io.hyperfoil.api.config.PhaseBuilder;
-
 import org.aesh.command.CommandDefinition;
 
+import io.hyperfoil.api.config.PhaseBuilder;
 
 public class Wrk extends WrkAbstract {
 

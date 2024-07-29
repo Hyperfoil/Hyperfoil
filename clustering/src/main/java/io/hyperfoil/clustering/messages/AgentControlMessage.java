@@ -38,5 +38,6 @@ public class AgentControlMessage implements Serializable {
       LIST_CONNECTIONS
    }
 
-   public static class Codec extends ObjectCodec<AgentControlMessage> {}
+   public static class Codec extends ObjectCodec<AgentControlMessage> {
+   }
 }

@@ -13,12 +13,12 @@ import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.util.Trie;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.CacheControl;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
+import io.hyperfoil.impl.Util;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
 
@@ -29,7 +29,8 @@ public class HttpCacheImpl implements HttpCache {
    private static final Logger log = LogManager.getLogger(HttpCacheImpl.class);
 
    // we're ignoring no-transform directive
-   private static final Trie REQUEST_CACHE_CONTROL = new Trie("max-age=", "no-cache", "no-store", "max-stale=", "min-fresh=", "only-if-cached");
+   private static final Trie REQUEST_CACHE_CONTROL = new Trie("max-age=", "no-cache", "no-store", "max-stale=", "min-fresh=",
+         "only-if-cached");
    // ignoring no-transform, public, private, proxy-revalidate and s-max-age as this is a private cache
    private static final Trie RESPONSE_CACHE_CONTROL = new Trie("max-age=", "no-cache", "no-store", "must-revalidate");
    private static final int MAX_AGE = 0;
@@ -105,8 +106,8 @@ public class HttpCacheImpl implements HttpCache {
    // That means that `matchingCached` should contain entries with these tags.
    private void handleIfNoneMatch(HttpRequest request, CharSequence value) {
       // We'll parse the header multiple times to avoid allocating extra colleciton
-      RECORD_LOOP:
-      for (Iterator<HttpCache.Record> iterator = request.cacheControl.matchingCached.iterator(); iterator.hasNext(); ) {
+      RECORD_LOOP: for (Iterator<HttpCache.Record> iterator = request.cacheControl.matchingCached.iterator(); iterator
+            .hasNext();) {
          Record record = (Record) iterator.next();
          if (record.etag == null) {
             iterator.remove();
@@ -126,12 +127,14 @@ public class HttpCacheImpl implements HttpCache {
                }
             } else if (c == '"') {
                int start = ++i;
-               for (; i < value.length() && value.charAt(i) != '"'; ++i) ;
+               for (; i < value.length() && value.charAt(i) != '"'; ++i)
+                  ;
                int length = i - start;
                if (length == record.etag.length() && AsciiString.regionMatches(record.etag, false, 0, value, start, length)) {
                   continue RECORD_LOOP;
                }
-               while (++i < value.length() && value.charAt(i) == ' ') ;
+               while (++i < value.length() && value.charAt(i) == ' ')
+                  ;
                if (i < value.length() && value.charAt(i) != ',') {
                   log.warn("Invalid If-None-Match: {}", value);
                   return;
@@ -158,10 +161,11 @@ public class HttpCacheImpl implements HttpCache {
             return;
          } else if (c == '"') {
             int start = ++i;
-            for (; i < value.length() && value.charAt(i) != '"'; ++i) ;
+            for (; i < value.length() && value.charAt(i) != '"'; ++i)
+               ;
             int length = i - start;
             List<HttpCache.Record> matchingCached = request.cacheControl.matchingCached;
-            for (Iterator<HttpCache.Record> it = matchingCached.iterator(); it.hasNext(); ) {
+            for (Iterator<HttpCache.Record> it = matchingCached.iterator(); it.hasNext();) {
                HttpCache.Record item = it.next();
                Record record = (Record) item;
                if (record.etag != null && !record.weakETag && length == record.etag.length() &&
@@ -169,7 +173,8 @@ public class HttpCacheImpl implements HttpCache {
                   it.remove();
                }
             }
-            while (++i < value.length() && value.charAt(i) == ' ') ;
+            while (++i < value.length() && value.charAt(i) == ' ')
+               ;
             if (i < value.length() && value.charAt(i) != ',') {
                log.warn("Invalid If-Match: {}", value);
                return;
@@ -235,7 +240,8 @@ public class HttpCacheImpl implements HttpCache {
          Record record = (Record) it.next();
          if (maxAge > 0 && now - record.date > maxAge * 1000) {
             it.remove();
-         } else if ((record.mustRevalidate && now >= record.expires) || (maxStale > 0 && now - record.expires > maxStale * 1000)) {
+         } else if ((record.mustRevalidate && now >= record.expires)
+               || (maxStale > 0 && now - record.expires > maxStale * 1000)) {
             it.remove();
          } else if (minFresh > 0 && record.expires - now < minFresh * 1000) {
             it.remove();
@@ -252,7 +258,7 @@ public class HttpCacheImpl implements HttpCache {
    public boolean isCached(HttpRequest request, HttpRequestWriter writer) {
       if (!request.cacheControl.ignoreExpires) {
          long now = clock.millis();
-         for (Iterator<HttpCache.Record> iterator = request.cacheControl.matchingCached.iterator(); iterator.hasNext(); ) {
+         for (Iterator<HttpCache.Record> iterator = request.cacheControl.matchingCached.iterator(); iterator.hasNext();) {
             Record record = (Record) iterator.next();
             if (record.expires != Long.MIN_VALUE && now > record.expires) {
                iterator.remove();
@@ -343,7 +349,7 @@ public class HttpCacheImpl implements HttpCache {
          pathRecords.add(record);
       } else {
          Record record = null;
-         for (Iterator<Record> iterator = pathRecords.iterator(); iterator.hasNext(); ) {
+         for (Iterator<Record> iterator = pathRecords.iterator(); iterator.hasNext();) {
             record = iterator.next();
             if (record.lastModified == Long.MIN_VALUE && record.etag == null) {
                iterator.remove();
@@ -490,7 +496,8 @@ public class HttpCacheImpl implements HttpCache {
          this.mustRevalidate = cc.responseMustRevalidate;
          this.lastModified = cc.responseLastModified;
          this.weakETag = cc.responseEtag != null && AsciiString.regionMatches(cc.responseEtag, false, 0, "W/", 0, 2);
-         this.etag = cc.responseEtag == null ? null : cc.responseEtag.subSequence(weakETag ? 3 : 1, cc.responseEtag.length() - 1);
+         this.etag = cc.responseEtag == null ? null
+               : cc.responseEtag.subSequence(weakETag ? 3 : 1, cc.responseEtag.length() - 1);
          return this;
       }
 

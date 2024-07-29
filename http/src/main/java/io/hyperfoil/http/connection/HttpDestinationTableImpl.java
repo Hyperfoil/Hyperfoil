@@ -20,7 +20,8 @@ public class HttpDestinationTableImpl implements HttpDestinationTable {
 
    public HttpDestinationTableImpl(Map<String, HttpConnectionPool> byAuthority) {
       this.byAuthority = byAuthority;
-      this.byName = byAuthority.entrySet().stream().filter(entry -> entry.getKey() != null && entry.getValue().clientPool().config().name() != null)
+      this.byName = byAuthority.entrySet().stream()
+            .filter(entry -> entry.getKey() != null && entry.getValue().clientPool().config().name() != null)
             .collect(Collectors.toMap(entry -> entry.getValue().clientPool().config().name(), Map.Entry::getValue));
       this.authorities = byAuthority.keySet().stream().filter(Objects::nonNull).toArray(String[]::new);
       this.authorityBytes = Stream.of(authorities).map(url -> url.getBytes(StandardCharsets.UTF_8)).toArray(byte[][]::new);

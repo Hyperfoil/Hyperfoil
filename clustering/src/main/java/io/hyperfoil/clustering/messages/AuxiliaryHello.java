@@ -25,5 +25,6 @@ public class AuxiliaryHello implements Serializable {
       return deploymentId;
    }
 
-   public static class Codec extends ObjectCodec<AuxiliaryHello> {}
+   public static class Codec extends ObjectCodec<AuxiliaryHello> {
+   }
 }

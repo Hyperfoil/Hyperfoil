@@ -10,10 +10,10 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.api.StatusHandler;
 
 // Note: maybe it would be better to just use multiplex and let actions convert to status handlers?
 public class ActionStatusHandler extends BaseRangeStatusHandler {
@@ -53,7 +53,8 @@ public class ActionStatusHandler extends BaseRangeStatusHandler {
 
       /**
        * Perform a sequence of actions if the range matches. Use range as the key and action in the mapping.
-       * Possible values of the status should be separated by commas (,). Ranges can be set using low-high (inclusive) (e.g. 200-299), or replacing lower digits with 'x' (e.g. 2xx).
+       * Possible values of the status should be separated by commas (,). Ranges can be set using low-high (inclusive) (e.g.
+       * 200-299), or replacing lower digits with 'x' (e.g. 2xx).
        *
        * @param range Status range.
        * @return Builder
@@ -76,8 +77,10 @@ public class ActionStatusHandler extends BaseRangeStatusHandler {
       public ActionStatusHandler build() {
          List<Integer> ranges = new ArrayList<>();
          List<Action[]> actions = new ArrayList<>();
-         Action[] otherActions = checkAndSortRanges(this.actions, ranges, actions, list -> list.stream().map(Action.Builder::build).toArray(Action[]::new));
-         return new ActionStatusHandler(ranges.stream().mapToInt(Integer::intValue).toArray(), actions.toArray(new Action[0][]), otherActions);
+         Action[] otherActions = checkAndSortRanges(this.actions, ranges, actions,
+               list -> list.stream().map(Action.Builder::build).toArray(Action[]::new));
+         return new ActionStatusHandler(ranges.stream().mapToInt(Integer::intValue).toArray(), actions.toArray(new Action[0][]),
+               otherActions);
       }
    }
 }

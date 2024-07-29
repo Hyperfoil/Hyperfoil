@@ -20,6 +20,35 @@
 
 package io.hyperfoil.cli;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.aesh.AeshConsoleRunner;
+import org.aesh.command.Command;
+import org.aesh.command.activator.CommandActivator;
+import org.aesh.command.activator.OptionActivator;
+import org.aesh.command.completer.CompleterInvocation;
+import org.aesh.command.converter.ConverterInvocation;
+import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
+import org.aesh.command.invocation.CommandInvocationProvider;
+import org.aesh.command.registry.CommandRegistryException;
+import org.aesh.command.settings.Settings;
+import org.aesh.command.settings.SettingsBuilder;
+import org.aesh.command.validator.ValidatorInvocation;
+import org.aesh.readline.Prompt;
+import org.aesh.readline.terminal.formatting.Color;
+import org.aesh.readline.terminal.formatting.TerminalColor;
+import org.aesh.readline.terminal.formatting.TerminalString;
+
 import io.hyperfoil.cli.commands.Compare;
 import io.hyperfoil.cli.commands.Connect;
 import io.hyperfoil.cli.commands.Connections;
@@ -54,35 +83,6 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
 import io.hyperfoil.cli.context.HyperfoilCompleterData;
 import io.hyperfoil.impl.Util;
 
-import org.aesh.AeshConsoleRunner;
-import org.aesh.command.Command;
-import org.aesh.command.activator.CommandActivator;
-import org.aesh.command.activator.OptionActivator;
-import org.aesh.command.completer.CompleterInvocation;
-import org.aesh.command.converter.ConverterInvocation;
-import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
-import org.aesh.command.invocation.CommandInvocationProvider;
-import org.aesh.command.registry.CommandRegistryException;
-import org.aesh.command.settings.Settings;
-import org.aesh.command.settings.SettingsBuilder;
-import org.aesh.command.validator.ValidatorInvocation;
-import org.aesh.readline.Prompt;
-import org.aesh.readline.terminal.formatting.Color;
-import org.aesh.readline.terminal.formatting.TerminalColor;
-import org.aesh.readline.terminal.formatting.TerminalString;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 public class HyperfoilCli {
 
    public static final String CLI_PROMPT = "CLI_PROMPT";
@@ -101,7 +101,8 @@ public class HyperfoilCli {
 
    public void run() throws CommandRegistryException {
       HyperfoilCliContext context = new HyperfoilCliContext();
-      AeshConsoleRunner runner = configureRunner(context, settingsBuilder(context, new HyperfoilCommandInvocationProvider(context)).build(), System.getenv(CLI_PROMPT));
+      AeshConsoleRunner runner = configureRunner(context,
+            settingsBuilder(context, new HyperfoilCommandInvocationProvider(context)).build(), System.getenv(CLI_PROMPT));
 
       CompletableFuture<List<String>> endpoints = suggestedEndpoints();
       endpoints.whenComplete((list, e) -> {
@@ -113,7 +114,9 @@ public class HyperfoilCli {
       runner.start();
    }
 
-   protected AeshConsoleRunner configureRunner(HyperfoilCliContext context, Settings<? extends HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settings, String cliPrompt) {
+   protected AeshConsoleRunner configureRunner(HyperfoilCliContext context,
+         Settings<? extends HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settings,
+         String cliPrompt) {
       context.commandRegistry(settings.commandRegistry());
 
       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
@@ -126,13 +129,14 @@ public class HyperfoilCli {
       return runner;
    }
 
-   protected <CI extends HyperfoilCommandInvocation> SettingsBuilder<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settingsBuilder(HyperfoilCliContext context, CommandInvocationProvider<CI> commandInvocationProvider) throws CommandRegistryException {
+   protected <CI extends HyperfoilCommandInvocation> SettingsBuilder<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settingsBuilder(
+         HyperfoilCliContext context, CommandInvocationProvider<CI> commandInvocationProvider) throws CommandRegistryException {
       AeshCommandRegistryBuilder<HyperfoilCommandInvocation> commandRegistryBuilder = AeshCommandRegistryBuilder.builder();
       for (Class<? extends Command> command : getCommands()) {
          commandRegistryBuilder.command(command);
       }
-      return SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
-            ValidatorInvocation<?, ?>, OptionActivator, CommandActivator>builder()
+      return SettingsBuilder
+            .<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> builder()
             .logging(true)
             .enableMan(false)
             .enableAlias(false)
@@ -174,14 +178,14 @@ public class HyperfoilCli {
             Upload.class,
             Version.class,
             Wrk.WrkCommand.class,
-            Wrk2.Wrk2Command.class
-      );
+            Wrk2.Wrk2Command.class);
    }
 
    private static CompletableFuture<List<String>> suggestedEndpoints() {
       CompletableFuture<List<String>> openshiftPorts;
       try {
-         Process start = new ProcessBuilder("oc", "get", "route", "-A", "-l", "hyperfoil", "-o", "jsonpath={range .items[*]}{.spec.tls.termination}:{.status.ingress[0].host} ").start();
+         Process start = new ProcessBuilder("oc", "get", "route", "-A", "-l", "hyperfoil", "-o",
+               "jsonpath={range .items[*]}{.spec.tls.termination}:{.status.ingress[0].host} ").start();
          openshiftPorts = CompletableFuture.supplyAsync(() -> {
             try {
                return Stream.of(Util.toString(start.getInputStream()).split("[ \\n\\t]+"))
@@ -208,6 +212,4 @@ public class HyperfoilCli {
       });
    }
 
-
 }
-

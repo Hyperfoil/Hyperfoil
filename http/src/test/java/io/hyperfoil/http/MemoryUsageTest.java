@@ -90,7 +90,8 @@ public class MemoryUsageTest {
       return HttpClientPoolImpl.forTesting(builder.build(true), 1);
    }
 
-   private void doRequest(HttpConnectionPool pool, Session session, TestContext context, Async async, AtomicLong seenMemoryUsage) {
+   private void doRequest(HttpConnectionPool pool, Session session, TestContext context, Async async,
+         AtomicLong seenMemoryUsage) {
       async.countDown();
       if (async.count() % 100 == 0) {
          System.gc();
@@ -119,7 +120,8 @@ public class MemoryUsageTest {
                   context.fail("Buffers are not pooled");
                }
             })
-            .onCompletion(s -> pool.executor().schedule(() -> doRequest(pool, session, context, async, seenMemoryUsage), 1, TimeUnit.MILLISECONDS))
+            .onCompletion(s -> pool.executor().schedule(() -> doRequest(pool, session, context, async, seenMemoryUsage), 1,
+                  TimeUnit.MILLISECONDS))
             .build();
       request.path = "/";
       request.method = HttpMethod.GET;

@@ -27,7 +27,6 @@ public abstract class RateGeneratorTest {
       final ExponentialDistribution expDistribution = new ExponentialDistribution(mean); // Mean of the distribution is 1 for the normalized data
       final double pValue = ksTest.kolmogorovSmirnovTest(expDistribution, data);
 
-
       if (pValue < 0.05) {
          Assert.fail("The generated fire times do not follow the expected exponential distribution. p-value: " + pValue);
       }

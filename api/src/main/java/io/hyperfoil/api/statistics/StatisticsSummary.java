@@ -25,20 +25,20 @@ public class StatisticsSummary {
 
    @JsonCreator
    public StatisticsSummary(@JsonProperty("startTime") long startTime,
-                            @JsonProperty("endTime") long endTime,
-                            @JsonProperty("minResponseTime") long minResponseTime,
-                            @JsonProperty("meanResponseTime") long meanResponseTime,
-                            @JsonProperty("stdDevResponseTime") long stdDevResponseTime,
-                            @JsonProperty("maxResponseTime") long maxResponseTime,
-                            @JsonProperty("percentileResponseTime") SortedMap<Double, Long> percentileResponseTime,
-                            @JsonProperty("requestCount") int requestCount,
-                            @JsonProperty("responseCount") int responseCount,
-                            @JsonProperty("invalid") int invalid,
-                            @JsonProperty("connectionErrors") int connectionErrors,
-                            @JsonProperty("requestTimeouts") int requestTimeouts,
-                            @JsonProperty("internalErrors") int internalErrors,
-                            @JsonProperty("blockedTime") long blockedTime,
-                            @JsonProperty("extensions") SortedMap<String, StatsExtension> extensions) {
+         @JsonProperty("endTime") long endTime,
+         @JsonProperty("minResponseTime") long minResponseTime,
+         @JsonProperty("meanResponseTime") long meanResponseTime,
+         @JsonProperty("stdDevResponseTime") long stdDevResponseTime,
+         @JsonProperty("maxResponseTime") long maxResponseTime,
+         @JsonProperty("percentileResponseTime") SortedMap<Double, Long> percentileResponseTime,
+         @JsonProperty("requestCount") int requestCount,
+         @JsonProperty("responseCount") int responseCount,
+         @JsonProperty("invalid") int invalid,
+         @JsonProperty("connectionErrors") int connectionErrors,
+         @JsonProperty("requestTimeouts") int requestTimeouts,
+         @JsonProperty("internalErrors") int internalErrors,
+         @JsonProperty("blockedTime") long blockedTime,
+         @JsonProperty("extensions") SortedMap<String, StatsExtension> extensions) {
       this.startTime = startTime;
       this.endTime = endTime;
       this.minResponseTime = minResponseTime;

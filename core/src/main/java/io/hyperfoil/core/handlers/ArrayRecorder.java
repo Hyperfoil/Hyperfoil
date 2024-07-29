@@ -1,5 +1,7 @@
 package io.hyperfoil.core.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -7,15 +9,12 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
+import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.session.ObjectVar;
-import io.hyperfoil.api.session.ResourceUtilizer;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class ArrayRecorder implements Processor, ResourceUtilizer {
    private static final Logger log = LogManager.getLogger(ArrayRecorder.class);
@@ -45,7 +44,8 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
       ObjectVar[] array = (ObjectVar[]) toVar.activate(session);
       Object value = format.convert(data, offset, length);
       for (int i = 0; i < array.length; ++i) {
-         if (array[i].isSet()) continue;
+         if (array[i].isSet())
+            continue;
          if (trace) {
             log.trace("#{} Set {}[{}] <- {}", session.uniqueId(), toVar.toString(), i, value);
          }

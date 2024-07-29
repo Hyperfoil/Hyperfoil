@@ -21,7 +21,7 @@ import io.hyperfoil.impl.Util;
 @CommandDefinition(name = "new", description = "Creates a new benchmark")
 public class New extends ServerCommand {
    // Reading resource list from folder is too complicated, let's enumerate them here
-   private static final String[] TEMPLATES = new String[]{ "constant", "throughput", "empty" };
+   private static final String[] TEMPLATES = new String[] { "constant", "throughput", "empty" };
 
    @Option(shortName = 't', description = "Template used to set up the benchmark.", completer = TemplateCompleter.class)
    public String template;

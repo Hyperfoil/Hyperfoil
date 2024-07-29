@@ -10,9 +10,9 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PartialBuilder;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 public class MultiplexStatusHandler extends BaseRangeStatusHandler {
    private final StatusHandler[][] handlers;
@@ -50,7 +50,8 @@ public class MultiplexStatusHandler extends BaseRangeStatusHandler {
 
       /**
        * Run another handler if the range matches. Use range as the key and another status handler in the mapping.
-       * Possible values of the status should be separated by commas (,). Ranges can be set using low-high (inclusive) (e.g. 200-299), or replacing lower digits with 'x' (e.g. 2xx).
+       * Possible values of the status should be separated by commas (,). Ranges can be set using low-high (inclusive) (e.g.
+       * 200-299), or replacing lower digits with 'x' (e.g. 2xx).
        *
        * @param range Status range.
        * @return Builder
@@ -73,8 +74,10 @@ public class MultiplexStatusHandler extends BaseRangeStatusHandler {
       public MultiplexStatusHandler build() {
          List<Integer> ranges = new ArrayList<>();
          List<StatusHandler[]> handlers = new ArrayList<>();
-         StatusHandler[] other = checkAndSortRanges(this.handlers, ranges, handlers, list -> list.stream().map(StatusHandler.Builder::build).toArray(StatusHandler[]::new));
-         return new MultiplexStatusHandler(ranges.stream().mapToInt(Integer::intValue).toArray(), handlers.toArray(new StatusHandler[0][]), other);
+         StatusHandler[] other = checkAndSortRanges(this.handlers, ranges, handlers,
+               list -> list.stream().map(StatusHandler.Builder::build).toArray(StatusHandler[]::new));
+         return new MultiplexStatusHandler(ranges.stream().mapToInt(Integer::intValue).toArray(),
+               handlers.toArray(new StatusHandler[0][]), other);
       }
    }
 }

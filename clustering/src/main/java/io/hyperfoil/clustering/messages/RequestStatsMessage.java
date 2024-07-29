@@ -8,7 +8,8 @@ public class RequestStatsMessage extends StatsMessage {
    public final String metric;
    public final StatisticsSnapshot statistics;
 
-   public RequestStatsMessage(String address, String runId, int phaseId, int stepId, String metric, StatisticsSnapshot statistics) {
+   public RequestStatsMessage(String address, String runId, int phaseId, int stepId, String metric,
+         StatisticsSnapshot statistics) {
       super(address, runId);
       this.phaseId = phaseId;
       this.stepId = stepId;
@@ -16,5 +17,6 @@ public class RequestStatsMessage extends StatsMessage {
       this.statistics = statistics;
    }
 
-   public static class Codec extends ObjectCodec<RequestStatsMessage> {}
+   public static class Codec extends ObjectCodec<RequestStatsMessage> {
+   }
 }

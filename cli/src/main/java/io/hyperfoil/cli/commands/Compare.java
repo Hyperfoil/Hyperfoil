@@ -107,11 +107,13 @@ public class Compare extends ServerCommand {
 
       List<Comparison> comparisons = new ArrayList<>();
       for (RequestStats stats : firstStats.statistics) {
-         if (stats.isWarmup && !warmup) continue;
+         if (stats.isWarmup && !warmup)
+            continue;
          comparisons.add(new Comparison(stats.phase, stats.metric).first(stats.summary));
       }
       for (RequestStats stats : secondStats.statistics) {
-         if (stats.isWarmup && !warmup) continue;
+         if (stats.isWarmup && !warmup)
+            continue;
          Optional<Comparison> maybeComparison = comparisons.stream()
                .filter(c -> c.phase.equals(stats.phase) && c.metric.equals(stats.metric)).findAny();
          if (maybeComparison.isPresent()) {

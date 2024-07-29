@@ -59,7 +59,8 @@ public class GetItemAction implements Action {
       } else if (obj instanceof List) {
          List<?> list = (List<?>) obj;
          if (list.size() <= index) {
-            log.error("#{} Index {} out of bounds: list in {} has {} elements", session.uniqueId(), index, fromVar, list.size());
+            log.error("#{} Index {} out of bounds: list in {} has {} elements", session.uniqueId(), index, fromVar,
+                  list.size());
             return;
          }
          toVar.setObject(session, list.get(index));

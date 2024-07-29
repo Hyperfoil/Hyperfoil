@@ -24,9 +24,10 @@ public interface PluginRunData {
     * If the plugin cannot open a connection without blocking it can invoke the desired code in the provided
     * <b>blockingHandler</b> which will perform the operation on a blocking thread to prevent the method from blocking.
     * The future(s) returned from the handler should then be registered with the <b>promiseCollector</b>.
+    *
     * @param blockingHandler Handler that can be used to run blocking code, returning a Future that must be registered
     * @param promiseCollector Collector to notify invoker that there outstanding operations that will complete at some
-    *                         point in the future.
+    *        point in the future.
     */
    void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Consumer<Future<Void>> promiseCollector);
 

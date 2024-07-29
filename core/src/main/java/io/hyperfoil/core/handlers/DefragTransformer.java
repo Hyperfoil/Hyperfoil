@@ -1,15 +1,16 @@
 package io.hyperfoil.core.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
-public class DefragTransformer extends Transformer.BaseDelegating implements ResourceUtilizer, Session.ResourceKey<DefragTransformer.Context> {
+public class DefragTransformer extends Transformer.BaseDelegating
+      implements ResourceUtilizer, Session.ResourceKey<DefragTransformer.Context> {
    private static final Logger log = LogManager.getLogger(DefragTransformer.class);
 
    public DefragTransformer(Transformer delegate) {

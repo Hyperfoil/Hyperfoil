@@ -9,7 +9,8 @@ import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-public class JsonUnquotingTransformer implements Transformer, Processor, ResourceUtilizer, Session.ResourceKey<JsonUnquotingTransformer.Context> {
+public class JsonUnquotingTransformer
+      implements Transformer, Processor, ResourceUtilizer, Session.ResourceKey<JsonUnquotingTransformer.Context> {
    private static final ByteBuf NEWLINE = Unpooled.wrappedBuffer("\n".getBytes(StandardCharsets.UTF_8));
    private static final ByteBuf BACKSPACE = Unpooled.wrappedBuffer("\b".getBytes(StandardCharsets.UTF_8));
    private static final ByteBuf FORMFEED = Unpooled.wrappedBuffer("\f".getBytes(StandardCharsets.UTF_8));
@@ -74,7 +75,8 @@ public class JsonUnquotingTransformer implements Transformer, Processor, Resourc
                   begin = offset + i + 1;
                   break;
                case 'b':
-                  delegate.transform(session, BACKSPACE, 0, BACKSPACE.readableBytes(), isLastFragment && i == length - 1, output);
+                  delegate.transform(session, BACKSPACE, 0, BACKSPACE.readableBytes(), isLastFragment && i == length - 1,
+                        output);
                   begin = offset + i + 1;
                   break;
                case 'f':
@@ -118,7 +120,8 @@ public class JsonUnquotingTransformer implements Transformer, Processor, Resourc
       }
    }
 
-   private int processUnicode(Session session, ByteBuf data, int offset, int length, boolean isLastPart, ByteBuf output, Context context, int i) {
+   private int processUnicode(Session session, ByteBuf data, int offset, int length, boolean isLastPart, ByteBuf output,
+         Context context, int i) {
       while (i < length && context.unicodeDigits < 4) {
          context.unicodeChar = context.unicodeChar * 16;
          byte b = data.getByte(offset + i);

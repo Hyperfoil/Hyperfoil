@@ -10,7 +10,8 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.Session;
 
 /**
- * This instance holds common statistics shared between all {@link Session sessions} (in given phase) driven by the same executor.
+ * This instance holds common statistics shared between all {@link Session sessions} (in given phase) driven by the same
+ * executor.
  */
 public class SessionStatistics {
    private Phase[] phases;

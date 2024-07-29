@@ -12,9 +12,9 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Model;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.api.FollowRedirect;
 import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.http.steps.HttpStepCatalog;
 import io.vertx.core.http.HttpHeaders;
@@ -53,9 +53,10 @@ public class FollowRedirectTest extends HttpScenarioTest {
          }
          ctx.response().end("this is the response");
       });
-      router.route("/redirect/me/relatively").handler(ctx -> ctx.response().putHeader(HttpHeaders.LOCATION, "elsewhere").setStatusCode(302).end());
-      router.route("/redirect/me/elsewhere").handler(ctx ->
-            ctx.response().end("<html><head><meta http-equiv=\"refresh\" content=\"0; URL=../theEnd\" /></head></html>"));
+      router.route("/redirect/me/relatively")
+            .handler(ctx -> ctx.response().putHeader(HttpHeaders.LOCATION, "elsewhere").setStatusCode(302).end());
+      router.route("/redirect/me/elsewhere").handler(ctx -> ctx.response()
+            .end("<html><head><meta http-equiv=\"refresh\" content=\"0; URL=../theEnd\" /></head></html>"));
       router.route("/redirect/theEnd").handler(ctx -> ctx.response().end("Final destination"));
    }
 
@@ -98,8 +99,8 @@ public class FollowRedirectTest extends HttpScenarioTest {
 
    private String target(RoutingContext ctx) {
       boolean allowRecursion = "yes".equals(ctx.request().getParam("allowRecurse"));
-      return allowRecursion && ThreadLocalRandom.current().nextBoolean() ?
-            ctx.request().path() + "?allowRecurse=yes" : "/somewhereElse";
+      return allowRecursion && ThreadLocalRandom.current().nextBoolean() ? ctx.request().path() + "?allowRecurse=yes"
+            : "/somewhereElse";
    }
 
    private boolean ensureHeaders(io.vertx.ext.web.RoutingContext ctx) {
@@ -185,8 +186,10 @@ public class FollowRedirectTest extends HttpScenarioTest {
          assertThat(redirects.get()).isEqualTo(0);
       } else {
          HttpStats redirectStats = HttpStats.get(stats.get(redirectMetric));
-         assertThat(redirectMe.status_2xx + redirectMe.status_3xx).isLessThanOrEqualTo(users).isGreaterThanOrEqualTo(users - notFound.get());
-         assertThat(redirectStats.status_2xx + redirectStats.status_3xx).isLessThanOrEqualTo(redirects.get()).isGreaterThanOrEqualTo(redirects.get() - notFound.get());
+         assertThat(redirectMe.status_2xx + redirectMe.status_3xx).isLessThanOrEqualTo(users)
+               .isGreaterThanOrEqualTo(users - notFound.get());
+         assertThat(redirectStats.status_2xx + redirectStats.status_3xx).isLessThanOrEqualTo(redirects.get())
+               .isGreaterThanOrEqualTo(redirects.get() - notFound.get());
          assertThat(redirectStats.status_4xx + redirectMe.status_4xx).isEqualTo(notFound.get());
       }
    }

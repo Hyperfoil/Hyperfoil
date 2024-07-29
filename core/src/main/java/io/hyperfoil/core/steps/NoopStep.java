@@ -7,8 +7,8 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 
 /**

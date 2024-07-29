@@ -17,13 +17,13 @@ public @interface IncludeBuilders {
    @interface Conversion {
       /**
        * @return Builder class that should be loaded in addition to the one the {@link IncludeBuilders}
-       * annotation is attached to.
+       *         annotation is attached to.
        */
       Class<?> from();
 
       /**
        * @return Class implementing function that adapts builder loaded through {@link #from()}
-       * to builder of type where {@link IncludeBuilders} is attached.
+       *         to builder of type where {@link IncludeBuilders} is attached.
        */
       Class<? extends Function<?, ?>> adapter();
    }

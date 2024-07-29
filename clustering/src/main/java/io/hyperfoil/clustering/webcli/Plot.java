@@ -113,7 +113,8 @@ public class Plot extends ServerCommand {
 
    private void plotIframe(HyperfoilCommandInvocation invocation, Client.RunRef runRef, String path) {
       invocation.println("__HYPERFOIL_RAW_HTML_START__" +
-            "<iframe onload=\"resizeFrame(this)\" class=\"plot\" src=\"/run/" + runRef.id() + "/report?unwrap=true#" + path + "\"></iframe>" +
+            "<iframe onload=\"resizeFrame(this)\" class=\"plot\" src=\"/run/" + runRef.id() + "/report?unwrap=true#" + path
+            + "\"></iframe>" +
             "<button class=\"plottoggle hfbutton\" onclick=\"togglePlot(this)\">Collapse</button>" +
             "__HYPERFOIL_RAW_HTML_END__");
    }

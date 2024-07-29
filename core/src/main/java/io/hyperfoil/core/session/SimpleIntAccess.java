@@ -16,7 +16,8 @@ public class SimpleIntAccess extends SimpleReadAccess implements IntAccess {
       } else if (existing instanceof IntVar) {
          return existing;
       } else {
-         throw new BenchmarkDefinitionException("Variable " + key + " should hold an integer but it is defined to hold an object elsewhere.");
+         throw new BenchmarkDefinitionException(
+               "Variable " + key + " should hold an integer but it is defined to hold an object elsewhere.");
       }
    }
 
@@ -26,7 +27,7 @@ public class SimpleIntAccess extends SimpleReadAccess implements IntAccess {
       if (trace) {
          log.trace("#{} {} <- {}", impl.uniqueId(), key, value);
       }
-      impl.<IntVar>getVar(index).set(value);
+      impl.<IntVar> getVar(index).set(value);
    }
 
    @Override

@@ -11,14 +11,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class ServiceLoadedBuilderProvider<B> {
    private static final Logger log = LogManager.getLogger(ServiceLoadedBuilderProvider.class);
@@ -57,9 +57,11 @@ public class ServiceLoadedBuilderProvider<B> {
                if (!included.contains(conversion.from())) {
                   try {
                      @SuppressWarnings("unchecked")
-                     Function<Object, Object> adapter = (Function<Object, Object>) conversion.adapter().getDeclaredConstructor().newInstance();
+                     Function<Object, Object> adapter = (Function<Object, Object>) conversion.adapter().getDeclaredConstructor()
+                           .newInstance();
                      // Since we use transitive inclusions through adapters, we have to chain adapters into each other
-                     deque.add(new BuilderInfo<>(conversion.from(), builder -> builderInfo.adapter.apply(adapter.apply(builder))));
+                     deque.add(
+                           new BuilderInfo<>(conversion.from(), builder -> builderInfo.adapter.apply(adapter.apply(builder))));
                   } catch (Exception e) {
                      throw new IllegalStateException("Cannot instantiate " + conversion.adapter());
                   }
@@ -92,7 +94,8 @@ public class ServiceLoadedBuilderProvider<B> {
             if (instance instanceof InitFromParam) {
                ((InitFromParam<?>) instance).init(param);
             } else {
-               throw new BenchmarkDefinitionException(name + "(" + builderInfo.implClazz + ") cannot be initialized from an inline parameter");
+               throw new BenchmarkDefinitionException(
+                     name + "(" + builderInfo.implClazz + ") cannot be initialized from an inline parameter");
             }
          }
          return new ServiceLoadedContract(instance, () -> consumer.accept(builderInfo.adapter.apply(instance)));
@@ -101,7 +104,8 @@ public class ServiceLoadedBuilderProvider<B> {
       }
    }
 
-   private Object newInstance(BuilderInfo<B> builderInfo) throws InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException {
+   private Object newInstance(BuilderInfo<B> builderInfo)
+         throws InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException {
       if (parent != null) {
          Constructor<?> parentCtor = Stream.of(builderInfo.implClazz.getDeclaredConstructors())
                .filter(ctor -> ctor.getParameterCount() == 1 && ctor.getParameterTypes()[0] == BaseSequenceBuilder.class)
@@ -113,7 +117,8 @@ public class ServiceLoadedBuilderProvider<B> {
       Constructor<?> noArgCtor = Stream.of(builderInfo.implClazz.getDeclaredConstructors())
             .filter(ctor -> ctor.getParameterCount() == 0).findFirst().orElse(null);
       if (noArgCtor == null) {
-         throw new BenchmarkDefinitionException("Class " + builderInfo.implClazz.getName() + " does not have a parameterless constructor.");
+         throw new BenchmarkDefinitionException(
+               "Class " + builderInfo.implClazz.getName() + " does not have a parameterless constructor.");
       }
       return noArgCtor.newInstance();
    }

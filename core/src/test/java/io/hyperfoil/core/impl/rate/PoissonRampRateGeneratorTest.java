@@ -6,7 +6,8 @@ public class PoissonRampRateGeneratorTest extends RateGeneratorTest {
 
    private static final int SEED = 0;
 
-   private static double computeRateAtTime(final double initialRate, final double targetRate, final long duration, final double currentTime) {
+   private static double computeRateAtTime(final double initialRate, final double targetRate, final long duration,
+         final double currentTime) {
       return initialRate + (targetRate - initialRate) * (currentTime / duration);
    }
 

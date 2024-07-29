@@ -29,7 +29,6 @@ public class StoreShortcuts<P extends StoreShortcuts.Host> implements BuilderBas
       return this;
    }
 
-
    /**
     * Shortcut to store selected parts in an array in the session. Must follow the pattern <code>variable[maxSize]</code>
     *

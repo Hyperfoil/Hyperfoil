@@ -6,10 +6,10 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.http.api.HeaderHandler;
+import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 
@@ -22,7 +22,8 @@ public class LogInvalidHandler implements Processor, HeaderHandler {
       if (request != null && !request.isValid()) {
          if (request instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) request;
-            log.debug("#{}: {} {}/{}, {} bytes: {}", session.uniqueId(), httpRequest.method, httpRequest.authority, httpRequest.path, data.readableBytes(),
+            log.debug("#{}: {} {}/{}, {} bytes: {}", session.uniqueId(), httpRequest.method, httpRequest.authority,
+                  httpRequest.path, data.readableBytes(),
                   Util.toString(data, data.readerIndex(), data.readableBytes()));
          } else {
             log.debug("#{}: {} bytes: {}", session.uniqueId(), data.readableBytes(),
@@ -34,7 +35,8 @@ public class LogInvalidHandler implements Processor, HeaderHandler {
    @Override
    public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
       if (!request.isValid()) {
-         log.debug("#{}: {} {}/{}, {}: {}", request.session.uniqueId(), request.method, request.authority, request.path, header, value);
+         log.debug("#{}: {} {}/{}, {}: {}", request.session.uniqueId(), request.method, request.authority, request.path, header,
+               value);
       }
    }
 

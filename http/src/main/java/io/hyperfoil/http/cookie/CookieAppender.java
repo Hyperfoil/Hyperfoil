@@ -1,11 +1,11 @@
 package io.hyperfoil.http.cookie;
 
-import io.hyperfoil.http.api.HttpRequestWriter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableBiConsumer;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import io.hyperfoil.http.api.HttpRequestWriter;
 
 public class CookieAppender implements SerializableBiConsumer<Session, HttpRequestWriter> {
    private static final Logger log = LogManager.getLogger(CookieAppender.class);

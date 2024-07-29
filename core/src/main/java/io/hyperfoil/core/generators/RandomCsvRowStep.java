@@ -169,7 +169,8 @@ public class RandomCsvRowStep implements Step {
             // We won't throw an error even if the CSV is empty - this can happen during edit in CLI when we expect
             // to reuse the data on server side.
 
-            ObjectAccess[] columnVars = builderColumns.stream().filter(Objects::nonNull).map(SessionFactory::objectAccess).toArray(ObjectAccess[]::new);
+            ObjectAccess[] columnVars = builderColumns.stream().filter(Objects::nonNull).map(SessionFactory::objectAccess)
+                  .toArray(ObjectAccess[]::new);
             return Collections.singletonList(new RandomCsvRowStep(rows, columnVars, customRowSelector));
          } catch (IOException ioe) {
             throw new BenchmarkDefinitionException("Failed to read file " + file, ioe);
@@ -240,7 +241,7 @@ public class RandomCsvRowStep implements Step {
          /**
           * Use 0-based column as the key and variable name as the value.
           *
-          * @param position  0-based column number.
+          * @param position 0-based column number.
           * @param columnVar Variable name.
           */
          @Override
@@ -254,7 +255,8 @@ public class RandomCsvRowStep implements Step {
             }
             String prev = builderColumns.set(pos, columnVar);
             if (prev != null) {
-               throw new BenchmarkDefinitionException("Column " + pos + " is already mapped to '" + prev + "', don't map to '" + columnVar + "'");
+               throw new BenchmarkDefinitionException(
+                     "Column " + pos + " is already mapped to '" + prev + "', don't map to '" + columnVar + "'");
             }
          }
       }

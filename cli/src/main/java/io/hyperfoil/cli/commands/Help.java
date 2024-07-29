@@ -46,7 +46,8 @@ public class Help implements Command<HyperfoilCommandInvocation> {
       String help = invocation.getHelpInfo(command);
       if (help == null || help.isEmpty()) {
          invocation.println("No help info available for command '" + command + "'. Available commands: ");
-         invocation.println(invocation.context().commandRegistry().getAllCommandNames().stream().sorted().collect(Collectors.joining(", ")));
+         invocation.println(
+               invocation.context().commandRegistry().getAllCommandNames().stream().sorted().collect(Collectors.joining(", ")));
       } else {
          invocation.print(help);
       }

@@ -1,5 +1,29 @@
 package io.hyperfoil.clustering;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.infinispan.commons.api.BasicCacheContainer;
+
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -32,11 +56,11 @@ import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.clustering.util.PersistenceUtil;
-import io.hyperfoil.controller.JsonLoader;
-import io.hyperfoil.core.hooks.ExecRunHook;
 import io.hyperfoil.controller.CsvWriter;
+import io.hyperfoil.controller.JsonLoader;
 import io.hyperfoil.controller.JsonWriter;
 import io.hyperfoil.controller.StatisticsStore;
+import io.hyperfoil.core.hooks.ExecRunHook;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.CountDown;
@@ -55,35 +79,9 @@ import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
-
-import org.infinispan.commons.api.BasicCacheContainer;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LogManager.getLogger(ControllerVerticle.class);
@@ -209,7 +207,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
                      // TODO: the stats might be completed both regularly and when the agent receives STOP
                      log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, pscm.phase);
-                  } else if (run.agents.stream().map(a -> a.phases.get(pscm.phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
+                  } else if (run.agents.stream().map(a -> a.phases.get(pscm.phase))
+                        .allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
                      ControllerPhase controllerPhase = run.phases.get(pscm.phase);
                      if (controllerPhase != null) {
                         tryCompletePhase(run, pscm.phase, controllerPhase);
@@ -230,8 +229,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                }
             } else if (statsMessage instanceof ConnectionStatsMessage) {
                ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
-               log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId, connectionStatsMessage.address);
-               run.statisticsStore().recordConnectionStats(agentName, connectionStatsMessage.timestamp, connectionStatsMessage.stats);
+               log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId,
+                     connectionStatsMessage.address);
+               run.statisticsStore().recordConnectionStats(agentName, connectionStatsMessage.timestamp,
+                     connectionStatsMessage.stats);
             } else if (statsMessage instanceof DelayStatsCompletionMessage) {
                DelayStatsCompletionMessage delayStatsCompletionMessage = (DelayStatsCompletionMessage) statsMessage;
                String phase = run.phase(delayStatsCompletionMessage.phaseId);
@@ -256,7 +257,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             }
          }
          if (deployer == null) {
-            throw new IllegalStateException("Hyperfoil is running in clustered mode but it couldn't load deployer '" + Controller.DEPLOYER + "'");
+            throw new IllegalStateException(
+                  "Hyperfoil is running in clustered mode but it couldn't load deployer '" + Controller.DEPLOYER + "'");
          }
 
          if (vertx instanceof VertxInternal) {
@@ -274,8 +276,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    private void tryCompletePhase(Run run, String phase, ControllerPhase controllerPhase) {
-      long delay = controllerPhase.delayStatsCompletionUntil() == null ? -1 :
-            controllerPhase.delayStatsCompletionUntil() - System.currentTimeMillis();
+      long delay = controllerPhase.delayStatsCompletionUntil() == null ? -1
+            : controllerPhase.delayStatsCompletionUntil() - System.currentTimeMillis();
       if (delay <= 0) {
          log.info("Run {}: completing stats for phase {}", run.id, phase);
          run.statisticsStore().completePhase(phase);
@@ -337,13 +339,15 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       if (phaseChange.sessionLimitExceeded()) {
          Phase def = controllerPhase.definition();
-         SessionLimitPolicy sessionLimitPolicy = def.model instanceof Model.OpenModel ?
-               ((Model.OpenModel) def.model).sessionLimitPolicy : null;
+         SessionLimitPolicy sessionLimitPolicy = def.model instanceof Model.OpenModel
+               ? ((Model.OpenModel) def.model).sessionLimitPolicy
+               : null;
          if (sessionLimitPolicy == SessionLimitPolicy.CONTINUE) {
             log.warn("{} Phase {} session limit exceeded, continuing due to policy {}", run.id, def.name, sessionLimitPolicy);
             // We must not record this as a failure as StatisticsStore.validateSlas() would cancel the benchmark
          } else {
-            run.statisticsStore().addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
+            run.statisticsStore().addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(),
+                  "Exceeded session limit");
             log.info("{} Failing phase due to exceeded session limit.", run.id);
             controllerPhase.setFailed();
          }
@@ -405,8 +409,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       String name = info.getString("benchmark", "<unknown>");
       JsonObject paramsObject = info.getJsonObject("params");
-      Map<String, String> templateParams = paramsObject == null ? Collections.emptyMap() : paramsObject.getMap().entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
+      Map<String, String> templateParams = paramsObject == null ? Collections.emptyMap()
+            : paramsObject.getMap().entrySet().stream()
+                  .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
       Benchmark benchmark = Benchmark.empty(name, templateParams);
       Run run = new Run(runId, runDir, benchmark);
       run.statsSupplier = () -> loadStats(runDir.resolve(DEFAULT_STATS_JSON), benchmark);
@@ -432,7 +437,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          return null;
       }
       log.info("Loading stats from {}", jsonPath);
-      StatisticsStore store = new StatisticsStore(benchmark, f -> { });
+      StatisticsStore store = new StatisticsStore(benchmark, f -> {
+      });
       try {
          JsonLoader.read(Files.readString(jsonPath, StandardCharsets.UTF_8), store);
       } catch (Exception e) {
@@ -567,19 +573,22 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             AgentInfo agentInfo = new AgentInfo(agent.name, agentCounter++);
             run.agents.add(agentInfo);
             log.debug("Starting agent {}", agent.name);
-            vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
-               if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
-                  run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
-                  log.error("Failed to deploy agent " + agent.name, exception);
-                  vertx.runOnContext(nil -> stopSimulation(run));
-               }
-            }), false, result -> {
-               if (result.failed()) {
-                  run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to start agent", result.cause())));
-                  log.error("Failed to start agent " + agent.name, result.cause());
-                  vertx.runOnContext(nil -> stopSimulation(run));
-               }
-            });
+            vertx.executeBlocking(
+                  future -> agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
+                     if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
+                        run.errors.add(
+                              new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
+                        log.error("Failed to deploy agent " + agent.name, exception);
+                        vertx.runOnContext(nil -> stopSimulation(run));
+                     }
+                  }), false, result -> {
+                     if (result.failed()) {
+                        run.errors.add(new Run.Error(agentInfo,
+                              new BenchmarkExecutionException("Failed to start agent", result.cause())));
+                        log.error("Failed to start agent " + agent.name, result.cause());
+                        vertx.runOnContext(nil -> stopSimulation(run));
+                     }
+                  });
          }
       }
 
@@ -599,30 +608,32 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
       for (AgentInfo agent : run.agents) {
          if (agent.status != AgentInfo.Status.REGISTERED) {
-            log.error("{} Agent {}({}) already initializing, status is {}!", run.id, agent.name, agent.deploymentId, agent.status);
+            log.error("{} Agent {}({}) already initializing, status is {}!", run.id, agent.name, agent.deploymentId,
+                  agent.status);
          } else {
-            eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
-               Throwable cause;
-               if (reply.failed()) {
-                  cause = reply.cause();
-                  log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
-                  log.error("Failure thrown on the controller (this node): ", cause);
-               } else {
-                  Message<Object> message = reply.result();
-                  if (message.body() instanceof ReplyException) {
-                     String msg = ((ReplyException) message.body()).getMessage();
-                     log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
-                     log.error("Failure thrown on the agent node (see agent log for details): {}", msg);
-                     cause = new BenchmarkExecutionException(msg);
-                  } else {
-                     log.debug("{} Agent {}({}) was initialized.", run.id, agent.name, agent.deploymentId);
-                     return;
-                  }
-               }
-               agent.status = AgentInfo.Status.FAILED;
-               run.errors.add(new Run.Error(agent, cause));
-               stopSimulation(run);
-            });
+            eb.request(agent.deploymentId,
+                  new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
+                     Throwable cause;
+                     if (reply.failed()) {
+                        cause = reply.cause();
+                        log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
+                        log.error("Failure thrown on the controller (this node): ", cause);
+                     } else {
+                        Message<Object> message = reply.result();
+                        if (message.body() instanceof ReplyException) {
+                           String msg = ((ReplyException) message.body()).getMessage();
+                           log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
+                           log.error("Failure thrown on the agent node (see agent log for details): {}", msg);
+                           cause = new BenchmarkExecutionException(msg);
+                        } else {
+                           log.debug("{} Agent {}({}) was initialized.", run.id, agent.name, agent.deploymentId);
+                           return;
+                        }
+                     }
+                     agent.status = AgentInfo.Status.FAILED;
+                     run.errors.add(new Run.Error(agent, cause));
+                     stopSimulation(run);
+                  });
          }
       }
    }
@@ -639,7 +650,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             boolean success = hook.run(getRunProperties(run), sb::append);
             run.hookResults.add(new Run.RunHookOutput(hook.name(), sb.toString()));
             if (!success) {
-               run.errors.add(new Run.Error(null, new BenchmarkExecutionException("Execution of run hook " + hook.name() + " failed.")));
+               run.errors.add(
+                     new Run.Error(null, new BenchmarkExecutionException("Execution of run hook " + hook.name() + " failed.")));
                future.fail("Execution of pre-hook " + hook.name() + " failed.");
                break;
             }
@@ -669,16 +681,21 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       long now = System.currentTimeMillis();
       for (ControllerPhase phase : run.phases.values()) {
-         if (phase.status() == ControllerPhase.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
-            eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name, null));
+         if (phase.status() == ControllerPhase.Status.RUNNING
+               && phase.absoluteStartTime() + phase.definition().duration() <= now) {
+            eb.publish(Feeds.CONTROL,
+                  new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name, null));
             phase.status(run.id, ControllerPhase.Status.FINISHING);
          }
          if (phase.status() == ControllerPhase.Status.FINISHED) {
             if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
-               eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name, null));
+               eb.publish(Feeds.CONTROL,
+                     new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name, null));
                phase.status(run.id, ControllerPhase.Status.TERMINATING);
-            } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get).allMatch(p -> p.status().isTerminated())) {
-               eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name, null));
+            } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get)
+                  .allMatch(p -> p.status().isTerminated())) {
+               eb.publish(Feeds.CONTROL,
+                     new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name, null));
             }
          }
       }
@@ -688,7 +705,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          if (!newGlobalData.isEmpty()) {
             run.newGlobalData = new HashMap<>();
          }
-         eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name, newGlobalData));
+         eb.publish(Feeds.CONTROL,
+               new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name, newGlobalData));
          phase.absoluteStartTime(now);
          phase.status(run.id, ControllerPhase.Status.STARTING);
       }
@@ -756,7 +774,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void checkAgentsStopped(Run run) {
       if (run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
          for (var phase : run.phases.values()) {
-            run.statisticsStore().adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(), phase.absoluteCompletionTime());
+            run.statisticsStore().adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(),
+                  phase.absoluteCompletionTime());
          }
          run.statisticsStore().completeAll(error -> {
             log.warn("Run {}: {}", run.id, error);
@@ -884,7 +903,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   entry.getValue().status(run.id, ControllerPhase.Status.CANCELLED);
                } else {
                   entry.getValue().status(run.id, ControllerPhase.Status.TERMINATING);
-                  eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey(), null));
+                  eb.publish(Feeds.CONTROL,
+                        new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey(), null));
                }
             }
          }
@@ -1001,8 +1021,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       return Collections.emptyList();
    }
 
-
-   public void listSessions(Run run, boolean includeInactive, BiConsumer<AgentInfo, String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
+   public void listSessions(Run run, boolean includeInactive, BiConsumer<AgentInfo, String> sessionStateHandler,
+         Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_SESSIONS, includeInactive, completionHandler, (agent, result) -> {
          if (result.failed()) {
             log.error("Agent " + agent + " failed listing sessions", result.cause());
@@ -1020,7 +1040,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
    }
 
-   public void listConnections(Run run, BiConsumer<AgentInfo, String> connectionHandler, Handler<AsyncResult<Void>> completionHandler) {
+   public void listConnections(Run run, BiConsumer<AgentInfo, String> connectionHandler,
+         Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_CONNECTIONS, null, completionHandler, (agent, result) -> {
          if (result.failed()) {
             log.error("Agent " + agent + " failed listing connections", result.cause());
@@ -1038,7 +1059,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
    }
 
-   private void invokeOnAgents(Run run, AgentControlMessage.Command command, Object param, Handler<AsyncResult<Void>> completionHandler, BiConsumer<AgentInfo, AsyncResult<Message<Object>>> handler) {
+   private void invokeOnAgents(Run run, AgentControlMessage.Command command, Object param,
+         Handler<AsyncResult<Void>> completionHandler, BiConsumer<AgentInfo, AsyncResult<Message<Object>>> handler) {
       AtomicInteger agentCounter = new AtomicInteger(1);
       for (AgentInfo agent : run.agents) {
          if (agent.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal()) {
@@ -1076,11 +1098,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void downloadAgentLog(DeployedAgent deployedAgent, long offset, File tempFile, Handler<AsyncResult<Void>> handler) {
-      vertx.executeBlocking(future -> deployer.downloadAgentLog(deployedAgent, offset, tempFile.toString(), handler), result -> {
-         if (result.failed()) {
-            handler.handle(Future.failedFuture(result.cause()));
-         }
-      });
+      vertx.executeBlocking(future -> deployer.downloadAgentLog(deployedAgent, offset, tempFile.toString(), handler),
+            result -> {
+               if (result.failed()) {
+                  handler.handle(Future.failedFuture(result.cause()));
+               }
+            });
    }
 
    public Benchmark ensureBenchmark(Run run) throws ParserException {

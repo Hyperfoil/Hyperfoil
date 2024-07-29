@@ -89,12 +89,13 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
 
    /*
     * While debugging, the toString method of RemoteCache will do a block call
-    *  at org.infinispan.client.hotrod.impl.RemoteCacheSupport.size(RemoteCacheSupport.java:397)
-    *  at org.infinispan.client.hotrod.impl.RemoteCacheImpl.isEmpty(RemoteCacheImpl.java:275)
+    * at org.infinispan.client.hotrod.impl.RemoteCacheSupport.size(RemoteCacheSupport.java:397)
+    * at org.infinispan.client.hotrod.impl.RemoteCacheImpl.isEmpty(RemoteCacheImpl.java:275)
     * This prevent us of configuring each IDE in order to debug a code
     */
    public static class RemoteCacheWithoutToString<K, V> {
       private final RemoteCache<K, V> remoteCache;
+
       public RemoteCacheWithoutToString(RemoteCache<K, V> remoteCache) {
          this.remoteCache = remoteCache;
       }

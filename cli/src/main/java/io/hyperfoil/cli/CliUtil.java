@@ -87,7 +87,8 @@ public final class CliUtil {
       return result;
    }
 
-   public static void execProcess(HyperfoilCommandInvocation invocation, boolean expectNewWindow, String command, String... params) throws IOException {
+   public static void execProcess(HyperfoilCommandInvocation invocation, boolean expectNewWindow, String command,
+         String... params) throws IOException {
       Process process = null;
       try {
          if (expectNewWindow) {
@@ -103,7 +104,8 @@ public final class CliUtil {
       }
    }
 
-   public static Map<String, Stream<Map.Entry<String, Client.MinMax>>> toMapOfStreams(Map<String, Map<String, Client.MinMax>> stats) {
+   public static Map<String, Stream<Map.Entry<String, Client.MinMax>>> toMapOfStreams(
+         Map<String, Map<String, Client.MinMax>> stats) {
       return stats.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, CliUtil::sortedEntries, throwingMerger(), TreeMap::new));
    }
@@ -113,7 +115,9 @@ public final class CliUtil {
    }
 
    private static BinaryOperator<Stream<Map.Entry<String, Client.MinMax>>> throwingMerger() {
-      return (u, v) -> { throw new IllegalStateException(); };
+      return (u, v) -> {
+         throw new IllegalStateException();
+      };
    }
 
    public static Path getLocalFileForUpload(HyperfoilCommandInvocation invocation, String file) throws InterruptedException {
@@ -143,7 +147,7 @@ public final class CliUtil {
 
    private static Path askForFile(HyperfoilCommandInvocation invocation, String file) throws InterruptedException {
       File ff;
-      for (; ; ) {
+      for (;;) {
          String path = invocation.inputLine().trim();
          if (path.isEmpty()) {
             invocation.println("Ignoring file " + file + ".");

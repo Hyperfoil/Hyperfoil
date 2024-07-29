@@ -115,9 +115,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void request(HttpRequest request,
-                       BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                       boolean injectHostHeader,
-                       BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+         BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+         boolean injectHostHeader,
+         BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       assert aboutToSend > 0;
       aboutToSend--;
       ByteBuf buf = ctx.alloc().buffer();

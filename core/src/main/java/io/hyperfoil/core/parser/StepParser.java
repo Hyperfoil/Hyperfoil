@@ -9,9 +9,9 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedContract;
 
 class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuilder<?>> {
    private static final StepParser INSTANCE = new StepParser();
@@ -20,13 +20,15 @@ class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuil
       return INSTANCE;
    }
 
-   private StepParser() {}
+   private StepParser() {
+   }
 
    @Override
    public void parse(Context ctx, BaseSequenceBuilder<?> target) throws ParserException {
       Event firstEvent = ctx.next();
       @SuppressWarnings("rawtypes")
-      ServiceLoadedBuilderProvider<StepBuilder> provider = new ServiceLoadedBuilderProvider<>(StepBuilder.class, target::stepBuilder, target);
+      ServiceLoadedBuilderProvider<StepBuilder> provider = new ServiceLoadedBuilderProvider<>(StepBuilder.class,
+            target::stepBuilder, target);
       if (firstEvent instanceof ScalarEvent) {
          ServiceLoadedContract slc;
          String name = ((ScalarEvent) firstEvent).getValue();

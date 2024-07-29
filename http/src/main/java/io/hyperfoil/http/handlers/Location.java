@@ -1,16 +1,16 @@
 package io.hyperfoil.http.handlers;
 
-import io.hyperfoil.api.session.ObjectAccess;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.function.SerializableFunction;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class Location {
    private static final Logger log = LogManager.getLogger(Location.class);
@@ -70,7 +70,8 @@ public class Location {
          ObjectVar var = (ObjectVar) locationVar.getVar(session);
          Location location = (Location) var.objectValue(session);
          if (trace) {
-            log.trace("#{} releasing {} from {}[{}]", session.uniqueId(), location, locationVar, session.currentSequence().index());
+            log.trace("#{} releasing {} from {}[{}]", session.uniqueId(), location, locationVar,
+                  session.currentSequence().index());
          }
          @SuppressWarnings("unchecked")
          T castLocation = (T) location.reset();

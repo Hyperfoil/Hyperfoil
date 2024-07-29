@@ -7,25 +7,25 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.http.config.Http;
-import io.hyperfoil.http.config.HttpBuilder;
-import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.http.api.HttpClientPool;
-import io.hyperfoil.http.api.HttpConnectionPool;
-import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.http.api.HttpResponseHandlers;
 import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.VertxBaseTest;
-import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.hyperfoil.core.test.TestUtil;
+import io.hyperfoil.http.api.HttpClientPool;
+import io.hyperfoil.http.api.HttpConnectionPool;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.api.HttpResponseHandlers;
+import io.hyperfoil.http.config.Http;
+import io.hyperfoil.http.config.HttpBuilder;
+import io.hyperfoil.http.config.Protocol;
+import io.hyperfoil.http.connection.HttpClientPoolImpl;
+import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBuf;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
@@ -87,7 +87,8 @@ public class RawBytesHandlerTest extends VertxBaseTest {
       });
    }
 
-   private void doRequest(TestContext ctx, Session session, AtomicReference<HttpResponseHandlers> handlersRef, HttpConnectionPool pool) {
+   private void doRequest(TestContext ctx, Session session, AtomicReference<HttpResponseHandlers> handlersRef,
+         HttpConnectionPool pool) {
       HttpRequest newRequest = HttpRequestPool.get(session).acquire();
       newRequest.method = HttpMethod.GET;
       newRequest.path = "/ping";

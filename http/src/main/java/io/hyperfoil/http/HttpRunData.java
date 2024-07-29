@@ -44,7 +44,8 @@ public class HttpRunData implements PluginRunData {
       plugin = benchmark.plugin(HttpPluginConfig.class);
       // either all http configs disable the cache or keep it enabled
       hasHttpCacheEnabled = plugin.http().values().stream().anyMatch(Http::enableHttpCache);
-      hasSessionPools = plugin.http().values().stream().anyMatch(http -> http.connectionStrategy() != ConnectionStrategy.SHARED_POOL);
+      hasSessionPools = plugin.http().values().stream()
+            .anyMatch(http -> http.connectionStrategy() != ConnectionStrategy.SHARED_POOL);
       @SuppressWarnings("unchecked")
       Map<String, HttpConnectionPool>[] connectionPools = new Map[executors.length];
       destinations = new HttpDestinationTableImpl[executors.length];
@@ -68,7 +69,8 @@ public class HttpRunData implements PluginRunData {
                }
             }
          } catch (SSLException e) {
-            throw new IllegalStateException("Failed creating connection pool to " + http.getValue().host() + ":" + http.getValue().port(), e);
+            throw new IllegalStateException(
+                  "Failed creating connection pool to " + http.getValue().host() + ":" + http.getValue().port(), e);
          }
       }
       for (int executorId = 0; executorId < connectionPools.length; executorId++) {
@@ -117,7 +119,8 @@ public class HttpRunData implements PluginRunData {
    }
 
    @Override
-   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Consumer<Future<Void>> promiseCollector) {
+   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler,
+         Consumer<Future<Void>> promiseCollector) {
       for (Map.Entry<String, HttpClientPool> entry : clientPools.entrySet()) {
          // default client pool is initialized by name
          if (entry.getKey() != null) {
@@ -147,9 +150,12 @@ public class HttpRunData implements PluginRunData {
                   available++;
                }
                inFlight += conn.inFlight();
-               byType.computeIfAbsent(conn.getClass().getSimpleName() + (conn.isSecure() ? "(SSL)" : ""), k -> new AtomicInteger()).incrementAndGet();
+               byType.computeIfAbsent(conn.getClass().getSimpleName() + (conn.isSecure() ? "(SSL)" : ""),
+                     k -> new AtomicInteger()).incrementAndGet();
             }
-            connectionCollector.accept(String.format("%s: %d/%d available, %d in-flight requests, %d waiting sessions (estimate), types: %s", entry.getKey(), available, connections.size(), inFlight, pool.waitingSessions(), byType));
+            connectionCollector
+                  .accept(String.format("%s: %d/%d available, %d in-flight requests, %d waiting sessions (estimate), types: %s",
+                        entry.getKey(), available, connections.size(), inFlight, pool.waitingSessions(), byType));
          }
       }
    }

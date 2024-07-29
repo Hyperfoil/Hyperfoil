@@ -25,22 +25,24 @@ public class HttpVersionsTest extends BaseClientTest {
 
    @Test
    public void testAlpnForceHttp2(TestContext ctx) {
-      test(ctx, true, new HttpVersion[]{ HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
+      test(ctx, true, new HttpVersion[] { HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
    }
 
    @Test
    public void testAlpnForceHttp2ServerKeep(TestContext ctx) {
-      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP1x_ONLY, HttpVersionsTest::requireHttp2, ctx.asyncAssertFailure());
+      test(ctx, true, new HttpVersion[] { HttpVersion.HTTP_2_0 }, HTTP1x_ONLY, HttpVersionsTest::requireHttp2,
+            ctx.asyncAssertFailure());
    }
 
    @Test
    public void testAlpnForceHttp1x(TestContext ctx) {
-      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, HttpVersionsTest::requireHttp2, ctx.asyncAssertFailure());
+      test(ctx, true, new HttpVersion[] { HttpVersion.HTTP_1_1 }, HTTP2_ONLY, HttpVersionsTest::requireHttp2,
+            ctx.asyncAssertFailure());
    }
 
    @Test
    public void testH2cUpgrade(TestContext ctx) {
-      test(ctx, false, new HttpVersion[]{ HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
+      test(ctx, false, new HttpVersion[] { HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
    }
 
    @Test
@@ -55,10 +57,11 @@ public class HttpVersionsTest extends BaseClientTest {
 
    @Test
    public void testCleartextForceHttp1x(TestContext ctx) {
-      test(ctx, false, new HttpVersion[]{ HttpVersion.HTTP_1_1 }, HTTP2_ONLY, 500);
+      test(ctx, false, new HttpVersion[] { HttpVersion.HTTP_1_1 }, HTTP2_ONLY, 500);
    }
 
-   private void test(TestContext ctx, boolean ssl, HttpVersion[] clientVersions, List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) {
+   private void test(TestContext ctx, boolean ssl, HttpVersion[] clientVersions,
+         List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) {
       test(ctx, ssl, clientVersions, serverVersions, HttpVersionsTest::requireHttp2,
             (client, async) -> sendRequestAndAssertStatus(ctx, client, async, HttpMethod.GET, "/ping", expectedStatus));
    }

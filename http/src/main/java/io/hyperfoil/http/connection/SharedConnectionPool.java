@@ -7,6 +7,10 @@ import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
+
 import io.hyperfoil.http.api.ConnectionConsumer;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
@@ -18,10 +22,6 @@ import io.netty.util.concurrent.ScheduledFuture;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.FormattedMessage;
 
 /**
  * This instance is not thread-safe as it should be accessed only the {@link #executor()}.
@@ -70,7 +70,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    private HttpConnection acquireNow(boolean exclusiveConnection) {
       assert eventLoop.inEventLoop();
       try {
-         for (; ; ) {
+         for (;;) {
             HttpConnection connection = available.pollFirst();
             if (connection == null) {
                log.debug("No connection to {} available, currently used {}", authority, usedConnections.current());
@@ -108,7 +108,8 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          checkCreateConnections();
       } else {
          if (failures > MAX_FAILURES) {
-            log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.", authority);
+            log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.",
+                  authority);
             consumer.accept(null);
             return;
          }
@@ -152,14 +153,16 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          usedConnections.decrementUsed();
       }
       if (keepAliveFuture == null && sizeConfig.keepAliveTime() > 0) {
-         long lastUsed = available.stream().filter(c -> !c.isClosed()).mapToLong(HttpConnection::lastUsed).min().orElse(connection.lastUsed());
+         long lastUsed = available.stream().filter(c -> !c.isClosed()).mapToLong(HttpConnection::lastUsed).min()
+               .orElse(connection.lastUsed());
          long nextCheck = sizeConfig.keepAliveTime() - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastUsed);
          log.debug("Scheduling next keep-alive check in {} ms", nextCheck);
          keepAliveFuture = eventLoop.schedule(() -> {
             long now = System.nanoTime();
             // We won't removing closed connections from available: acquire() will eventually remove these
             for (HttpConnection c : available) {
-               if (c.isClosed()) continue;
+               if (c.isClosed())
+                  continue;
                long idleTime = TimeUnit.NANOSECONDS.toMillis(now - c.lastUsed());
                if (idleTime > sizeConfig.keepAliveTime()) {
                   c.close();
@@ -197,7 +200,8 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
             blockedSessions.decrementUsed();
             consumer.accept(connection);
          } else if (failures > MAX_FAILURES) {
-            log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.", authority);
+            log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.",
+                  authority);
             consumer.accept(null);
          } else {
             waiting.addFirst(consumer);
@@ -233,7 +237,8 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          Handler<AsyncResult<Void>> handler = this.startedHandler;
          if (handler != null) {
             startedHandler = null;
-            String failureMessage = String.format("Cannot connect to %s: %d created, %d failures.", authority, created, failures);
+            String failureMessage = String.format("Cannot connect to %s: %d created, %d failures.", authority, created,
+                  failures);
             if (created > 0) {
                failureMessage += " Hint: either configure SUT to accept more open connections or reduce http.sharedConnections.";
             }
@@ -259,7 +264,8 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
       if (err != null) {
          // Accessing created & failures is unreliable - we need to access those in eventloop thread.
          // For logging, though, we won't care.
-         log.warn(new FormattedMessage("Cannot create connection to {} (created: {}, failures: {})", authority, created, failures + 1), err);
+         log.warn(new FormattedMessage("Cannot create connection to {} (created: {}, failures: {})", authority, created,
+               failures + 1), err);
          // scheduling task when the executor is shut down causes errors
          if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
             eventLoop.execute(onConnectFailure);

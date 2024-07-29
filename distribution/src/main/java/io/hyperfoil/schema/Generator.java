@@ -13,12 +13,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.BuilderInfo;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -172,7 +172,8 @@ public class Generator extends BaseGenerator {
             Class<?> innerBuilder = withKey.getReturnType();
             JsonObject propertyType;
             if (ServiceLoadedBuilderProvider.class == innerBuilder) {
-               propertyType = getServiceLoadedImplementations(getRawClass(((ParameterizedType) withKey.getGenericReturnType()).getActualTypeArguments()[0]));
+               propertyType = getServiceLoadedImplementations(
+                     getRawClass(((ParameterizedType) withKey.getGenericReturnType()).getActualTypeArguments()[0]));
             } else {
                propertyType = describeBuilder(innerBuilder);
             }
@@ -297,7 +298,8 @@ public class Generator extends BaseGenerator {
             .put("minProperties", 1)
             .put("maxProperties", 1)
             .put("properties", implementations);
-      for (Map.Entry<String, BuilderInfo<?>> entry : new TreeMap<>(ServiceLoadedBuilderProvider.builders(builderClazz)).entrySet()) {
+      for (Map.Entry<String, BuilderInfo<?>> entry : new TreeMap<>(ServiceLoadedBuilderProvider.builders(builderClazz))
+            .entrySet()) {
          Class<?> implClazz = entry.getValue().implClazz;
          JsonObject serviceLoadedProperty = describeBuilder(implClazz);
          if (InitFromParam.class.isAssignableFrom(implClazz)) {

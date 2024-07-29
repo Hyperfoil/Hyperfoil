@@ -70,8 +70,10 @@ public class Connect extends ServerCommand {
          tls = true;
       }
       if (ctx.client() != null) {
-         if (ctx.client().host().equals(host) && (ctx.client().port() == DEFAULT_PORT && port == null || port != null && ctx.client().port() == port)) {
-            invocation.println("Already connected to " + ctx.client().host() + ":" + ctx.client().port() + ", not reconnecting.");
+         if (ctx.client().host().equals(host)
+               && (ctx.client().port() == DEFAULT_PORT && port == null || port != null && ctx.client().port() == port)) {
+            invocation
+                  .println("Already connected to " + ctx.client().host() + ":" + ctx.client().port() + ", not reconnecting.");
             return CommandResult.SUCCESS;
          } else {
             invocation.println("Closing connection to " + ctx.client());

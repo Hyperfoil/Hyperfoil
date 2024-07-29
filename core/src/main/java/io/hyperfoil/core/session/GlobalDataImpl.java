@@ -32,11 +32,13 @@ public class GlobalDataImpl implements GlobalData {
       assert executor.inEventLoop();
       String otherPhase = publishingPhase.put(key, phase);
       if (otherPhase != null && !otherPhase.equals(phase)) {
-         throw new IllegalStateException("Global record for key '" + key + "' is published by phase '" + phase + "', no other phase can publish it.");
+         throw new IllegalStateException(
+               "Global record for key '" + key + "' is published by phase '" + phase + "', no other phase can publish it.");
       }
       Queue<Element> queue = toPublish.computeIfAbsent(key, k -> new ArrayDeque<>());
       if (queue == POISON) {
-         throw new IllegalStateException("Global record for key '" + key + "' has already been published; cannot add any more records.");
+         throw new IllegalStateException(
+               "Global record for key '" + key + "' has already been published; cannot add any more records.");
       }
       queue.add(element);
    }
@@ -46,7 +48,8 @@ public class GlobalDataImpl implements GlobalData {
       assert executor.inEventLoop();
       Element element = published.get(key);
       if (element == null) {
-         throw new IllegalStateException("Cannot retrieve global record for key '" + key + "' - probably it was not published yet. Make sure the publishing phase and this phase are strictly ordered.");
+         throw new IllegalStateException("Cannot retrieve global record for key '" + key
+               + "' - probably it was not published yet. Make sure the publishing phase and this phase are strictly ordered.");
       }
       return element;
    }
@@ -75,7 +78,8 @@ public class GlobalDataImpl implements GlobalData {
       for (var entry : data.entrySet()) {
          GlobalData.Element prev = published.put(entry.getKey(), entry.getValue());
          if (prev != null) {
-            log.error("Global data for key {} has been overridden: previous: {}, new: {}", entry.getKey(), prev, entry.getValue());
+            log.error("Global data for key {} has been overridden: previous: {}, new: {}", entry.getKey(), prev,
+                  entry.getValue());
             assert false;
          }
       }

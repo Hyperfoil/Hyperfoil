@@ -14,7 +14,8 @@ import io.netty.util.AsciiString;
 
 public final class HttpUtil {
    private static final Logger log = LogManager.getLogger(HttpUtil.class);
-   private static final CharSequence[] MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
+   private static final CharSequence[] MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov",
+         "dec" };
    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
    private static final TimeZone GMT = TimeZone.getTimeZone("GMT");
    private static final byte[] BYTES_80 = "80".getBytes(StandardCharsets.UTF_8);
@@ -23,7 +24,8 @@ public final class HttpUtil {
    public static final String HTTP_PREFIX = "http://";
    public static final String HTTPS_PREFIX = "https://";
 
-   private HttpUtil() {}
+   private HttpUtil() {
+   }
 
    public static int indexOf(CharSequence seq, int begin, char c) {
       int length = seq.length();
@@ -50,9 +52,11 @@ public final class HttpUtil {
 
    public static long parseDate(CharSequence seq, int begin, int end) {
       int i = begin;
-      for (; i < end && seq.charAt(i) != ','; ++i) ; // skip day-of-week
+      for (; i < end && seq.charAt(i) != ','; ++i)
+         ; // skip day-of-week
       ++i; // skip the comma
-      for (; i < end && seq.charAt(i) == ' '; ++i) ; // skip spaces
+      for (; i < end && seq.charAt(i) == ' '; ++i)
+         ; // skip spaces
       if (i + 2 >= end) {
          log.warn("Cannot parse date {}", seq.subSequence(begin, end));
          return 0;
@@ -110,7 +114,8 @@ public final class HttpUtil {
          log.warn("Cannot parse year in date {}", seq.subSequence(begin, end));
          return 0;
       }
-      for (i = nextSpace + 1; i < end && seq.charAt(i) == ' '; ++i) ; // skip spaces
+      for (i = nextSpace + 1; i < end && seq.charAt(i) == ' '; ++i)
+         ; // skip spaces
 
       if (i + 8 >= end || seq.charAt(i + 2) != ':' || seq.charAt(i + 5) != ':') {
          log.warn("Cannot parse time in date {}", seq.subSequence(begin, end));
@@ -123,7 +128,8 @@ public final class HttpUtil {
          log.warn("Cannot parse time in date {}", seq.subSequence(begin, end));
          return 0;
       }
-      for (i += 8; i < end && seq.charAt(i) == ' '; ++i) ; // skip spaces
+      for (i += 8; i < end && seq.charAt(i) == ' '; ++i)
+         ; // skip spaces
 
       TimeZone timeZone = UTC;
       if (i < end) {
@@ -256,12 +262,14 @@ public final class HttpUtil {
       } else {
          return colonIndex == authority.length() ||
                colonIndex == authority.length() - defaultPort.length() - 1 &&
-                     AsciiString.regionMatches(authority, false, authority.length() - defaultPort.length(), defaultPort, 0, defaultPort.length());
+                     AsciiString.regionMatches(authority, false, authority.length() - defaultPort.length(), defaultPort, 0,
+                           defaultPort.length());
       }
    }
 
    public static boolean authorityMatch(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority, boolean isHttp) {
-      return isHttp ? authorityMatchHttp(pathData, pathOffset, pathLength, authority) : authorityMatchHttps(pathData, pathOffset, pathLength, authority);
+      return isHttp ? authorityMatchHttp(pathData, pathOffset, pathLength, authority)
+            : authorityMatchHttps(pathData, pathOffset, pathLength, authority);
    }
 
    public static boolean authorityMatchHttp(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority) {
@@ -272,7 +280,8 @@ public final class HttpUtil {
       return authorityMatch(pathData, pathOffset, pathLength, authority, BYTES_443, HTTPS_PREFIX.length());
    }
 
-   public static boolean authorityMatch(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority, byte[] defaultPort, int prefixLength) {
+   public static boolean authorityMatch(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority, byte[] defaultPort,
+         int prefixLength) {
       int colonIndex = indexOf(authority, (byte) ':');
       // For simplicity we won't bother with case-insensitive match
       if (!regionMatches(pathData, pathOffset + prefixLength, pathLength - prefixLength, authority, 0, colonIndex)) {
@@ -291,11 +300,13 @@ public final class HttpUtil {
             portOffset = colonIndex + 1;
             portLength = authority.length - colonIndex - 1;
          }
-         return regionMatches(pathData, pathOffset + prefixLength + colonIndex, pathLength - prefixLength - colonIndex, port, portOffset, portLength);
+         return regionMatches(pathData, pathOffset + prefixLength + colonIndex, pathLength - prefixLength - colonIndex, port,
+               portOffset, portLength);
       } else {
          return colonIndex == authority.length ||
                colonIndex == authority.length - defaultPort.length - 1 &&
-                     Arrays.equals(authority, authority.length - defaultPort.length, authority.length, defaultPort, 0, defaultPort.length);
+                     Arrays.equals(authority, authority.length - defaultPort.length, authority.length, defaultPort, 0,
+                           defaultPort.length);
       }
    }
 

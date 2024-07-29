@@ -1,15 +1,16 @@
 package io.hyperfoil.core.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
-public class DefragProcessor extends Processor.BaseDelegating implements ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
+public class DefragProcessor extends Processor.BaseDelegating
+      implements ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LogManager.getLogger(DefragProcessor.class);
 
    public static Processor of(Processor delegate, boolean fragmented) {

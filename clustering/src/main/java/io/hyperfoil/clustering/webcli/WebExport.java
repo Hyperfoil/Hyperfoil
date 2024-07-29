@@ -15,7 +15,8 @@ public class WebExport extends BaseExportCommand {
       ensureConnection(invocation);
       Client.RunRef runRef = getRunRef(invocation);
       invocation.println("Sending exported statistics...");
-      invocation.println("__HYPERFOIL_DOWNLOAD_MAGIC__ /run/" + runRef.id() + "/stats/all/" + format.toLowerCase() + " " + runRef.id());
+      invocation.println(
+            "__HYPERFOIL_DOWNLOAD_MAGIC__ /run/" + runRef.id() + "/stats/all/" + format.toLowerCase() + " " + runRef.id());
       return CommandResult.SUCCESS;
    }
 }

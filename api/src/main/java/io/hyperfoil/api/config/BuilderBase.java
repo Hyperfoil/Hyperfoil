@@ -27,7 +27,8 @@ public interface BuilderBase<S extends BuilderBase<S>> {
             try {
                tryPrepare(clz, f.getName(), f.getType(), f.get(this));
             } catch (IllegalAccessException e) {
-               throw new UnsupportedOperationException("Cannot get value of " + clz.getName() + "." + f.getName() + " (actual instance: " + this + ")");
+               throw new UnsupportedOperationException(
+                     "Cannot get value of " + clz.getName() + "." + f.getName() + " (actual instance: " + this + ")");
             }
          }
          clz = clz.getSuperclass();
@@ -134,7 +135,8 @@ public interface BuilderBase<S extends BuilderBase<S>> {
                      ((BaseSequenceBuilder<?>) thisValue).steps.forEach(sb -> newSteps.add(sb.copy(copyValue)));
                   } else {
                      // This could be e.g. final list and we wouldn't copy it
-                     throw new UnsupportedOperationException(cls.getName() + "." + f.getName() + " is final (actual instance: " + this + ")");
+                     throw new UnsupportedOperationException(
+                           cls.getName() + "." + f.getName() + " is final (actual instance: " + this + ")");
                   }
                } else if (f.getType().isPrimitive()) {
                   if (f.getType() == boolean.class) {
@@ -162,7 +164,8 @@ public interface BuilderBase<S extends BuilderBase<S>> {
                      f.set(copy, bytes == null ? null : Arrays.copyOf(bytes, bytes.length));
                   } else {
                      // use list in builders
-                     throw new UnsupportedOperationException(cls.getName() + "." + f.getName() + " is an array (actual instance: " + this + ")");
+                     throw new UnsupportedOperationException(
+                           cls.getName() + "." + f.getName() + " is an array (actual instance: " + this + ")");
                   }
                } else {
                   f.set(copy, CopyUtil.deepCopy(f.get(this), copy));

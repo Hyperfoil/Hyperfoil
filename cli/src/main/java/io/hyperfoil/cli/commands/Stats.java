@@ -12,8 +12,8 @@ import org.aesh.terminal.utils.ANSI;
 import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.http.statistics.HttpStats;
@@ -71,7 +71,7 @@ public class Stats extends BaseRunIdCommand {
       Client.RunRef runRef = getRunRef(invocation);
       boolean terminated = false;
       int prevLines = -2;
-      for (; ; ) {
+      for (;;) {
          RequestStatisticsResponse stats;
          try {
             stats = total ? runRef.statsTotal() : runRef.statsRecent();
@@ -119,7 +119,8 @@ public class Stats extends BaseRunIdCommand {
       addDirectExtensions(stats, table);
       prevLines += table.print(invocation, stream(stats));
       for (RequestStats rs : stats.statistics) {
-         if (rs.isWarmup && !warmup) continue;
+         if (rs.isWarmup && !warmup)
+            continue;
          for (String msg : rs.failedSLAs) {
             invocation.println(String.format("%s/%s: %s", rs.phase, rs.metric == null ? "*" : rs.metric, msg));
             prevLines++;
@@ -143,25 +144,21 @@ public class Stats extends BaseRunIdCommand {
          extensions(stats).flatMap(ext -> stream(stats).flatMap(rs -> {
             StatsExtension extension = rs.summary.extensions.get(ext);
             return extension == null ? Stream.empty() : Stream.of(extension.headers()).map(h -> Map.entry(ext, h));
-         })).distinct().forEach(extHeader ->
-               table.column(extHeader.getKey() + "." + extHeader.getValue(),
-                     rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT)
-         );
+         })).distinct().forEach(extHeader -> table.column(extHeader.getKey() + "." + extHeader.getValue(),
+               rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT));
       } else if (!extensions.contains(",")) {
          stream(stats).flatMap(rs -> {
             StatsExtension extension = rs.summary.extensions.get(extensions);
             return extension == null ? Stream.empty() : Stream.of(extension.headers());
-         }).distinct().forEach(header ->
-               table.column(header, rs -> rs.summary.extensions.get(extensions).byHeader(header), Table.Align.RIGHT));
+         }).distinct().forEach(
+               header -> table.column(header, rs -> rs.summary.extensions.get(extensions).byHeader(header), Table.Align.RIGHT));
       } else {
          String[] exts = extensions.split(",");
          stream(stats).flatMap(rs -> Stream.of(exts).flatMap(ext -> {
             StatsExtension extension = rs.summary.extensions.get(ext);
             return extension == null ? Stream.empty() : Stream.of(extension.headers()).map(h -> Map.entry(ext, h));
-         })).distinct().forEach(extHeader ->
-               table.column(extHeader.getKey() + "." + extHeader.getValue(),
-                     rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT)
-         );
+         })).distinct().forEach(extHeader -> table.column(extHeader.getKey() + "." + extHeader.getValue(),
+               rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT));
       }
       return table.print(invocation, stream(stats));
    }

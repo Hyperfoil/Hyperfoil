@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.http.api.HeaderHandler;
+import io.hyperfoil.http.api.HttpRequest;
 
 public abstract class BaseDelegatingHeaderHandler implements HeaderHandler {
    protected final HeaderHandler[] handlers;

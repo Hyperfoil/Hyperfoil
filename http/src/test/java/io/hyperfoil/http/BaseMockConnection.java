@@ -4,12 +4,12 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.Connection;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.http.api.HttpVersion;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.http.config.Http;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,7 +20,8 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
-   public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, boolean injectHostHeader, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, boolean injectHostHeader,
+         BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
    }
 
    @Override

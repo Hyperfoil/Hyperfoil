@@ -4,6 +4,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.http.api.ConnectionConsumer;
 import io.hyperfoil.http.api.HttpClientPool;
@@ -12,9 +15,6 @@ import io.hyperfoil.http.api.HttpConnectionPool;
 import io.netty.channel.EventLoop;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class SessionConnectionPool implements HttpConnectionPool {
    private static final Logger log = LogManager.getLogger(SessionConnectionPool.class);
@@ -37,7 +37,7 @@ public class SessionConnectionPool implements HttpConnectionPool {
    @Override
    public void acquire(boolean exclusiveConnection, ConnectionConsumer consumer) {
       assert !exclusiveConnection;
-      for (; ; ) {
+      for (;;) {
          HttpConnection connection = available.pollFirst();
          if (connection == null) {
             shared.acquire(true, consumer);

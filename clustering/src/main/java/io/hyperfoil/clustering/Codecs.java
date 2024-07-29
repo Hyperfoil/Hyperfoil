@@ -19,7 +19,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 
 public final class Codecs {
-   private Codecs() {}
+   private Codecs() {
+   }
 
    public static void register(Vertx vertx) {
       EventBus eb = vertx.eventBus();

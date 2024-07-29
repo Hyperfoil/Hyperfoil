@@ -63,7 +63,8 @@ public class RunRefImpl implements Client.RunRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/benchmark")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
-                  .send(handler), 200,
+                  .send(handler),
+            200,
             response -> {
                try {
                   return Util.deserialize(response.bodyAsBuffer().getBytes());
@@ -77,16 +78,16 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> sessionStatsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/recent").send(handler), 200,
-            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
-      );
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
+            }));
    }
 
    @Override
    public Map<String, Map<String, Client.MinMax>> sessionStatsTotal() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/total").send(handler), 200,
-            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
-      );
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
+            }));
    }
 
    @Override
@@ -108,21 +109,24 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> connectionStatsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/recent").send(handler), 200,
-            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {}));
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
+            }));
    }
 
    @Override
    public Map<String, Map<String, Client.MinMax>> connectionStatsTotal() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/total").send(handler), 200,
-            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {}));
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
+            }));
    }
 
    @Override
    public RequestStatisticsResponse statsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/recent")
-                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler),
+            200,
             response -> Json.decodeValue(response.body(), RequestStatisticsResponse.class));
    }
 
@@ -130,32 +134,32 @@ public class RunRefImpl implements Client.RunRef {
    public RequestStatisticsResponse statsTotal() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/total")
-                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler),
+            200,
             response -> Json.decodeValue(response.body(), RequestStatisticsResponse.class));
    }
 
    @Override
    public byte[] statsAll(String format) {
       CompletableFuture<byte[]> future = new CompletableFuture<>();
-      client.vertx.runOnContext(ctx ->
-            client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
-                  .putHeader(HttpHeaders.ACCEPT.toString(), format)
-                  .send(rsp -> {
-                     if (rsp.failed()) {
-                        future.completeExceptionally(rsp.cause());
-                        return;
-                     }
-                     HttpResponse<Buffer> response = rsp.result();
-                     if (response.statusCode() != 200) {
-                        future.completeExceptionally(unexpected(response));
-                        return;
-                     }
-                     try {
-                        future.complete(response.body().getBytes());
-                     } catch (Throwable t) {
-                        future.completeExceptionally(t);
-                     }
-                  }));
+      client.vertx.runOnContext(ctx -> client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
+            .putHeader(HttpHeaders.ACCEPT.toString(), format)
+            .send(rsp -> {
+               if (rsp.failed()) {
+                  future.completeExceptionally(rsp.cause());
+                  return;
+               }
+               HttpResponse<Buffer> response = rsp.result();
+               if (response.statusCode() != 200) {
+                  future.completeExceptionally(unexpected(response));
+                  return;
+               }
+               try {
+                  future.complete(response.body().getBytes());
+               } catch (Throwable t) {
+                  future.completeExceptionally(t);
+               }
+            }));
       return waitFor(future);
    }
 
@@ -166,27 +170,28 @@ public class RunRefImpl implements Client.RunRef {
                   .addQueryParam("phase", phase)
                   .addQueryParam("stepId", String.valueOf(stepId))
                   .addQueryParam("metric", metric)
-                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
-            response -> Json.decodeValue(response.body(), Histogram.class)
-      );
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler),
+            200,
+            response -> Json.decodeValue(response.body(), Histogram.class));
    }
 
    @Override
    public List<StatisticsSummary> series(String phase, int stepId, String metric) {
       return client.sync(handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/series")
-                  .addQueryParam("phase", phase)
-                  .addQueryParam("stepId", String.valueOf(stepId))
-                  .addQueryParam("metric", metric)
-                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
-            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<>() {}));
+            .addQueryParam("phase", phase)
+            .addQueryParam("stepId", String.valueOf(stepId))
+            .addQueryParam("metric", metric)
+            .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<>() {
+            }));
    }
 
    @Override
    public byte[] file(String filename) {
       return client.sync(
-            handler -> client.request(HttpMethod.GET, "/run/" + id + "/file").addQueryParam("file", filename).send(handler), 200,
-            response -> response.body().getBytes()
-      );
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/file").addQueryParam("file", filename).send(handler),
+            200,
+            response -> response.body().getBytes());
    }
 
    @Override
@@ -194,15 +199,14 @@ public class RunRefImpl implements Client.RunRef {
       String path = "/run/" + id + "/report" + (source != null && !source.isEmpty() ? "?source=" + source : "");
       return client.sync(
             handler -> client.request(HttpMethod.GET, path).send(handler), 200,
-            response -> response.body().getBytes()
-      );
+            response -> response.body().getBytes());
    }
 
    @Override
    public Map<String, Map<String, String>> agentCpu() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/agentCpu").send(handler), 200,
-            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, String>>>() {})
-      );
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, String>>>() {
+            }));
    }
 }

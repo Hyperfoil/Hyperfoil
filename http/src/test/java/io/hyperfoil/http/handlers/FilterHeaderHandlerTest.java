@@ -3,13 +3,13 @@ package io.hyperfoil.http.handlers;
 import org.junit.Test;
 
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.WriteAccess;
 import io.hyperfoil.core.handlers.ExpectProcessor;
-import io.hyperfoil.http.BaseMockConnection;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;
+import io.hyperfoil.http.BaseMockConnection;
+import io.hyperfoil.http.api.HttpRequest;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;

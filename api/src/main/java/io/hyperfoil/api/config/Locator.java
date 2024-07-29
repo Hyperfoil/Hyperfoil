@@ -17,7 +17,8 @@ public interface Locator {
    static Locator current() {
       Stack<Locator> stack = Holder.CURRENT.get();
       if (stack.isEmpty()) {
-         throw new IllegalArgumentException("Locator is not set. This method must be invoked within the prepareBuild() or build() phase of scenario.");
+         throw new IllegalArgumentException(
+               "Locator is not set. This method must be invoked within the prepareBuild() or build() phase of scenario.");
       }
       return stack.peek();
    }

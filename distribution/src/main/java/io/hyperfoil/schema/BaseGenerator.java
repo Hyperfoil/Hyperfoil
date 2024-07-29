@@ -41,13 +41,16 @@ class BaseGenerator {
          return true;
       } else if (m.getParameterCount() == 1 && !Util.isParamConvertible(m.getParameters()[0].getType())) {
          return true;
-      } else if (PartialBuilder.class.isAssignableFrom(builder) && m.getName().equals("withKey") && m.getParameterCount() == 1) {
+      } else if (PartialBuilder.class.isAssignableFrom(builder) && m.getName().equals("withKey")
+            && m.getParameterCount() == 1) {
          return true;
       } else if (ListBuilder.class.isAssignableFrom(builder) && m.getName().equals("nextItem") && m.getParameterCount() == 1) {
          return true;
-      } else if (MappingListBuilder.class.isAssignableFrom(builder) && m.getName().equals("addItem") && m.getParameterCount() == 0) {
+      } else if (MappingListBuilder.class.isAssignableFrom(builder) && m.getName().equals("addItem")
+            && m.getParameterCount() == 0) {
          return true;
-      } else if (m.getName().equals("init") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == String.class && InitFromParam.class.isAssignableFrom(builder)) {
+      } else if (m.getName().equals("init") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == String.class
+            && InitFromParam.class.isAssignableFrom(builder)) {
          return true;
       } else if (m.getName().equals("copy") && m.getParameterCount() == 0) {
          return true;

@@ -2,12 +2,12 @@ package io.hyperfoil.core.handlers;
 
 import java.nio.charset.StandardCharsets;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class DebugProcessor implements Processor {
    private static final Logger log = LogManager.getLogger(DebugProcessor.class);
