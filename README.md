@@ -50,15 +50,13 @@ Contributions to `Hyperfoil` are managed on [GitHub.com](https://github.com/Hype
 * [Feature request](https://github.com/Hyperfoil/Hyperfoil/issues)
 * [Code submission](https://github.com/Hyperfoil/Hyperfoil/pulls)
 
-Contributions are most welcome !
+Checkout the [Contributing guide](./CONTRIBUTING.md) for more details and suggestions on how to setup the project.
 
 You can reach the community on [Zulip](http://hyperfoil.zulipchat.com).
 
-Please, consult our [Code of Conduct](./CODE_OF_CONDUCT.md) policies for interacting in our
-community.
+Please, consult our [Code of Conduct](./CODE_OF_CONDUCT.md) policies for interacting in our community.
 
-Consider giving the project a [star](https://github.com/Hyperfoil/Hyperfoil/stargazers) on
-[GitHub](https://github.com/Hyperfoil/Hyperfoil/) if you find it useful.
+Consider giving the project a [star](https://github.com/Hyperfoil/Hyperfoil/stargazers) :star: on [GitHub](https://github.com/Hyperfoil/Hyperfoil/) if you find it useful.
 
 ## License
 
