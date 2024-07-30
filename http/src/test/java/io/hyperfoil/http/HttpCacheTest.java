@@ -1,6 +1,11 @@
 package io.hyperfoil.http;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -8,8 +13,8 @@ import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -31,11 +36,10 @@ import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public class HttpCacheTest extends VertxBaseTest {
    private static final Logger log = LogManager.getLogger(HttpCacheTest.class);
    private static final TestClock CLOCK = new TestClock();
@@ -49,22 +53,22 @@ public class HttpCacheTest extends VertxBaseTest {
    };
 
    @Test
-   public void testSimpleRequest(TestContext ctx) {
-      Async async = ctx.async();
+   public void testSimpleRequest(VertxTestContext ctx) {
+      var checkpoint = ctx.checkpoint();
       Context context = new Context();
 
       // First request
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 0);
       });
 
       // Second request, cached
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 1);
       });
 
@@ -72,8 +76,8 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, POST_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 2);
-         ctx.assertEquals(HttpCache.get(context.session).size(), 0);
+         assertEquals(context.serverRequests.get(), 2);
+         assertEquals(HttpCache.get(context.session).size(), 0);
          assertCacheHits(ctx, req, 0);
       });
 
@@ -81,39 +85,39 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 3);
+         assertEquals(context.serverRequests.get(), 3);
          assertCacheHits(ctx, req, 0);
       });
 
       // 5th request, cached
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 3);
-         ctx.assertEquals(HttpCache.get(context.session).size(), 1);
-         ctx.assertTrue(context.serverQueue.isEmpty());
+         assertEquals(context.serverRequests.get(), 3);
+         assertEquals(HttpCache.get(context.session).size(), 1);
+         assertTrue(context.serverQueue.isEmpty());
          assertCacheHits(ctx, req, 1);
-         async.countDown();
+         checkpoint.flag();
       });
 
       test(ctx, context, true);
    }
 
    @Test
-   public void testExpiration(TestContext ctx) {
-      Async async = ctx.async();
+   public void testExpiration(VertxTestContext ctx) {
+      var checkpoint = ctx.checkpoint();
       Context context = new Context();
 
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response()
             .putHeader(HttpHeaderNames.EXPIRES, HttpUtil.formatDate(CLOCK.instant().plusSeconds(5).toEpochMilli())).end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 0);
       });
 
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 1);
          CLOCK.advance(6000);
       });
@@ -121,33 +125,33 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 2);
+         assertEquals(context.serverRequests.get(), 2);
          assertCacheHits(ctx, req, 0);
       });
 
       context.requests.add(
             () -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.CACHE_CONTROL, "max-stale=10")));
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 2);
-         ctx.assertEquals(HttpCache.get(context.session).size(), 1);
-         ctx.assertTrue(context.serverQueue.isEmpty());
+         assertEquals(context.serverRequests.get(), 2);
+         assertEquals(HttpCache.get(context.session).size(), 1);
+         assertTrue(context.serverQueue.isEmpty());
          assertCacheHits(ctx, req, 1);
-         async.countDown();
+         checkpoint.flag();
       });
 
       test(ctx, context, true);
    }
 
    @Test
-   public void testEtag(TestContext ctx) {
-      Async async = ctx.async();
+   public void testEtag(VertxTestContext ctx) {
+      var checkpoint = ctx.checkpoint();
       Context context = new Context();
 
       // First request
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().putHeader(HttpHeaderNames.ETAG, "\"foo\"").end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 0);
       });
 
@@ -155,7 +159,7 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, GET_TEST,
             (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\", \"foo\"")));
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 1);
       });
 
@@ -164,8 +168,8 @@ public class HttpCacheTest extends VertxBaseTest {
             .add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
       context.serverQueue.add(req -> req.response().putHeader(HttpHeaderNames.ETAG, "\"bar\"").end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 2);
-         ctx.assertEquals(HttpCache.get(context.session).size(), 2);
+         assertEquals(context.serverRequests.get(), 2);
+         assertEquals(HttpCache.get(context.session).size(), 2);
          assertCacheHits(ctx, req, 0);
       });
 
@@ -173,7 +177,7 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests
             .add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"foo\"")));
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 2);
+         assertEquals(context.serverRequests.get(), 2);
          assertCacheHits(ctx, req, 1);
       });
 
@@ -181,25 +185,25 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests
             .add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 2);
+         assertEquals(context.serverRequests.get(), 2);
          assertCacheHits(ctx, req, 1);
-         async.countDown();
+         checkpoint.flag();
       });
 
       test(ctx, context, true);
    }
 
    @Test
-   public void testWithoutCache(TestContext ctx) {
+   public void testWithoutCache(VertxTestContext ctx) {
       // applies the same test logic of #testSimpleRequest but with cache disabled
-      Async async = ctx.async();
+      var checkpoint = ctx.checkpoint();
       Context context = new Context();
 
       // First request
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertEquals(context.serverRequests.get(), 1);
          assertCacheHits(ctx, req, 0);
       });
 
@@ -207,7 +211,7 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 2);
+         assertEquals(context.serverRequests.get(), 2);
          assertCacheHits(ctx, req, 0);
       });
 
@@ -215,8 +219,8 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, POST_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 3);
-         ctx.assertNull(HttpCache.get(context.session));
+         assertEquals(context.serverRequests.get(), 3);
+         assertNull(HttpCache.get(context.session));
          assertCacheHits(ctx, req, 0);
       });
 
@@ -224,7 +228,7 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 4);
+         assertEquals(context.serverRequests.get(), 4);
          assertCacheHits(ctx, req, 0);
       });
 
@@ -232,18 +236,18 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
       context.handlers.add(req -> {
-         ctx.assertEquals(context.serverRequests.get(), 5);
-         ctx.assertNull(HttpCache.get(context.session));
-         ctx.assertTrue(context.serverQueue.isEmpty());
+         assertEquals(context.serverRequests.get(), 5);
+         assertNull(HttpCache.get(context.session));
+         assertTrue(context.serverQueue.isEmpty());
          assertCacheHits(ctx, req, 0);
-         async.countDown();
+         checkpoint.flag();
       });
 
       test(ctx, context, false);
    }
 
-   private void assertCacheHits(TestContext ctx, HttpRequest req, int hits) {
-      assertStats(req, snapshot -> ctx.assertEquals(HttpStats.get(snapshot).cacheHits, hits));
+   private void assertCacheHits(VertxTestContext ctx, HttpRequest req, int hits) {
+      assertStats(req, snapshot -> assertEquals(HttpStats.get(snapshot).cacheHits, hits));
    }
 
    private void assertStats(HttpRequest request, Consumer<StatisticsSnapshot> consumer) {
@@ -254,21 +258,22 @@ public class HttpCacheTest extends VertxBaseTest {
       consumer.accept(snapshot);
    }
 
-   private void test(TestContext ctx, Context context, boolean cacheEnabled) {
+   private void test(VertxTestContext ctx, Context context, boolean cacheEnabled) {
       assert !context.requests.isEmpty();
       vertx.createHttpServer().requestHandler(req -> {
          Consumer<HttpServerRequest> handler = context.serverQueue.poll();
          if (handler == null) {
-            ctx.fail("No handler for request.");
+            ctx.failNow("No handler for request.");
          }
          context.serverRequests.incrementAndGet();
+         assert handler != null;
          handler.accept(req);
          if (!req.response().ended()) {
-            ctx.fail(("Response not sent"));
+            ctx.failNow(("Response not sent"));
          }
       }).listen(0, "localhost", event -> {
          if (event.failed()) {
-            ctx.fail(event.cause());
+            ctx.failNow(event.cause());
          } else {
             HttpServer server = event.result();
             cleanup.add(server::close);
@@ -277,17 +282,17 @@ public class HttpCacheTest extends VertxBaseTest {
                HttpClientPool client = HttpClientPoolImpl.forTesting(builder.build(true), 1);
                client.start(result -> {
                   if (result.failed()) {
-                     ctx.fail(result.cause());
+                     ctx.failNow(result.cause());
                      return;
                   }
                   cleanup.add(client::shutdown);
                   context.session = SessionFactory.forTesting();
                   HttpRunData.initForTesting(context.session, CLOCK, cacheEnabled);
                   context.pool = client;
-                  context.requests.poll().run();
+                  Objects.requireNonNull(context.requests.poll()).run();
                });
             } catch (Exception e) {
-               ctx.fail(e);
+               ctx.failNow(e);
             }
          }
       });

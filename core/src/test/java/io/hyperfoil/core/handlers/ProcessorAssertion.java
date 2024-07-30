@@ -1,9 +1,11 @@
 package io.hyperfoil.core.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
-import io.vertx.ext.unit.TestContext;
+import io.vertx.junit5.VertxTestContext;
 
 public class ProcessorAssertion {
    private final int assertInvocations;
@@ -19,8 +21,8 @@ public class ProcessorAssertion {
       return new Builder(delegate);
    }
 
-   public void runAssertions(TestContext ctx) {
-      ctx.assertEquals(assertInvocations, actualInvocations);
+   public void runAssertions(VertxTestContext ctx) {
+      assertEquals(assertInvocations, actualInvocations);
       actualInvocations = 0;
    }
 

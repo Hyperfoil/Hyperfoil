@@ -3,7 +3,7 @@ package io.hyperfoil.api.collection;
 import java.util.ArrayDeque;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LimitedPoolTest {
    @Test

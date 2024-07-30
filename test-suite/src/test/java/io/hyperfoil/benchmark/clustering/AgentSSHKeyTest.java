@@ -5,10 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.client.RestClient;
@@ -17,20 +16,15 @@ import io.hyperfoil.controller.model.Run;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.steps.HttpStepCatalog;
-import io.hyperfoil.test.Benchmark;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
-@Category(Benchmark.class)
+@Tag("io.hyperfoil.test.Benchmark")
 public class AgentSSHKeyTest extends BaseClusteredTest {
-   private static final String TRACE_CONFIG = "-Dlog4j.configurationFile=file://" +
-         AgentSSHKeyTest.class.getProtectionDomain().getCodeSource().getLocation().getPath() +
-         "/../../src/test/resources/log4j2.xml";
 
-   @Before
-   public void before(TestContext ctx) {
-      super.before(ctx);
+   @BeforeEach
+   public void before(Vertx vertx, VertxTestContext ctx) {
+      super.before(vertx, ctx);
       startController(ctx);
    }
 
@@ -63,17 +57,18 @@ public class AgentSSHKeyTest extends BaseClusteredTest {
             .endPhase();
       //@formatter:on
 
-      RestClient client = new RestClient(vertx, "localhost", controllerPort, false, false, null);
-      Client.BenchmarkRef ref = client.register(benchmark.build(), null);
-      Client.RunRef run = ref.start(null, Collections.emptyMap());
+      try (RestClient client = new RestClient(vertx, "localhost", controllerPort, false, false, null)) {
+         Client.BenchmarkRef ref = client.register(benchmark.build(), null);
+         Client.RunRef run = ref.start(null, Collections.emptyMap());
 
-      Run info;
-      do {
-         info = run.get();
-         Thread.sleep(100);
-      } while (!info.completed);
-      assertThat(info.errors).isNotEmpty();
-      String errorString = info.errors.get(0);
-      assertThat(errorString).containsSubsequence(keyName, "No such file or directory");
+         Run info;
+         do {
+            info = run.get();
+            Thread.sleep(100);
+         } while (!info.completed);
+         assertThat(info.errors).isNotEmpty();
+         String errorString = info.errors.get(0);
+         assertThat(errorString).containsSubsequence(keyName, "No such file or directory");
+      }
    }
 }

@@ -6,22 +6,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.Map;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.handlers.NewSequenceAction;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.handlers.RangeStatusValidator;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
 
-@RunWith(VertxUnitRunner.class)
-public class HttpConcurrentRequestTest extends HttpScenarioTest {
+public class HttpConcurrentRequestTest extends BaseHttpScenarioTest {
 
-   private ArrayList<Integer> responsesReceived = new ArrayList<>();
+   private final ArrayList<Integer> responsesReceived = new ArrayList<>();
 
    @Override
    protected void initRouter() {

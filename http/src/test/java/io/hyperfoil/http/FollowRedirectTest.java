@@ -6,9 +6,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Model;
@@ -18,15 +17,13 @@ import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.http.steps.HttpStepCatalog;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.RoutingContext;
 
-@RunWith(VertxUnitRunner.class)
-public class FollowRedirectTest extends HttpScenarioTest {
+public class FollowRedirectTest extends BaseHttpScenarioTest {
    private final AtomicInteger redirects = new AtomicInteger();
    private final AtomicInteger notFound = new AtomicInteger();
 
-   @Before
+   @BeforeEach
    public void resetRedirects() {
       redirects.set(0);
       notFound.set(0);

@@ -1,16 +1,17 @@
 package io.hyperfoil.core.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.collection.ElasticPool;
 
@@ -62,31 +63,31 @@ public abstract class PoolTest<T> {
       assertEquals(reservedItems, reservedItemsReacquired);
    }
 
-   @Test(expected = Exception.class)
+   @Test
    public void cannotAcquireAcquireWithoutReservingFirst() {
       final var pool = createPoolWith(() -> {
-         Assert.fail("Init supplier should not be called");
+         fail("Init supplier should not be called");
          return null;
       });
-      pool.acquire();
+      assertThrows(Exception.class, pool::acquire);
    }
 
-   @Test(expected = Exception.class)
+   @Test
    public void cannotReleaseWithoutReservingFirst() {
       final var pool = createPoolWith(() -> {
-         Assert.fail("Init supplier should not be called");
+         fail("Init supplier should not be called");
          return null;
       });
-      pool.release(createNewItem());
+      assertThrows(Exception.class, () -> pool.release(createNewItem()));
    }
 
-   @Test(expected = Exception.class)
+   @Test
    public void cannotReleaseANullItem() {
       final var pool = createPoolWith(this::createNewItem);
       pool.reserve(1);
       // ignore what's acquired
       assertNotNull(pool.acquire());
-      pool.release(null);
+      assertThrows(Exception.class, () -> pool.release(null));
    }
 
    @Test

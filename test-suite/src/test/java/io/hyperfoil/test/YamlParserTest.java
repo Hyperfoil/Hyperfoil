@@ -20,6 +20,7 @@ package io.hyperfoil.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -27,7 +28,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 import org.assertj.core.api.Condition;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -91,7 +92,7 @@ public class YamlParserTest extends BaseBenchmarkParserTest {
       assertThat(model(benchmark, "steadyState/unregister", Model.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / sumWeights * 0.1, withPercentage(1));
       assertThat(model(benchmark, "steadyState/viewUser", Model.ConstantRate.class).usersPerSec)
-            .isCloseTo(100.0 / sumWeights * 1.0, withPercentage(1));
+            .isCloseTo(100.0 / sumWeights, withPercentage(1));
       assertThat(benchmark.phases().stream()
             .filter(p -> p.model instanceof Model.ConstantRate)
             .mapToDouble(p -> ((Model.ConstantRate) p.model).usersPerSec)
@@ -176,14 +177,14 @@ public class YamlParserTest extends BaseBenchmarkParserTest {
       assertThat(benchmark.plugin(HttpPluginConfig.class).http()).hasSize(4);
    }
 
-   @Test(expected = BenchmarkDefinitionException.class)
+   @Test
    public void testWrongAuthorities() {
-      loadScenario("scenarios/wrong-authority.hf.yaml");
+      assertThrows(BenchmarkDefinitionException.class, () -> loadScenario("scenarios/wrong-authority.hf.yaml"));
    }
 
-   @Test(expected = BenchmarkDefinitionException.class)
+   @Test
    public void testAmbiguousAuthorities() {
-      loadScenario("scenarios/ambiguous-authority.hf.yaml");
+      assertThrows(BenchmarkDefinitionException.class, () -> loadScenario("scenarios/ambiguous-authority.hf.yaml"));
    }
 
    @Test

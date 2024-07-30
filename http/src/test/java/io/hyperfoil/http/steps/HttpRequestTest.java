@@ -11,30 +11,31 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.steps.SetAction;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.handlers.RangeStatusValidator;
 import io.hyperfoil.http.handlers.RecordHeaderTimeHandler;
 import io.hyperfoil.http.statistics.HttpStats;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
-public class HttpRequestTest extends HttpScenarioTest {
+@ExtendWith(VertxExtension.class)
+public class HttpRequestTest extends BaseHttpScenarioTest {
+
    @Override
    protected void initRouter() {
       router.route().handler(BodyHandler.create());
       router.post("/test").handler(ctx -> {
          String expect = ctx.request().getParam("expect");
-         String body = ctx.getBodyAsString();
+         String body = ctx.body().asString();
          if (expect == null) {
             ctx.response().setStatusCode(400).end();
             return;
@@ -57,16 +58,18 @@ public class HttpRequestTest extends HttpScenarioTest {
       });
    }
 
-   private StatusHandler verifyStatus(TestContext ctx) {
+   private StatusHandler verifyStatus(VertxTestContext ctx) {
       return (request, status) -> {
          if (status != 200) {
-            ctx.fail("Status is " + status);
+            ctx.failNow("Status is " + status);
+         } else {
+            ctx.completeNow();
          }
       };
    }
 
    @Test
-   public void testStringBody(TestContext ctx) {
+   public void testStringBody(VertxTestContext ctx) {
       // @formatter:off
       scenario(10)
             .initialSequence("test")
@@ -81,7 +84,7 @@ public class HttpRequestTest extends HttpScenarioTest {
    }
 
    @Test
-   public void testStringFromVar(TestContext ctx) {
+   public void testStringFromVar(VertxTestContext ctx) {
       // @formatter:off
       scenario()
             .initialSequence("test")
@@ -99,7 +102,7 @@ public class HttpRequestTest extends HttpScenarioTest {
    }
 
    @Test
-   public void testLongChineseStringFromVar(TestContext ctx) throws UnsupportedEncodingException {
+   public void testLongChineseStringFromVar(VertxTestContext ctx) throws UnsupportedEncodingException {
       StringBuilder sb = new StringBuilder();
       ThreadLocalRandom random = ThreadLocalRandom.current();
       for (int i = 0; i < 257; ++i) {
@@ -113,7 +116,7 @@ public class HttpRequestTest extends HttpScenarioTest {
                .var("x")
                .value(chineseStr))
             .step(SC).httpRequest(HttpMethod.POST)
-               .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
+               .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8))
                .body().fromVar("x").endBody()
                .handler().status(verifyStatus(ctx)).endHandler()
             .endStep();
@@ -122,7 +125,7 @@ public class HttpRequestTest extends HttpScenarioTest {
    }
 
    @Test
-   public void testPattern(TestContext ctx) {
+   public void testPattern(VertxTestContext ctx) {
       // @formatter:off
       scenario()
             .initialSequence("test")

@@ -4,18 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.junit5.VertxExtension;
 
-@RunWith(VertxUnitRunner.class)
-public class JsonReplaceTest extends HttpScenarioTest {
+@ExtendWith(VertxExtension.class)
+public class JsonReplaceTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.get("/get").handler(ctx -> {

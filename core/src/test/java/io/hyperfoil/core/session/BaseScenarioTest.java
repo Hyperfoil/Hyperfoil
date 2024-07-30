@@ -5,8 +5,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -16,13 +15,10 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.util.CountDown;
-import io.vertx.core.Vertx;
-import io.vertx.ext.unit.TestContext;
 
 public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
    protected final Logger log = LogManager.getLogger(getClass());
 
-   protected Vertx vertx;
    protected BenchmarkBuilder benchmarkBuilder;
 
    protected Map<String, StatisticsSnapshot> runScenario() {
@@ -36,16 +32,10 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
       return statisticsConsumer.stats();
    }
 
-   @Before
-   public void before(TestContext ctx) {
+   @BeforeEach
+   public void before() {
       benchmarkBuilder = BenchmarkBuilder.builder();
       benchmarkBuilder.threads(threads());
-      vertx = Vertx.vertx();
-   }
-
-   @After
-   public void after(TestContext ctx) {
-      vertx.close(ctx.asyncAssertSuccess());
    }
 
    protected ScenarioBuilder scenario() {

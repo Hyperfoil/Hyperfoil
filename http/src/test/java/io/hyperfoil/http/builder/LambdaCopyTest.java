@@ -1,6 +1,6 @@
 package io.hyperfoil.http.builder;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.http.handlers.RangeStatusValidator;
 import io.hyperfoil.http.steps.HttpRequestStepBuilder;
