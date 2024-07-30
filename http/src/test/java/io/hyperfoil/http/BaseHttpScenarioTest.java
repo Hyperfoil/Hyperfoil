@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.parser.BenchmarkParser;
@@ -18,28 +18,34 @@ import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.impl.Util;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
-public abstract class HttpScenarioTest extends BaseScenarioTest {
+@ExtendWith(VertxExtension.class)
+public abstract class BaseHttpScenarioTest extends BaseScenarioTest {
+
+   protected Vertx vertx;
    protected Router router;
    protected HttpServer server;
 
-   @Before
-   public void before(TestContext ctx) {
-      super.before(ctx);
+   @BeforeEach
+   public void before(Vertx vertx, VertxTestContext ctx) {
+      super.before();
+      this.vertx = vertx;
       router = Router.router(vertx);
       initRouter();
       benchmarkBuilder.addPlugin(HttpPluginBuilder::new);
-      startServer(ctx, useHttps(), useCompression());
+      startServer(ctx).onComplete(ctx.succeedingThenComplete());
    }
 
-   protected Future<Void> startServer(TestContext ctx, boolean tls, boolean compression) {
+   protected Future<Void> startServer(VertxTestContext ctx) {
+      boolean tls = useHttps();
+      boolean compression = useCompression();
       HttpServerOptions options = new HttpServerOptions();
       if (tls) {
          options.setSsl(true).setUseAlpn(true)
@@ -49,10 +55,12 @@ public abstract class HttpScenarioTest extends BaseScenarioTest {
          options.setCompressionSupported(true);
       }
       Promise<Void> promise = Promise.promise();
-      server = vertx.createHttpServer(options).requestHandler(router)
-            .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> {
+      server = vertx.createHttpServer(options)
+            .requestHandler(router)
+            .listen(0, "localhost", ctx.succeeding(srv -> {
                initWithServer(tls);
                promise.complete();
+               ctx.completeNow();
             }));
       return promise.future();
    }

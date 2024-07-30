@@ -2,6 +2,9 @@ package io.hyperfoil.core.generators;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,8 +14,7 @@ import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Step;
@@ -42,9 +44,9 @@ public class RandomCsvRowStepTest {
       }
       String[][] rows = ((RandomCsvRowStep) builder.build().get(0)).rows();
       Locator.pop();
-      Assert.assertEquals(rows.length, DATA.length);
+      assertEquals(rows.length, DATA.length);
       for (int i = 0; i < DATA.length; i++) {
-         Assert.assertArrayEquals(DATA[i], rows[i]);
+         assertArrayEquals(DATA[i], rows[i]);
       }
    }
 
@@ -74,8 +76,8 @@ public class RandomCsvRowStepTest {
       var csvRowStep = (RandomCsvRowStep) steps.get(0);
       TestUtil.resolveAccess(session, csvRowStep);
       for (String[] row : DATA) {
-         Assert.assertTrue(csvRowStep.invoke(session));
-         Assert.assertEquals(row.length, access.length);
+         assertTrue(csvRowStep.invoke(session));
+         assertEquals(row.length, access.length);
          for (int i = 0; i < row.length; i++) {
             assertThat(access[i].getObject(session)).isEqualTo(row[i]);
          }

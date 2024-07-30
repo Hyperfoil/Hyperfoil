@@ -1,10 +1,10 @@
 package io.hyperfoil.core.generators;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Step;

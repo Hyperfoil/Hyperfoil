@@ -6,18 +6,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
 
-@RunWith(VertxUnitRunner.class)
-@Ignore // Ignoring in default run since it takes 3x 5 seconds
-public class PacingTest extends HttpScenarioTest {
+@ExtendWith(VertxExtension.class)
+@Disabled // Ignoring in default run since it takes 3x 5 seconds
+public class PacingTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.route("/test").handler(ctx -> {

@@ -88,7 +88,7 @@
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.javaparser>3.14.12</version.javaparser>
         <version.marshalling>2.0.6.Final</version.marshalling>
-        <version.junit>4.13.2</version.junit>
+        <version.junit-jupiter-api>5.10.3</version.junit-jupiter-api>
         <version.log4j2>2.19.0</version.log4j2>
         <version.metainf-services>1.8</version.metainf-services>
         <version.netty.tcnative.boringssl>2.0.61.Final</version.netty.tcnative.boringssl>
@@ -297,9 +297,19 @@
             </dependency>
 
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${version.junit}</version>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${version.junit-jupiter-api}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${version.junit-jupiter-api}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${version.junit-jupiter-api}</version>
             </dependency>
 
             <dependency>

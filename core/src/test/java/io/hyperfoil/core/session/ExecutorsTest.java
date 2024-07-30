@@ -1,16 +1,13 @@
 package io.hyperfoil.core.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-
-@RunWith(VertxUnitRunner.class)
 public class ExecutorsTest extends BaseScenarioTest {
    public static final int CLIENT_THREADS = 3;
 
@@ -25,6 +22,7 @@ public class ExecutorsTest extends BaseScenarioTest {
                try {
                   Thread.sleep(100);
                } catch (InterruptedException e) {
+                  fail("Cannot sleep for 100ms", e);
                }
                return true;
             })

@@ -5,18 +5,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.Cookie;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
-public class CookieTest extends HttpScenarioTest {
+public class CookieTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.route("/test1").handler(ctx -> {

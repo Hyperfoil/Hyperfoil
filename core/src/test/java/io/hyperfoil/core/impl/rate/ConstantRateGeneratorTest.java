@@ -1,6 +1,6 @@
 package io.hyperfoil.core.impl.rate;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ConstantRateGeneratorTest extends RateGeneratorTest {
    @Override

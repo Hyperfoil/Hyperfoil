@@ -3,28 +3,28 @@ package io.hyperfoil.http.statistics;
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
-public class ErrorRatioTest extends HttpScenarioTest {
+@ExtendWith(VertxExtension.class)
+public class ErrorRatioTest extends BaseHttpScenarioTest {
 
    @Override
    protected void initRouter() {
       router.get("/get200").handler(ctx -> ctx.response().setStatusCode(200).end());
       router.get("/get400").handler(ctx -> ctx.response().setStatusCode(400).end());
-      router.get("/close").handler(ctx -> ctx.response().close());
+      router.get("/close").handler(ctx -> ctx.response().reset());
    }
 
    @Test
-   public void test400(TestContext ctx) {
+   public void test400(VertxTestContext ctx) {
       scenario().initialSequence("400")
             .step(SC).httpRequest(HttpMethod.GET).path("/get400")
             .handler().onCompletion(validateConnection(ctx)).endHandler()
@@ -40,9 +40,8 @@ public class ErrorRatioTest extends HttpScenarioTest {
       assertThat(stats.errors()).isEqualTo(0);
    }
 
-   protected Action validateConnection(TestContext ctx) {
-      return session -> {
-      };
+   protected Action validateConnection(VertxTestContext ctx) {
+      return session -> ctx.completeNow();
    }
 
    @Test

@@ -26,8 +26,8 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.JksOptions;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
+import io.vertx.junit5.Checkpoint;
+import io.vertx.junit5.VertxTestContext;
 
 public class BaseClientTest extends VertxBaseTest {
    protected static final List<HttpVersion> HTTP1x_ONLY = Collections.singletonList(HttpVersion.HTTP_1_1);
@@ -59,12 +59,12 @@ public class BaseClientTest extends VertxBaseTest {
       return HttpClientPoolImpl.forTesting(builder.build(true), 1);
    }
 
-   protected void test(TestContext ctx, boolean ssl, io.hyperfoil.http.api.HttpVersion[] clientVersions,
+   protected void test(VertxTestContext ctx, boolean ssl, io.hyperfoil.http.api.HttpVersion[] clientVersions,
          List<HttpVersion> serverVersions, Handler<HttpServerRequest> requestHandler, ClientAction clientAction) {
-      Async async = ctx.async();
+      var checkpoint = ctx.checkpoint();
       server(ssl, serverVersions, requestHandler, event -> {
          if (event.failed()) {
-            ctx.fail(event.cause());
+            ctx.failNow(event.cause());
          } else {
             HttpServer server = event.result();
             cleanup.add(server::close);
@@ -72,25 +72,25 @@ public class BaseClientTest extends VertxBaseTest {
                HttpClientPool client = client(server.actualPort(), ssl, clientVersions);
                client.start(result -> {
                   if (result.failed()) {
-                     ctx.fail(result.cause());
+                     ctx.failNow(result.cause());
                      return;
                   }
                   cleanup.add(client::shutdown);
-                  clientAction.run(client, async);
+                  clientAction.run(client, checkpoint);
                });
             } catch (Exception e) {
-               ctx.fail(e);
+               ctx.failNow(e);
             }
          }
       });
    }
 
-   protected void test(TestContext ctx, boolean ssl, io.hyperfoil.http.api.HttpVersion[] clientVersions,
+   protected void test(VertxTestContext ctx, boolean ssl, io.hyperfoil.http.api.HttpVersion[] clientVersions,
          List<HttpVersion> serverVersions, Handler<HttpServerRequest> requestHandler,
          Handler<AsyncResult<Void>> clientStartHandler) {
       server(ssl, serverVersions, requestHandler, event -> {
          if (event.failed()) {
-            ctx.fail(event.cause());
+            ctx.failNow(event.cause());
          } else {
             HttpServer server = event.result();
             cleanup.add(server::close);
@@ -98,14 +98,14 @@ public class BaseClientTest extends VertxBaseTest {
                HttpClientPool client = client(server.actualPort(), ssl, clientVersions);
                client.start(clientStartHandler);
             } catch (Exception e) {
-               ctx.fail(e);
+               ctx.failNow(e);
             }
          }
       });
    }
 
-   protected void sendRequestAndAssertStatus(TestContext ctx, HttpClientPool client, Async async, HttpMethod method,
-         String path, int expectedStatus) {
+   protected void sendRequestAndAssertStatus(VertxTestContext ctx, HttpClientPool client, Checkpoint checkpoint,
+         HttpMethod method, String path, int expectedStatus) {
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
       HttpRequest request = HttpRequestPool.get(session).acquire();
@@ -113,16 +113,16 @@ public class BaseClientTest extends VertxBaseTest {
       HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()
             .status((r, status) -> {
                if (status != expectedStatus) {
-                  ctx.fail();
+                  ctx.failNow("Status differs from the expected one");
                } else {
                   statusReceived.set(true);
                }
             })
             .onCompletion(s -> {
                if (statusReceived.get()) {
-                  async.complete();
+                  checkpoint.flag();
                } else {
-                  ctx.fail("Status was not received.");
+                  ctx.failNow("Status was not received.");
                }
             }).build();
       request.method = method;
@@ -134,7 +134,7 @@ public class BaseClientTest extends VertxBaseTest {
    }
 
    @FunctionalInterface
-   interface ClientAction {
-      void run(HttpClientPool client, Async async);
+   protected interface ClientAction {
+      void run(HttpClientPool client, Checkpoint checkpoint);
    }
 }

@@ -1,21 +1,20 @@
 package io.hyperfoil.benchmark.standalone;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.aesh.command.CommandResult;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.commands.Wrk2;
-import io.hyperfoil.test.Benchmark;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 
-@Category(Benchmark.class)
+@Tag("io.hyperfoil.test.Benchmark")
 public class WrkTest extends BaseBenchmarkTest {
    protected long unservedDelay = 2000;
    protected double servedRatio = 0.9;

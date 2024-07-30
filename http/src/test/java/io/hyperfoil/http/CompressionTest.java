@@ -5,18 +5,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.RoutingContext;
 
-@RunWith(VertxUnitRunner.class)
-public class CompressionTest extends HttpScenarioTest {
+public class CompressionTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.route("/short").handler(ctx -> {

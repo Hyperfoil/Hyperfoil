@@ -1,6 +1,6 @@
 package io.hyperfoil.hotrod;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
@@ -10,14 +10,11 @@ import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.notifications.Listener;
 import org.infinispan.notifications.cachelistener.annotation.CacheEntryCreated;
 import org.infinispan.notifications.cachelistener.event.CacheEntryEvent;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
 public class HotRodFailuresTest extends BaseHotRodTest {
 
    @Test
@@ -31,7 +28,7 @@ public class HotRodFailuresTest extends BaseHotRodTest {
    @Override
    protected void createCache(EmbeddedCacheManager em) {
       ConfigurationBuilder cacheBuilder = new ConfigurationBuilder();
-      Cache cache = em.createCache("my-cache", cacheBuilder.build());
+      Cache<Object, Object> cache = em.createCache("my-cache", cacheBuilder.build());
       cache.getAdvancedCache().withStorageMediaType().addListener(new ErrorListener());
    }
 

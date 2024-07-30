@@ -2,13 +2,15 @@ package io.hyperfoil.http;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -16,13 +18,14 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.statistics.HttpStats;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
-public class TwoServersTest extends HttpScenarioTest {
+@ExtendWith(VertxExtension.class)
+public class TwoServersTest extends BaseHttpScenarioTest {
    CountDownLatch latch = new CountDownLatch(1);
    HttpServer secondServer;
 
@@ -37,15 +40,16 @@ public class TwoServersTest extends HttpScenarioTest {
       });
    }
 
-   @Override
-   public void before(TestContext ctx) {
-      super.before(ctx);
+   @BeforeEach
+   public void before(Vertx vertx, VertxTestContext ctx) {
+      super.before(vertx, ctx);
       Router secondRouter = Router.router(vertx);
       secondRouter.route("/test").handler(context -> context.response().setStatusCode(300).end());
       secondServer = vertx.createHttpServer().requestHandler(secondRouter)
-            .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> {
+            .listen(0, "localhost", ctx.succeeding(srv -> {
                benchmarkBuilder.plugin(HttpPluginBuilder.class)
                      .http("http://localhost:" + secondServer.actualPort()).endHttp();
+               ctx.completeNow();
             }));
    }
 
@@ -76,7 +80,7 @@ public class TwoServersTest extends HttpScenarioTest {
       assertThat(HttpStats.get(s2).status_3xx).isEqualTo(1);
    }
 
-   @Test(expected = BenchmarkDefinitionException.class)
+   @Test
    public void testMultiHostWithoutAuthorityFail() {
       // Test that a multi-host HTTP configuration is not accepted when steps does not define a host to run.
       // See: https://github.com/Hyperfoil/Hyperfoil/issues/315
@@ -102,7 +106,7 @@ public class TwoServersTest extends HttpScenarioTest {
             .endStep();
 
       // Fails to build since we haven't defined the authority for which server to utilize in the step.
-      benchmarkBuilder.build();
+      assertThrows(BenchmarkDefinitionException.class, () -> benchmarkBuilder.build());
    }
 
    @Test
@@ -116,7 +120,7 @@ public class TwoServersTest extends HttpScenarioTest {
       benchmarkBuilder.build();
    }
 
-   @Test(expected = BenchmarkDefinitionException.class)
+   @Test
    public void testServersWithSameHostAndPortAndSameName() {
       benchmarkBuilder.plugin(HttpPluginBuilder.class)
             .http("http://localhost:8080")
@@ -124,10 +128,10 @@ public class TwoServersTest extends HttpScenarioTest {
       benchmarkBuilder.plugin(HttpPluginBuilder.class)
             .http("http://localhost:8080")
             .name("myhost1");
-      benchmarkBuilder.build();
+      assertThrows(BenchmarkDefinitionException.class, () -> benchmarkBuilder.build());
    }
 
-   @Test(expected = BenchmarkDefinitionException.class)
+   @Test
    public void testServersWithSameHostAndPortAndNoName() {
       benchmarkBuilder.plugin(HttpPluginBuilder.class)
             .http("http://localhost:8080")
@@ -135,6 +139,6 @@ public class TwoServersTest extends HttpScenarioTest {
       benchmarkBuilder.plugin(HttpPluginBuilder.class)
             .http("http://localhost:8080")
             .name(null);
-      benchmarkBuilder.build();
+      assertThrows(BenchmarkDefinitionException.class, () -> benchmarkBuilder.build());
    }
 }
