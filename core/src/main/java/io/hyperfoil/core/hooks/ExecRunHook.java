@@ -43,7 +43,7 @@ public class ExecRunHook extends RunHook {
          log.info("{}: Completed command with exit code {}", name, exitValue);
          return exitValue == 0;
       } catch (IOException e) {
-         log.error("Cannot start " + name, e);
+         log.error("Cannot start {}", name, e);
          return false;
       } catch (InterruptedException e) {
          log.error("Interrupted during hook execution", e);

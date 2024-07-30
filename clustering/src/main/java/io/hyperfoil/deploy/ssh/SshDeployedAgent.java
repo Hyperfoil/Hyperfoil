@@ -74,7 +74,7 @@ public class SshDeployedAgent implements DeployedAgent {
 
    @Override
    public void stop() {
-      log.info("Stopping agent " + name);
+      log.info("Stopping agent {}", name);
       if (commandStream != null) {
          commandStream.close();
       }
@@ -237,7 +237,7 @@ public class SshDeployedAgent implements DeployedAgent {
          byte[] buf = new byte[future.getRead()];
          future.getBuffer().getRawBytes(buf);
          String str = new String(buf, StandardCharsets.UTF_8);
-         log.info("Read: " + str);
+         log.info("Read: {}", str);
          sb.append(str);
          if (sb.indexOf(PROMPT) >= 0) {
             completion.run();
@@ -314,21 +314,21 @@ public class SshDeployedAgent implements DeployedAgent {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                String line = reader.readLine();
                if (line == null) {
-                  log.warn("No output for md5sum " + file);
+                  log.warn("No output for md5sum {}", file);
                   continue;
                }
                int space = line.indexOf(' ');
                if (space < 0) {
-                  log.warn("Wrong output for md5sum " + file + ": " + line);
+                  log.warn("Wrong output for md5sum {}: {}", file, line);
                   continue;
                }
                String checksum = line.substring(0, space);
                md5map.put(file, checksum);
             }
          } catch (IOException e) {
-            log.info("Cannot get md5sum for " + file, e);
+            log.info("Cannot get md5sum for {}", file, e);
          } catch (InterruptedException e) {
-            log.info("Interrupted waiting for md5sum" + file);
+            log.info("Interrupted waiting for md5sum{}", file);
             Thread.currentThread().interrupt();
             return null;
          }

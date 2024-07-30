@@ -110,7 +110,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          } catch (IOException e) {
             log.error("Could not list run dir contents", e);
          } catch (Exception e) {
-            log.error("Cannot load previous runs from " + Controller.RUN_DIR, e);
+            log.error("Cannot load previous runs from {}", Controller.RUN_DIR, e);
          }
       }
       //noinspection ResultOfMethodCallIgnored
@@ -171,7 +171,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
       eb.consumer(Feeds.STATS, message -> {
          if (!(message.body() instanceof StatsMessage)) {
-            log.error("Unknown message type: " + message.body());
+            log.error("Unknown message type: {}", message.body());
             return;
          }
          StatsMessage statsMessage = (StatsMessage) message.body();
@@ -298,7 +298,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       String runId = hello.runId();
       Run run = runs.get(runId);
       if (run == null) {
-         log.error("Unknown run ID " + runId);
+         log.error("Unknown run ID {}", runId);
          message.fail(1, "Unknown run ID");
          return;
       }
@@ -442,7 +442,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       try {
          JsonLoader.read(Files.readString(jsonPath, StandardCharsets.UTF_8), store);
       } catch (Exception e) {
-         log.error("Cannot load stats from " + jsonPath, e);
+         log.error("Cannot load stats from {}", jsonPath, e);
          return null;
       }
       return store;
@@ -578,14 +578,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
                         run.errors.add(
                               new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
-                        log.error("Failed to deploy agent " + agent.name, exception);
+                        log.error("Failed to deploy agent {}", agent.name, exception);
                         vertx.runOnContext(nil -> stopSimulation(run));
                      }
                   }), false, result -> {
                      if (result.failed()) {
                         run.errors.add(new Run.Error(agentInfo,
                               new BenchmarkExecutionException("Failed to start agent", result.cause())));
-                        log.error("Failed to start agent " + agent.name, result.cause());
+                        log.error("Failed to start agent {}", agent.name, result.cause());
                         vertx.runOnContext(nil -> stopSimulation(run));
                      }
                   });
@@ -668,7 +668,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                runSimulation(run);
             });
          } else {
-            log.error(run.id + " Failed to start the simulation", result.cause());
+            log.error("{} Failed to start the simulation", run.id, result.cause());
             stopSimulation(run);
          }
       });
@@ -829,7 +829,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.flush();
             jGenerator.close();
          } catch (IOException e) {
-            log.error("Cannot write to " + DEFAULT_STATS_JSON, e);
+            log.error("Cannot write to {}", DEFAULT_STATS_JSON, e);
             future.fail(e);
          }
          // combine shared and benchmark-private hooks
@@ -842,7 +842,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             boolean success = hook.run(getRunProperties(run), sb::append);
             run.hookResults.add(new Run.RunHookOutput(hook.name(), sb.toString()));
             if (!success) {
-               log.error("Execution of post-hook " + hook.name() + " failed.");
+               log.error("Execution of post-hook {} failed.", hook.name());
                // stop executing further hooks but persist info
                break;
             }
@@ -862,7 +862,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }, result -> {
          run.completed = true;
          if (result.failed()) {
-            log.error("Failed to persist run " + run.id, result.cause());
+            log.error("Failed to persist run {}", run.id, result.cause());
          } else {
             log.info("Successfully persisted run {}", run.id);
          }
@@ -995,11 +995,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      }
                   }
                } catch (Exception e) {
-                  log.error("Failed to load a benchmark from " + file, e);
+                  log.error("Failed to load a benchmark from {}", file, e);
                }
             });
          } catch (IOException e) {
-            log.error("Failed to list benchmark dir " + Controller.BENCHMARK_DIR, e);
+            log.error("Failed to list benchmark dir {}", Controller.BENCHMARK_DIR, e);
          }
          future.complete();
       }, handler);
@@ -1025,10 +1025,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_SESSIONS, includeInactive, completionHandler, (agent, result) -> {
          if (result.failed()) {
-            log.error("Agent " + agent + " failed listing sessions", result.cause());
+            log.error("Agent {} failed listing sessions", agent, result.cause());
             sessionStateHandler.accept(agent, "");
          } else if (result.result() instanceof Throwable) {
-            log.error("Agent " + agent + " has thrown an error while listing sessions", (Throwable) result.result());
+            log.error("Agent {}} has thrown an error while listing sessions", agent, (Throwable) result.result());
             sessionStateHandler.accept(agent, "");
          } else {
             @SuppressWarnings("unchecked")
@@ -1044,10 +1044,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_CONNECTIONS, null, completionHandler, (agent, result) -> {
          if (result.failed()) {
-            log.error("Agent " + agent + " failed listing connections", result.cause());
+            log.error("Agent {} failed listing connections", agent, result.cause());
             connectionHandler.accept(agent, "");
          } else if (result.result() instanceof Throwable) {
-            log.error("Agent " + agent + " has thrown an error while listing connections", (Throwable) result.result());
+            log.error("Agent {} has thrown an error while listing connections", agent, (Throwable) result.result());
             connectionHandler.accept(agent, "");
          } else {
             @SuppressWarnings("unchecked")
@@ -1070,7 +1070,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          agentCounter.incrementAndGet();
          eb.request(agent.deploymentId, new AgentControlMessage(command, agent.id, param), result -> {
             if (result.failed()) {
-               log.error("Failed to connect to agent " + agent.name, result.cause());
+               log.error("Failed to connect to agent {}", agent.name, result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));
             } else {
                handler.accept(agent, result);
@@ -1116,7 +1116,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                return run.benchmark;
             }
          }
-         log.warn("Cannot find benchmark source for run " + run.id + ", benchmark " + run.benchmark.name());
+         log.warn("Cannot find benchmark source for run {}, benchmark {}", run.id, run.benchmark.name());
       }
       return run.benchmark;
    }

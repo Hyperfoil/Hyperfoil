@@ -113,7 +113,7 @@ public class RunMojo extends AbstractMojo {
             stats.histogram.outputPercentileDistribution(new PrintStream(baos, true, "UTF-8"), 1000.00);
             String data = new String(baos.toByteArray(), StandardCharsets.UTF_8);
 
-            log.info("\nPercentile Distribution\n\n" + data);
+            log.info("\nPercentile Distribution\n\n{}", data);
          } catch (UnsupportedEncodingException e) {
             log.error("Could not write Percentile Distribution to log");
          }

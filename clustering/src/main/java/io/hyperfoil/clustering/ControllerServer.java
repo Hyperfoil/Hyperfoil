@@ -425,7 +425,7 @@ class ControllerServer implements ApiService {
          try {
             bytes = Files.readAllBytes(Paths.get(upload.uploadedFileName()));
          } catch (IOException e) {
-            log.error("Cannot read uploaded file " + upload.uploadedFileName(), e);
+            log.error("Cannot read uploaded file {}", upload.uploadedFileName(), e);
             ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
             return;
          }
@@ -826,7 +826,7 @@ class ControllerServer implements ApiService {
                response.write(template.substring(placeholderIndex + DATAKEY.length()));
                response.end();
             } catch (IOException e) {
-               log.error("Cannot read file " + filePath);
+               log.error("Cannot read file {}", filePath);
                ctx.response().setStatusCode(500).end("Cannot fetch file " + sourceFile);
             }
          }
@@ -1151,7 +1151,7 @@ class ControllerServer implements ApiService {
             if (result.succeeded()) {
                sendFile(ctx, tempFile, agentInfo.get().deploymentId);
             } else {
-               log.error("Failed to download agent log for " + agentInfo.get(), result.cause());
+               log.error("Failed to download agent log for {}", agentInfo.get(), result.cause());
                ctx.response()
                      .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
                      .setStatusMessage("Cannot download agent log").end();

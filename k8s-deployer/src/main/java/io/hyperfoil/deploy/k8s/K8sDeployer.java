@@ -111,7 +111,7 @@ public class K8sDeployer implements Deployer {
       try {
          return Files.readString(Paths.get(path));
       } catch (IOException e) {
-         log.debug("Cannot load " + path + " - not running as pod?", e);
+         log.debug("Cannot load {} - not running as pod?", path, e);
          return "<cannot load>";
       }
    }
@@ -250,7 +250,7 @@ public class K8sDeployer implements Deployer {
          try {
             output = new FileOutputStream(outputPath.toFile());
          } catch (FileNotFoundException e) {
-            log.error("Cannot write to " + outputPath, e);
+            log.error("Cannot write to {}", outputPath, e);
          }
          // We cannot start reading the logs right away because we'd only read an error message
          // about the container being started - we'll defer it until all containers become ready.

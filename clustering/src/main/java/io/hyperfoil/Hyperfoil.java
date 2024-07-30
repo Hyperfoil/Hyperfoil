@@ -82,8 +82,8 @@ public class Hyperfoil {
          if (LOCALHOST_IPS.contains(hostAddress) && clusterIp == null) {
             log.error("This machine is configured to resolve its hostname to 127.0.0.1; this is " +
                   "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
-                  " or set -D" + Properties.CONTROLLER_CLUSTER_IP + "=x.x.x.x to use different address. " +
-                  "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).");
+                  " or set -D{}=x.x.x.x to use different address. " +
+                  "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).", Properties.CONTROLLER_CLUSTER_IP);
             return Future.failedFuture("Hostname resolves to 127.0.0.1");
          }
          // We are using numeric address because if this is running in a pod its hostname
@@ -141,7 +141,7 @@ public class Hyperfoil {
             try {
                return !nic.isLoopback() && nic.isUp();
             } catch (SocketException e) {
-               log.warn("Error enumerating NIC " + nic, e);
+               log.warn("Error enumerating NIC {}", nic, e);
                return false;
             }
          }).flatMap(nic -> Collections.list(nic.getInetAddresses()).stream()).collect(Collectors.toList());

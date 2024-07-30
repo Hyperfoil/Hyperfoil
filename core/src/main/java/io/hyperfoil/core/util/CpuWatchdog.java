@@ -102,7 +102,7 @@ public class CpuWatchdog implements Runnable {
          }
          return true;
       } catch (IOException e) {
-         log.error("CPU watchdog cannot read " + PROC_STAT, e);
+         log.error("CPU watchdog cannot read {}", PROC_STAT, e);
          return false;
       } catch (NumberFormatException e) {
          log.error("CPU watchdog cannot parse stats.", e);
