@@ -1028,7 +1028,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Agent {} failed listing sessions", agent, result.cause());
             sessionStateHandler.accept(agent, "");
          } else if (result.result() instanceof Throwable) {
-            log.error("Agent {}} has thrown an error while listing sessions", agent, (Throwable) result.result());
+            log.error("Agent {} has thrown an error while listing sessions", agent, (Throwable) result.result());
             sessionStateHandler.accept(agent, "");
          } else {
             @SuppressWarnings("unchecked")
