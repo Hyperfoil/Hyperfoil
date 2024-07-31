@@ -59,7 +59,7 @@ public class Zipper {
                zipStream.write(Files.readAllBytes(path));
                zipStream.closeEntry();
             } catch (IOException e) {
-               log.error("Failed writing file " + path, e);
+               log.error("Failed writing file {}", path, e);
                response.end();
                return;
             }

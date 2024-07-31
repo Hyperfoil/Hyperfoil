@@ -85,7 +85,7 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
    @Override
    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
       if (cause != SessionStopException.INSTANCE) {
-         log.warn("Exception in " + this, cause);
+         log.warn("Exception in {}", this, cause);
       }
       try {
          if (getEmbeddedHttp2Exception(cause) != null) {

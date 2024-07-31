@@ -76,7 +76,7 @@ public class SshDeployer implements Deployer {
             try {
                port = Integer.parseInt(portString);
             } catch (NumberFormatException e) {
-               log.error("Failed to parse port number for " + agent.name + ": " + portString);
+               log.error("Failed to parse port number for {}: {}", agent.name, portString);
             }
          }
          dir = agent.properties.get("dir");
