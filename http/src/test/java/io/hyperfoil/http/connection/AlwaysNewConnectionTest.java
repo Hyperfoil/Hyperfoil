@@ -1,12 +1,14 @@
 package io.hyperfoil.http.connection;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.StatusHandler;
@@ -14,11 +16,8 @@ import io.hyperfoil.http.config.ConnectionStrategy;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.steps.HttpStepCatalog;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
-public class AlwaysNewConnectionTest extends HttpScenarioTest {
+public class AlwaysNewConnectionTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.get("/").handler(ctx -> ctx.response().end());
@@ -35,10 +34,10 @@ public class AlwaysNewConnectionTest extends HttpScenarioTest {
    }
 
    @Test
-   public void test(TestContext ctx) {
+   public void test() {
       Set<HttpConnection> connections = new HashSet<>();
       StatusHandler statusHandler = (request, status) -> {
-         ctx.assertFalse(connections.contains(request.connection()));
+         assertFalse(connections.contains(request.connection()));
          connections.add(request.connection());
       };
       //@formatter:off
@@ -55,6 +54,6 @@ public class AlwaysNewConnectionTest extends HttpScenarioTest {
       //@formatter:on
 
       runScenario();
-      ctx.assertTrue(connections.size() >= 10);
+      assertTrue(connections.size() >= 10);
    }
 }

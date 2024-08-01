@@ -2,16 +2,13 @@ package io.hyperfoil.benchmark.standalone;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.junit.After;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.Locator;
@@ -26,12 +23,9 @@ import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 
-@RunWith(VertxUnitRunner.class)
-@Category(io.hyperfoil.test.Benchmark.class)
+@Tag("io.hyperfoil.test.Benchmark")
 public class TwoScenariosTest extends BaseBenchmarkTest {
 
    protected Router router;
@@ -44,11 +38,6 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
          initRouter();
       }
       return router;
-   }
-
-   @After
-   public void after(TestContext ctx) {
-      vertx.close(ctx.asyncAssertSuccess());
    }
 
    protected void initRouter() {
@@ -194,11 +183,7 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
    }
 
    private static String encode(String string) {
-      try {
-         return URLEncoder.encode(string, StandardCharsets.UTF_8.name());
-      } catch (UnsupportedEncodingException e) {
-         throw new IllegalArgumentException(e);
-      }
+      return URLEncoder.encode(string, StandardCharsets.UTF_8);
    }
 
    enum SailsState {

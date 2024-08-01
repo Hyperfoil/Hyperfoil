@@ -1,17 +1,15 @@
 package io.hyperfoil.http.html;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.http.HttpScenarioTest;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 
-@RunWith(VertxUnitRunner.class)
-public class TagAttributeHandlerTest extends HttpScenarioTest {
+public class TagAttributeHandlerTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
-      router.route("/foobar/index.html").handler(ctx -> serveResourceChunked(ctx, "data/TagAttributeHandlerTest_index.html"));
+      router.route("/foobar/index.html")
+            .handler(ctx -> serveResourceChunked(ctx, "data/TagAttributeHandlerTest_index.html"));
    }
 
    @Test

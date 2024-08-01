@@ -21,16 +21,15 @@
 package io.hyperfoil.benchmark.standalone;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -41,21 +40,20 @@ import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxTestContext;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-@Category(io.hyperfoil.test.Benchmark.class)
-@RunWith(VertxUnitRunner.class)
+@Tag("io.hyperfoil.test.Benchmark")
 public class RequestResponseCounterTest extends BaseBenchmarkTest {
    private AtomicLong counter;
 
-   @Before
-   public void before(TestContext ctx) {
-      super.before(ctx);
+   @BeforeEach
+   public void before(Vertx vertx, VertxTestContext ctx) {
+      super.before(vertx, ctx);
       counter = new AtomicLong();
    }
 

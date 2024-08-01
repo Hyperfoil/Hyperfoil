@@ -1,12 +1,14 @@
 package io.hyperfoil.http;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLException;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.Request;
@@ -29,26 +31,23 @@ import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBuf;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public class BigResponseParsingTest extends VertxBaseTest {
-   private Vertx vertx = Vertx.vertx();
    private HttpServer httpServer;
 
-   @Before
-   public void before(TestContext ctx) {
+   @BeforeEach
+   public void before(VertxTestContext ctx) {
       httpServer = vertx.createHttpServer().requestHandler(req -> {
          AtomicInteger counter = new AtomicInteger(100000);
          req.response().putHeader("content-length", String.valueOf(counter.get()));
          sendChunk(req, counter);
-      }).listen(0, "localhost", ctx.asyncAssertSuccess());
+      }).listen(0, "localhost", ctx.succeedingThenComplete());
       cleanup.add(httpServer::close);
    }
 
@@ -62,7 +61,7 @@ public class BigResponseParsingTest extends VertxBaseTest {
       });
    }
 
-   private Future<HttpClientPool> getClientPool(TestContext ctx) {
+   private Future<HttpClientPool> getClientPool(VertxTestContext ctx) {
       Http http = HttpBuilder.forTesting().protocol(Protocol.HTTP)
             .host("localhost").port(httpServer.actualPort())
             .allowHttp2(false).build(true);
@@ -72,7 +71,7 @@ public class BigResponseParsingTest extends VertxBaseTest {
          Promise<HttpClientPool> promise = Promise.promise();
          client.start(result -> {
             if (result.failed()) {
-               ctx.fail(result.cause());
+               ctx.failNow(result.cause());
                promise.fail(result.cause());
                return;
             }
@@ -86,8 +85,8 @@ public class BigResponseParsingTest extends VertxBaseTest {
    }
 
    @Test
-   public void test(TestContext ctx) {
-      Async async = ctx.async();
+   public void test(VertxTestContext ctx) {
+      var checkpoint = ctx.checkpoint();
       AtomicInteger responseSize = new AtomicInteger();
       getClientPool(ctx).onComplete(result -> {
          HttpClientPool client = result.result();
@@ -105,8 +104,9 @@ public class BigResponseParsingTest extends VertxBaseTest {
                   }
                })
                .onCompletion(s -> {
-                  ctx.assertTrue(responseSize.get() > 100000, String.valueOf(responseSize.get()));
-                  async.countDown();
+                  // assertTrue(responseSize.get() > 100000, String.valueOf(responseSize.get()));
+                  assertTrue(responseSize.get() > 100000, String.valueOf(responseSize.get()));
+                  checkpoint.flag();
                }).build();
          HttpRequest newRequest = HttpRequestPool.get(session).acquire();
          newRequest.method = HttpMethod.GET;

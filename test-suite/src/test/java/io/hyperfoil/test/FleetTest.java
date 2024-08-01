@@ -2,13 +2,11 @@ package io.hyperfoil.test;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.IntAccess;
@@ -24,19 +22,16 @@ import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.SetAction;
 import io.hyperfoil.core.steps.SetIntAction;
 import io.hyperfoil.function.SerializableFunction;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.test.entity.CrewMember;
 import io.hyperfoil.test.entity.Fleet;
 import io.hyperfoil.test.entity.Ship;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
-public class FleetTest extends HttpScenarioTest {
+public class FleetTest extends BaseHttpScenarioTest {
 
    private static final Fleet FLEET = new Fleet("Československá námořní flotila")
          .addBase("Hamburg")
@@ -78,9 +73,9 @@ public class FleetTest extends HttpScenarioTest {
     * Fetch a fleet (list of ships), then fetch each ship separately and if it has no crew, sink the ship.
     */
    @Test
-   public void testSinkEmptyShips(TestContext ctx) {
+   public void testSinkEmptyShips(VertxTestContext ctx) {
       // We need to call async() to prevent termination when the test method completes
-      Async async = ctx.async(2);
+      var checkpoint = ctx.checkpoint(2);
 
       ProcessorAssertion shipAssertion = new ProcessorAssertion(3, true);
       ProcessorAssertion crewAssertion = new ProcessorAssertion(2, true);
@@ -143,7 +138,7 @@ public class FleetTest extends HttpScenarioTest {
                            if (status == 204) {
                               numberOfSunkShips.addToInt(request.session, -1);
                            } else {
-                              ctx.fail("Unexpected status " + status);
+                              ctx.failNow("Unexpected status " + status);
                            }
                         };
                      })
@@ -159,7 +154,7 @@ public class FleetTest extends HttpScenarioTest {
                   log.info("Test completed");
                   shipAssertion.runAssertions(ctx);
                   crewAssertion.runAssertions(ctx);
-                  async.countDown();
+                  checkpoint.flag();
                   return true;
                })
             .endSequence();
@@ -173,10 +168,6 @@ public class FleetTest extends HttpScenarioTest {
    }
 
    private static String encode(String string) {
-      try {
-         return URLEncoder.encode(string, StandardCharsets.UTF_8.name());
-      } catch (UnsupportedEncodingException e) {
-         throw new IllegalArgumentException(e);
-      }
+      return URLEncoder.encode(string, StandardCharsets.UTF_8);
    }
 }

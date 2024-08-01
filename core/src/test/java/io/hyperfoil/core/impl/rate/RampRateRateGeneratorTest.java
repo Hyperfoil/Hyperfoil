@@ -1,9 +1,8 @@
 package io.hyperfoil.core.impl.rate;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RampRateRateGeneratorTest extends RateGeneratorTest {
 
@@ -29,7 +28,7 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
       final var generator = RateGenerator.rampRate(10, 10, 10_000);
       final var missingFireTimeCounter = new FireTimesCounter();
       generator.computeNextFireTime(9999, missingFireTimeCounter);
-      Assert.assertEquals(100, missingFireTimeCounter.fireTimes);
+      assertEquals(100, missingFireTimeCounter.fireTimes);
    }
 
    @Test
@@ -37,7 +36,7 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
       final var generator = newUserGenerator();
       final var missingFireTimeCounter = new FireTimesCounter();
       generator.computeNextFireTime(9999, missingFireTimeCounter);
-      Assert.assertEquals(samples(), missingFireTimeCounter.fireTimes);
+      assertEquals(samples(), missingFireTimeCounter.fireTimes);
    }
 
    @Override

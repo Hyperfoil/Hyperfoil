@@ -2,10 +2,11 @@ package io.hyperfoil.http;
 
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.Request;
@@ -27,21 +28,26 @@ import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBuf;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
 public class RawBytesHandlerTest extends VertxBaseTest {
+   private AtomicInteger numberOfPasses;
+
+   @BeforeEach
+   public void init() {
+      numberOfPasses = new AtomicInteger(1000);
+   }
+
    @Test
-   public void test(TestContext ctx) {
-      Async async = ctx.async(1000);
+   public void test(Vertx vertx, VertxTestContext ctx) {
+      var checkpoint = ctx.checkpoint(numberOfPasses.get());
       HttpServer httpServer = vertx.createHttpServer();
       httpServer.requestHandler(this::handler).listen(0, "localhost", event -> {
          if (event.failed()) {
-            ctx.fail(event.cause());
+            ctx.failNow(event.cause());
          } else {
             HttpServer server = event.result();
             cleanup.add(server::close);
@@ -52,7 +58,7 @@ public class RawBytesHandlerTest extends VertxBaseTest {
                HttpClientPool client = HttpClientPoolImpl.forTesting(http, 1);
                client.start(result -> {
                   if (result.failed()) {
-                     ctx.fail(result.cause());
+                     ctx.failNow(result.cause());
                      return;
                   }
                   cleanup.add(client::shutdown);
@@ -70,24 +76,25 @@ public class RawBytesHandlerTest extends VertxBaseTest {
                            }
                         })
                         .onCompletion(s -> {
-                           async.countDown();
-                           if (!async.isCompleted()) {
+                           checkpoint.flag();
+                           if (numberOfPasses.decrementAndGet() > 0) {
+                              // we did not reach the required/expected num of passes
                               HttpConnectionPool pool = client.next();
                               pool.executor().schedule(() -> {
-                                 doRequest(ctx, session, handlersRef, pool);
+                                 doRequest(session, handlersRef, pool);
                               }, 1, TimeUnit.NANOSECONDS);
                            }
                         }).build());
-                  doRequest(ctx, session, handlersRef, client.next());
+                  doRequest(session, handlersRef, client.next());
                });
             } catch (Exception e) {
-               ctx.fail(e);
+               ctx.failNow(e);
             }
          }
       });
    }
 
-   private void doRequest(TestContext ctx, Session session, AtomicReference<HttpResponseHandlers> handlersRef,
+   private void doRequest(Session session, AtomicReference<HttpResponseHandlers> handlersRef,
          HttpConnectionPool pool) {
       HttpRequest newRequest = HttpRequestPool.get(session).acquire();
       newRequest.method = HttpMethod.GET;

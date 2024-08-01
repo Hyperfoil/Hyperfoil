@@ -1,41 +1,31 @@
 package io.hyperfoil.benchmark;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public abstract class BaseBenchmarkTest {
    protected Vertx vertx;
    protected HttpServer httpServer;
 
-   @Before
-   public void before(TestContext ctx) {
-      vertx = getVertx();
+   @BeforeEach
+   public void before(Vertx vertx, VertxTestContext ctx) {
+      this.vertx = vertx;
       setupHttpServer(ctx, getRequestHandler());
-   }
-
-   protected Vertx getVertx() {
-      return Vertx.vertx();
    }
 
    protected Handler<HttpServerRequest> getRequestHandler() {
       return req -> req.response().end();
    }
 
-   private void setupHttpServer(TestContext ctx, Handler<HttpServerRequest> handler) {
-      httpServer = vertx.createHttpServer().requestHandler(handler).listen(0, "localhost", ctx.asyncAssertSuccess());
-   }
-
-   @After
-   public void after(TestContext ctx) {
-      vertx.close(ctx.asyncAssertSuccess());
+   private void setupHttpServer(VertxTestContext ctx, Handler<HttpServerRequest> handler) {
+      httpServer = vertx.createHttpServer().requestHandler(handler).listen(0, "localhost", ctx.succeedingThenComplete());
    }
 }

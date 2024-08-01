@@ -1,6 +1,6 @@
 package io.hyperfoil.http.handlers;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.ObjectAccess;

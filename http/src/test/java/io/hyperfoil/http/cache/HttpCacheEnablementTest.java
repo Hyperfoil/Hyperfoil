@@ -4,32 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.steps.HttpStepCatalog;
-import io.vertx.core.Future;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
 
-public class HttpCacheEnablementTest extends HttpScenarioTest {
-
-   @Override
-   protected Future<Void> startServer(TestContext ctx, boolean tls, boolean compression) {
-      // don't start the server
-      return null;
-   }
-
-   private void startServer(TestContext ctx) {
-      Async async = ctx.async();
-      super.startServer(ctx, false, false).onComplete(ctx.asyncAssertSuccess(nil -> async.complete()));
-      async.await();
-   }
+public class HttpCacheEnablementTest extends BaseHttpScenarioTest {
 
    @Override
    protected void initRouter() {
@@ -39,24 +24,21 @@ public class HttpCacheEnablementTest extends HttpScenarioTest {
    }
 
    @Test
-   public void testOkWithoutCacheHttp1x(TestContext ctx) {
-      startServer(ctx);
+   public void testOkWithoutCacheHttp1x() {
       http().useHttpCache(false)
             .sharedConnections(1);
       testSingle("/ok", false);
    }
 
    @Test
-   public void testOkWithCacheHttp1x(TestContext ctx) {
-      startServer(ctx);
+   public void testOkWithCacheHttp1x() {
       http().useHttpCache(true)
             .sharedConnections(1);
       testSingle("/ok", true);
    }
 
    @Test
-   public void testOkWithCacheByDefaultHttp1x(TestContext ctx) {
-      startServer(ctx);
+   public void testOkWithCacheByDefaultHttp1x() {
       http().sharedConnections(1);
       testSingle("/ok", true);
    }

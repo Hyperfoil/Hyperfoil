@@ -1,16 +1,16 @@
 package io.hyperfoil.core.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.collection.ElasticPool;
 
@@ -21,7 +21,7 @@ public abstract class ElasticPoolTest<T> extends PoolTest<T> {
    @Override
    protected ElasticPool<T> createPoolWith(final Supplier<T> initSupplier) {
       return createPoolWith(initSupplier, () -> {
-         Assert.fail("Depleted supplier should not be called");
+         fail("Depleted supplier should not be called");
          return null;
       });
    }

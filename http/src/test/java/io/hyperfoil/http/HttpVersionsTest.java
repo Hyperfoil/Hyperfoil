@@ -2,68 +2,69 @@ package io.hyperfoil.http;
 
 import java.util.List;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.HttpVersion;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public class HttpVersionsTest extends BaseClientTest {
    @Test
-   public void testAlpnUpgrade(TestContext ctx) {
+   public void testAlpnUpgrade(VertxTestContext ctx) {
       test(ctx, true, HttpVersion.ALL_VERSIONS, HTTP2_ONLY, 200);
    }
 
    @Test
-   public void testAlpnKeep(TestContext ctx) {
+   public void testAlpnKeep(VertxTestContext ctx) {
       test(ctx, true, HttpVersion.ALL_VERSIONS, HTTP1x_ONLY, 500);
    }
 
    @Test
-   public void testAlpnForceHttp2(TestContext ctx) {
+   public void testAlpnForceHttp2(VertxTestContext ctx) {
       test(ctx, true, new HttpVersion[] { HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
    }
 
    @Test
-   public void testAlpnForceHttp2ServerKeep(TestContext ctx) {
+   public void testAlpnForceHttp2ServerKeep(VertxTestContext ctx) {
       test(ctx, true, new HttpVersion[] { HttpVersion.HTTP_2_0 }, HTTP1x_ONLY, HttpVersionsTest::requireHttp2,
-            ctx.asyncAssertFailure());
+            ctx.failingThenComplete());
    }
 
    @Test
-   public void testAlpnForceHttp1x(TestContext ctx) {
+   public void testAlpnForceHttp1x(VertxTestContext ctx) {
       test(ctx, true, new HttpVersion[] { HttpVersion.HTTP_1_1 }, HTTP2_ONLY, HttpVersionsTest::requireHttp2,
-            ctx.asyncAssertFailure());
+            ctx.failingThenComplete());
    }
 
    @Test
-   public void testH2cUpgrade(TestContext ctx) {
+   public void testH2cUpgrade(VertxTestContext ctx) {
       test(ctx, false, new HttpVersion[] { HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
    }
 
    @Test
-   public void testCleartextDefault(TestContext ctx) {
+   public void testCleartextDefault(VertxTestContext ctx) {
       test(ctx, false, HttpVersion.ALL_VERSIONS, HTTP2_ONLY, 500);
    }
 
    @Test
-   public void testCleartextDefaultServer1x(TestContext ctx) {
+   public void testCleartextDefaultServer1x(VertxTestContext ctx) {
       test(ctx, false, HttpVersion.ALL_VERSIONS, HTTP1x_ONLY, 500);
    }
 
    @Test
-   public void testCleartextForceHttp1x(TestContext ctx) {
+   public void testCleartextForceHttp1x(VertxTestContext ctx) {
       test(ctx, false, new HttpVersion[] { HttpVersion.HTTP_1_1 }, HTTP2_ONLY, 500);
    }
 
-   private void test(TestContext ctx, boolean ssl, HttpVersion[] clientVersions,
+   private void test(VertxTestContext ctx, boolean ssl, HttpVersion[] clientVersions,
          List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) {
       test(ctx, ssl, clientVersions, serverVersions, HttpVersionsTest::requireHttp2,
-            (client, async) -> sendRequestAndAssertStatus(ctx, client, async, HttpMethod.GET, "/ping", expectedStatus));
+            (client, checkpoint) -> sendRequestAndAssertStatus(ctx, client, checkpoint, HttpMethod.GET, "/ping",
+                  expectedStatus));
    }
 
    private static void requireHttp2(HttpServerRequest req) {

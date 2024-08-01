@@ -5,16 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
 
-@RunWith(VertxUnitRunner.class)
-public class SessionStopTest extends HttpScenarioTest {
+@ExtendWith(VertxExtension.class)
+public class SessionStopTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.get("/test").handler(ctx -> ctx.response().end("OK"));

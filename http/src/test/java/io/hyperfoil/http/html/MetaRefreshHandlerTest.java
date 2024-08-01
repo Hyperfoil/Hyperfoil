@@ -1,6 +1,6 @@
 package io.hyperfoil.http.html;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;

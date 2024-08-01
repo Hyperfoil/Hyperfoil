@@ -1,13 +1,13 @@
 package io.hyperfoil.core.impl.rate;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.random.JDKRandomGenerator;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 public abstract class RateGeneratorTest {
 
@@ -28,7 +28,7 @@ public abstract class RateGeneratorTest {
       final double pValue = ksTest.kolmogorovSmirnovTest(expDistribution, data);
 
       if (pValue < 0.05) {
-         Assert.fail("The generated fire times do not follow the expected exponential distribution. p-value: " + pValue);
+         fail("The generated fire times do not follow the expected exponential distribution. p-value: " + pValue);
       }
    }
 
@@ -44,7 +44,7 @@ public abstract class RateGeneratorTest {
    }
 
    @Test
-   @Ignore("This test fail due to lastComputedFireTimeMs() uses Math.ceil() and can skew the results")
+   @Disabled("This test fail due to lastComputedFireTimeMs() uses Math.ceil() and can skew the results")
    public void testFireTimesDistributionWithoutSkew() {
       final int samples = samples();
       final var fireTimeSamples = new double[samples];

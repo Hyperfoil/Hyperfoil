@@ -2,29 +2,26 @@ package io.hyperfoil.http.connection;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.ConnectionStrategy;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
-public class SessionPoolsTest extends HttpScenarioTest {
+public class SessionPoolsTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.get("/").handler(ctx -> ctx.response().end());
@@ -42,7 +39,7 @@ public class SessionPoolsTest extends HttpScenarioTest {
    }
 
    @Test
-   public void test(TestContext ctx) {
+   public void test() {
       // We don't need to synchronize since we're using single executor
       Set<Session> runningSessions = new HashSet<>();
       // @formatter:off
@@ -72,7 +69,7 @@ public class SessionPoolsTest extends HttpScenarioTest {
                      .status(() -> {
                         ReadAccess connection = SessionFactory.readAccess("connection");
                         return (request, status) -> {
-                           ctx.assertEquals(connection.getObject(request.session), request.connection());
+                           assertEquals(connection.getObject(request.session), request.connection());
                            runningSessions.add(request.session);
                         };
                      });

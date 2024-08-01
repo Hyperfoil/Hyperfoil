@@ -9,8 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.connection.Request;
@@ -28,10 +27,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
-public class ChunkedTransferTest extends HttpScenarioTest {
+public class ChunkedTransferTest extends BaseHttpScenarioTest {
 
    public static final String SHIBBOLETH = "Shibboleth";
 
@@ -167,7 +164,7 @@ public class ChunkedTransferTest extends HttpScenarioTest {
       }
 
       @Override
-      public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+      public void handlerRemoved(ChannelHandlerContext ctx) {
          if (composite != null) {
             composite.release();
          }

@@ -1,21 +1,20 @@
 package io.hyperfoil.benchmark.standalone;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -30,18 +29,17 @@ import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@Category(io.hyperfoil.test.Benchmark.class)
-@RunWith(VertxUnitRunner.class)
+@Tag("io.hyperfoil.test.Benchmark")
 public class StartWithDelayTest extends BaseBenchmarkTest {
-   protected static final Logger log = LogManager.getLogger(StartWithDelayTest.class);
+   private static final Logger log = LogManager.getLogger(StartWithDelayTest.class);
+   private static final long epsilonMs = 50;
 
-   @Parameterized.Parameters
-   public static Collection<Object[]> data() {
-      return Arrays.asList(new Object[][] {
-            { "additional", "steady", 0 }, { "additional", "steady", 10000 }
-      });
+   // parameters source
+   private static Stream<Arguments> delaysConfigs() {
+      return Stream.of(
+            Arguments.of("additional", "steady", 0),
+            Arguments.of("additional", "steady", 2000));
    }
 
    @Override
@@ -51,17 +49,9 @@ public class StartWithDelayTest extends BaseBenchmarkTest {
       };
    }
 
-   @Test
-   public void startWith0Delay() {
-      startWithDifferentDelay("additional", "steady", 0);
-   }
-
-   @Test
-   public void startWith10Delay() {
-      startWithDifferentDelay("additional", "steady", 10);
-   }
-
-   public void startWithDifferentDelay(String phase1, String phase2, long delay) {
+   @ParameterizedTest
+   @MethodSource("delaysConfigs")
+   public void testStartWithDifferentDelay(String phase1, String phase2, long delay) {
       BenchmarkBuilder builder = createBuilder(phase1, phase2, delay);
       Benchmark benchmark = builder.build();
 
@@ -78,9 +68,11 @@ public class StartWithDelayTest extends BaseBenchmarkTest {
       runner.run();
 
       // check start time
-      long startTimeDiff = runner.instances().get("additional").absoluteStartTime()
-            - runner.instances().get("steady").absoluteStartTime();
+      long startTimeDiff = runner.instances().get(phase1).absoluteStartTime()
+            - runner.instances().get(phase2).absoluteStartTime();
+      log.debug("Absolute start time diff = {}", startTimeDiff);
       assertTrue(startTimeDiff >= delay);
+      // assertTrue(startTimeDiff <= delay + epsilon);
    }
 
    /**

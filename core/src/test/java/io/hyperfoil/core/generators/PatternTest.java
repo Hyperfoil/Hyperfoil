@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.IntAccess;
@@ -18,12 +18,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
 public class PatternTest {
-   @Before
+   @BeforeEach
    public void before() {
       Locator.push(TestUtil.locator());
    }
 
-   @After
+   @AfterEach
    public void after() {
       Locator.pop();
    }

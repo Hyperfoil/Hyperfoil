@@ -1,7 +1,7 @@
 package io.hyperfoil.example;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -11,15 +11,14 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -36,24 +35,17 @@ import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.impl.Util;
 
-@RunWith(Parameterized.class)
 public class ValidateExampleTest {
-   private final String exampleFile;
 
-   public ValidateExampleTest(String exampleFile) {
-      this.exampleFile = exampleFile;
-   }
-
-   @Parameterized.Parameters
-   public static Collection<Object[]> listExamples() throws IOException {
+   // parameters source
+   public static Stream<Arguments> exampleFiles() throws IOException {
       return Files.list(Paths.get("examples"))
             .filter(p -> p.toString().endsWith(".hf.yaml"))
             .filter(p -> p.toFile().isFile())
-            .map(p -> new Object[] { p.toString() })
-            .collect(Collectors.toList());
+            .map(p -> Arguments.of(p.toString()));
    }
 
-   private InputStream loadOrFail() {
+   private InputStream loadOrFail(String exampleFile) {
       InputStream stream = getClass().getClassLoader().getResourceAsStream(exampleFile);
       if (stream == null) {
          fail("Cannot load file " + exampleFile);
@@ -61,10 +53,11 @@ public class ValidateExampleTest {
       return stream;
    }
 
-   @Test
-   public void testSerializable() {
+   @ParameterizedTest
+   @MethodSource("exampleFiles")
+   public void testSerializable(String exampleFile) {
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(),
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(exampleFile),
                new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
          assertThat(benchmark.name())
                .isEqualTo(exampleFile.replace(".hf.yaml", "").replaceFirst("[^" + File.separatorChar + "]*.", ""));
@@ -75,11 +68,12 @@ public class ValidateExampleTest {
       }
    }
 
-   @Test
-   public void testCopy() {
+   @ParameterizedTest
+   @MethodSource("exampleFiles")
+   public void testCopy(String exampleFile) {
       try {
          LocalBenchmarkData data = new LocalBenchmarkData(Paths.get(exampleFile));
-         BenchmarkBuilder original = BenchmarkParser.instance().builder(loadOrFail(), data, Collections.emptyMap());
+         BenchmarkBuilder original = BenchmarkParser.instance().builder(loadOrFail(exampleFile), data, Collections.emptyMap());
          BenchmarkBuilder builder = new BenchmarkBuilder(null, Collections.emptyMap()).data(data);
          HttpPluginBuilder plugin = builder.addPlugin(HttpPluginBuilder::new);
          HttpPluginBuilder.httpForTesting(original).forEach(http -> plugin.addHttp(http.copy(plugin)));
@@ -96,12 +90,13 @@ public class ValidateExampleTest {
       }
    }
 
-   @Test
-   public void testPrint() throws IOException, ParserException {
-      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(),
+   @ParameterizedTest
+   @MethodSource("exampleFiles")
+   public void testPrint(String exampleFile) throws IOException, ParserException {
+      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(exampleFile),
             new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
       ByteArrayOutputStream output = new ByteArrayOutputStream();
-      try (PrintStream stream = new PrintStream(output, false, StandardCharsets.UTF_8.name())) {
+      try (PrintStream stream = new PrintStream(output, false, StandardCharsets.UTF_8)) {
          new YamlVisitor(stream, 20).walk(benchmark);
       }
       String str = output.toString(StandardCharsets.UTF_8);

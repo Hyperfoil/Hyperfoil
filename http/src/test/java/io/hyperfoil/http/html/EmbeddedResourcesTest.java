@@ -4,18 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
-public class EmbeddedResourcesTest extends HttpScenarioTest {
+public class EmbeddedResourcesTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.route().handler(ctx -> {

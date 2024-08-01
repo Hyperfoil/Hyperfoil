@@ -2,7 +2,7 @@ package io.hyperfoil.core.generators;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.ObjectAccess;

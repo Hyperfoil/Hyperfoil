@@ -1,15 +1,17 @@
 package io.hyperfoil.http.statistics;
 
-import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertSame;
+
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.config.HttpBuilder;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public class Http2ErrorRatioTest extends ErrorRatioTest {
    @Override
    protected boolean useHttps() {
@@ -22,8 +24,12 @@ public class Http2ErrorRatioTest extends ErrorRatioTest {
    }
 
    @Override
-   protected Action validateConnection(TestContext ctx) {
-      return session -> ctx
-            .assertTrue(((HttpConnection) session.currentRequest().connection()).version() == HttpVersion.HTTP_2_0);
+   protected Action validateConnection(VertxTestContext ctx) {
+      return session -> {
+         ctx.verify(() -> {
+            assertSame(((HttpConnection) session.currentRequest().connection()).version(), HttpVersion.HTTP_2_0);
+            ctx.completeNow();
+         });
+      };
    }
 }

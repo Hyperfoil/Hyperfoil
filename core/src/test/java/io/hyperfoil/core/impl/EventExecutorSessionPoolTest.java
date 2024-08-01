@@ -1,9 +1,10 @@
 package io.hyperfoil.core.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -13,10 +14,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.session.Session;
@@ -25,13 +25,13 @@ import io.netty.channel.DefaultEventLoop;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutor;
 
-@RunWith(CustomExecutorRunner.class)
+@ExtendWith(CustomExecutorRunner.class)
 public class EventExecutorSessionPoolTest extends PoolTest<Session> {
 
    private static EventExecutor[] executors;
    private int nextEventExecutor = 0;
 
-   @BeforeClass
+   @BeforeAll
    public static void configureRunnerExecutor() {
       final var eventExecutors = new DefaultEventExecutorGroup(11);
       executors = StreamSupport.stream(eventExecutors.spliterator(), false)
@@ -103,7 +103,7 @@ public class EventExecutorSessionPoolTest extends PoolTest<Session> {
          }
       });
       alienThread.start();
-      Assert.assertNull(error.join());
+      assertNull(error.join());
    }
 
    @Test
@@ -115,7 +115,7 @@ public class EventExecutorSessionPoolTest extends PoolTest<Session> {
          try {
             testResult.get();
          } catch (Throwable e) {
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
          }
       } finally {
          eventLoop.shutdownGracefully();

@@ -13,24 +13,23 @@ import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.server.core.admin.embeddedserver.EmbeddedServerAdminOperationHandler;
 import org.infinispan.server.hotrod.HotRodServer;
 import org.infinispan.server.hotrod.configuration.HotRodServerConfigurationBuilder;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.session.BaseScenarioTest;
 import io.hyperfoil.core.test.TestUtil;
-import io.vertx.ext.unit.TestContext;
 
 public abstract class BaseHotRodTest extends BaseScenarioTest {
 
    protected HotRodServer[] hotrodServers;
    private int numberServers = 1;
 
-   @Before
-   public void before(TestContext ctx) {
-      super.before(ctx);
+   @BeforeEach
+   public void before() {
+      super.before();
       TestResourceTracker.setThreadTestName("hyperfoil-HotRodTest");
       hotrodServers = new HotRodServer[numberServers];
       for (int i = 0; i < numberServers; i++) {
@@ -52,9 +51,8 @@ public abstract class BaseHotRodTest extends BaseScenarioTest {
 
    protected abstract void createCache(EmbeddedCacheManager em);
 
-   @After
-   public void after(TestContext ctx) {
-      super.after(ctx);
+   @AfterEach
+   public void after() {
       if (hotrodServers != null) {
          for (HotRodServer hotRodServer : hotrodServers) {
             hotRodServer.stop();

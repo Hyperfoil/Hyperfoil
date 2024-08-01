@@ -23,11 +23,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -43,41 +43,37 @@ import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public class HttpClientPoolHandlerTest {
 
-   protected volatile int count;
-   private Vertx vertx = Vertx.vertx();
+   protected AtomicInteger count;
    private HttpServer httpServer;
 
-   @Before
-   public void before(TestContext ctx) {
-      count = 0;
+   @BeforeEach
+   public void before(Vertx vertx, VertxTestContext ctx) {
+      count = new AtomicInteger(0);
       httpServer = vertx.createHttpServer().requestHandler(req -> {
-         count++;
+         count.getAndIncrement();
          req.response().putHeader("foo", "bar").end("hello from server");
-      }).listen(0, "localhost", ctx.asyncAssertSuccess());
-   }
-
-   @After
-   public void after(TestContext ctx) {
-      vertx.close(ctx.asyncAssertSuccess());
+      }).listen(0, "localhost", ctx.succeedingThenComplete());
    }
 
    @Test
-   public void simpleHeaderRequest(TestContext ctx) throws Exception {
+   public void simpleHeaderRequest(VertxTestContext ctx) throws Exception {
       Http http = HttpBuilder.forTesting().host("localhost").port(httpServer.actualPort()).build(true);
       HttpClientPool client = HttpClientPoolImpl.forTesting(http, 1);
 
+      var checkpoint = ctx.checkpoint(5);
       CountDownLatch startLatch = new CountDownLatch(1);
       client.start(result -> {
          if (result.failed()) {
-            ctx.fail(result.cause());
+            ctx.failNow(result.cause());
          } else {
             startLatch.countDown();
+            checkpoint.flag();
          }
       });
       assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
@@ -90,22 +86,34 @@ public class HttpClientPoolHandlerTest {
          HttpRequest request = HttpRequestPool.get(session).acquire();
          HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
                .status((r, code) -> {
-                  assertThat(code).isEqualTo(200);
+                  ctx.verify(() -> {
+                     assertThat(code).isEqualTo(200);
+                     checkpoint.flag();
+                  });
                   latch.countDown();
                })
                .header((req, header, value) -> {
                   if ("foo".contentEquals(header)) {
-                     assertThat("bar").asString().isEqualTo("bar");
+                     ctx.verify(() -> {
+                        assertThat(value.toString()).asString().isEqualTo("bar");
+                        checkpoint.flag();
+                     });
                      latch.countDown();
                   }
                })
                .body(f -> (s, input, offset, length, isLastPart) -> {
                   byte[] bytes = new byte[length];
                   input.getBytes(offset, bytes);
-                  assertThat(new String(bytes)).isEqualTo("hello from server");
+                  ctx.verify(() -> {
+                     assertThat(new String(bytes)).isEqualTo("hello from server");
+                     checkpoint.flag();
+                  });
                   latch.countDown();
                })
-               .onCompletion(s -> latch.countDown())
+               .onCompletion(s -> {
+                  latch.countDown();
+                  checkpoint.flag();
+               })
                .build();
          request.method = HttpMethod.GET;
          request.path = "/";
@@ -114,7 +122,7 @@ public class HttpClientPoolHandlerTest {
       });
 
       assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
-      assertThat(count).isEqualTo(1);
+      assertThat(count.get()).isEqualTo(1);
 
       client.shutdown();
    }

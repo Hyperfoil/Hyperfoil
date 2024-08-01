@@ -4,16 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.steps.JsonStep;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
 public class JsonStepTest extends BaseScenarioTest {
    @Test
    public void test() {
