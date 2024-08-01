@@ -3,6 +3,8 @@ package io.hyperfoil.http;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +42,17 @@ public abstract class BaseHttpScenarioTest extends BaseScenarioTest {
       router = Router.router(vertx);
       initRouter();
       benchmarkBuilder.addPlugin(HttpPluginBuilder::new);
-      startServer(ctx).onComplete(ctx.succeedingThenComplete());
+      var serverLatch = new CountDownLatch(1);
+      startServer(ctx).onComplete(ctx.succeedingThenComplete()).onComplete(event -> {
+         if (event.succeeded()) {
+            serverLatch.countDown();
+         }
+      });
+      try {
+         serverLatch.await(5, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+         ctx.failNow(e);
+      }
    }
 
    protected Future<Void> startServer(VertxTestContext ctx) {
