@@ -83,7 +83,8 @@ public class Hyperfoil {
             log.error("This machine is configured to resolve its hostname to 127.0.0.1; this is " +
                   "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
                   " or set -D{}=x.x.x.x to use different address. " +
-                  "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).", Properties.CONTROLLER_CLUSTER_IP);
+                  "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).",
+                  Properties.CONTROLLER_CLUSTER_IP);
             return Future.failedFuture("Hostname resolves to 127.0.0.1");
          }
          // We are using numeric address because if this is running in a pod its hostname
