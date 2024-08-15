@@ -75,9 +75,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- maven-compiler-plugin -->
-        <maven.compiler.target>17</maven.compiler.target>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.release>21</maven.compiler.release>
 
         <version.aesh>2.7</version.aesh>
         <version.apache.sshd>2.10.0</version.apache.sshd>
@@ -769,7 +769,7 @@
                                     <goal>jar</goal>
                                 </goals>
                                 <configuration>
-                                    <source>17</source>
+                                    <source>21</source>
                                     <detectJavaApiLink>false</detectJavaApiLink>
                                 </configuration>
                             </execution>
