@@ -10,7 +10,7 @@ Repeats a set of steps fixed number of times.
 
  It is legal to place steps after the looped steps. 
 
- Example: 
+ Example: <br> 
 ```
 scenario:
 - mySequence:

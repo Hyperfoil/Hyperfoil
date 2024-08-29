@@ -56,9 +56,9 @@ Condition comparing integer in session variable.
 | Inline definition |
 | -------- |
 | Parses condition in the form &lt;variable&gt; &lt;operator&gt; &lt;value&gt;
-             where operator is one of: <code>==</code>, <code>!=</code>,
-             <code>&lt;&gt;</code> (the same as <code>!=</code>),
-             <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
+       where operator is one of: <code>==</code>, <code>!=</code>,
+       <code>&lt;&gt;</code> (the same as <code>!=</code>),
+       <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -107,9 +107,9 @@ Condition comparing integer in session variable.
 | Inline definition |
 | -------- |
 | Parses condition in the form &lt;variable&gt; &lt;operator&gt; &lt;value&gt;
-             where operator is one of: <code>==</code>, <code>!=</code>,
-             <code>&lt;&gt;</code> (the same as <code>!=</code>),
-             <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
+       where operator is one of: <code>==</code>, <code>!=</code>,
+       <code>&lt;&gt;</code> (the same as <code>!=</code>),
+       <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |

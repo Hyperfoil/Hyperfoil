@@ -25,7 +25,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -40,7 +41,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -63,7 +65,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |

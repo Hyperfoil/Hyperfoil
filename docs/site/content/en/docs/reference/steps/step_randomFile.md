@@ -2,7 +2,7 @@
 title: "randomFile"
 description: "Reads bytes from a randomly chosen file into a variable. "
 ---
-Reads bytes from a randomly chosen file into a variable. <br> Two formats are supported: <br> Example 1 - without weights: 
+Reads bytes from a randomly chosen file into a variable. <br> Two formats are supported: <br> Example 1 - without weights: <br> 
 ```
 toVar: myVar
 files:
@@ -11,7 +11,7 @@ files:
 ```
  
 
- Example 2 - with weights (the second file will be returned twice as often): 
+ Example 2 - with weights (the second file will be returned twice as often): <br> 
 ```
 toVar: myVar
 files:
