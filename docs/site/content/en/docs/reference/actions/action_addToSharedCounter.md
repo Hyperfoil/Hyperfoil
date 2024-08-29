@@ -7,7 +7,7 @@ Adds value to a counter shared by all sessions in the same executor.
 | Inline definition |
 | -------- |
 | Use on of: <code>counter++</code>, <code>counter--</code>, <code>counter += &lt;value&gt;</code>,
-             <code>counter -= &lt;value&gt;</code> |
+       <code>counter -= &lt;value&gt;</code> |
 
 
 | Property | Type | Description |

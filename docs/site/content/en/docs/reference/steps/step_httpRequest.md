@@ -50,7 +50,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -125,7 +126,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -140,7 +142,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -155,7 +158,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -170,7 +174,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -261,9 +266,9 @@ Condition comparing integer in session variable.
 | Inline definition |
 | -------- |
 | Parses condition in the form &lt;variable&gt; &lt;operator&gt; &lt;value&gt;
-             where operator is one of: <code>==</code>, <code>!=</code>,
-             <code>&lt;&gt;</code> (the same as <code>!=</code>),
-             <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
+       where operator is one of: <code>==</code>, <code>!=</code>,
+       <code>&lt;&gt;</code> (the same as <code>!=</code>),
+       <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -324,9 +329,9 @@ Condition comparing integer in session variable.
 | Inline definition |
 | -------- |
 | Parses condition in the form &lt;variable&gt; &lt;operator&gt; &lt;value&gt;
-             where operator is one of: <code>==</code>, <code>!=</code>,
-             <code>&lt;&gt;</code> (the same as <code>!=</code>),
-             <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
+       where operator is one of: <code>==</code>, <code>!=</code>,
+       <code>&lt;&gt;</code> (the same as <code>!=</code>),
+       <code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -667,7 +672,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -689,7 +695,8 @@ Specifies value that should be sent in headers.
 
 | Inline definition |
 | -------- |
-| The value. This can be a <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>. |
+| The value. This can be a
+       <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -711,7 +718,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -726,7 +734,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -741,7 +750,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -756,7 +766,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -771,7 +782,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -815,7 +827,8 @@ Generic builder for generating a string.
 
 | Inline definition |
 | -------- |
-| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>. |
+| A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string
+       interpolation</a>. |
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
