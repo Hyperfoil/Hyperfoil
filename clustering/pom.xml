@@ -43,6 +43,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-infinispan</artifactId>
             <exclusions>
@@ -55,11 +60,6 @@
                     <artifactId>jboss-threads</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging</artifactId>
         </dependency>
 
         <dependency>
@@ -138,6 +138,12 @@
         <dependency>
             <groupId>org.jboss.threads</groupId>
             <artifactId>jboss-threads</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.logging</groupId>
+                    <artifactId>jboss-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
