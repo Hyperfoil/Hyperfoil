@@ -97,7 +97,6 @@
         <version.vertx>4.5.4</version.vertx>
         <version.infinispan>15.0.6.Final</version.infinispan>
         <version.jboss-threads>3.5.0.Final</version.jboss-threads>
-        <version.jboss-logging>3.5.0.Final</version.jboss-logging>
         <version.wildfly-common>1.6.0.Final</version.wildfly-common>
         <version.jctools>4.0.5</version.jctools>
 
@@ -408,12 +407,6 @@
                         <artifactId>wildfly-common</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jboss.logging</groupId>
-                <artifactId>jboss-logging</artifactId>
-                <version>${version.jboss-logging}</version>
             </dependency>
 
             <dependency>
