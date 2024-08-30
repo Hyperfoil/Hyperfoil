@@ -26,18 +26,11 @@ import io.vertx.junit5.VertxTestContext;
 
 @ExtendWith(VertxExtension.class)
 public class TwoServersTest extends BaseHttpScenarioTest {
-   CountDownLatch latch = new CountDownLatch(1);
    HttpServer secondServer;
 
    @Override
    protected void initRouter() {
-      router.route("/test").handler(ctx -> {
-         try {
-            latch.await(10, TimeUnit.SECONDS);
-         } catch (InterruptedException e) {
-         }
-         ctx.response().setStatusCode(200).end();
-      });
+      router.route("/test").handler(ctx -> ctx.response().setStatusCode(200).end());
    }
 
    @BeforeEach
@@ -61,13 +54,17 @@ public class TwoServersTest extends BaseHttpScenarioTest {
    }
 
    @Test
-   public void testTwoServers() {
+   public void testTwoServers(VertxTestContext ctx) throws InterruptedException {
+      var checkpoint = ctx.checkpoint(2);
       // @formatter:off
       scenario().initialSequence("test")
             .step(SC).httpRequest(HttpMethod.GET)
                .path("/test")
                .sync(false)
                .metric("server1")
+               .handler()
+                  .onCompletion(s -> checkpoint.flag())
+               .endHandler()
             .endStep()
             .step(SC).httpRequest(HttpMethod.GET)
                .authority("localhost:" + secondServer.actualPort())
@@ -75,12 +72,13 @@ public class TwoServersTest extends BaseHttpScenarioTest {
                .sync(false)
                .metric("server2")
                .handler()
-                  .onCompletion(s -> latch.countDown())
+                  .onCompletion(s -> checkpoint.flag())
                .endHandler()
             .endStep()
             .step(SC).awaitAllResponses();
       // @formatter:on
       Map<String, StatisticsSnapshot> stats = runScenario();
+
       StatisticsSnapshot s1 = stats.get("server1");
       assertThat(HttpStats.get(s1).status_2xx).isEqualTo(1);
       StatisticsSnapshot s2 = stats.get("server2");
