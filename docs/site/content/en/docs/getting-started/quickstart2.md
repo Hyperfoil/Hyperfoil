@@ -6,7 +6,7 @@ tags: [quickstart, steps, statistics]
 weight: 2
 ---
 
-In [previous quickstart](/docs/getting-started/quickstart2) you created a benchmark
+In [previous quickstart](/docs/getting-started/quickstart1) you created a benchmark
 that fires only one HTTP request. Our next example is going to hit random URLs at this server with 10 requests per second. We'll see how to generate random data and collect statistics for different URLs.
 
 Let's start a container that will serve the requests:
