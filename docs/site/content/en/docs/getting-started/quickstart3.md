@@ -6,7 +6,7 @@ tags: [quickstart]
 weight: 3
 ---
 
-The [previous example](/docs/getting-started/quickstart) was the first 'real' benchmark, but it didn't do anything different from what you could run through `wrk`, `ab`, `siege` or similar tools.
+The [previous example](/docs/getting-started/quickstart2) was the first 'real' benchmark, but it didn't do anything different from what you could run through `wrk`, `ab`, `siege` or similar tools.
 
 Of course, the results were not suffering from the _coordinated omission problem_, but Hyperfoil can do more. Let's try a more complex scenario:
 
