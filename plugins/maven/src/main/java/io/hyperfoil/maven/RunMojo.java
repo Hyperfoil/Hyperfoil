@@ -7,7 +7,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -109,14 +108,10 @@ public class RunMojo extends AbstractMojo {
 
       if (outputPercentileDistribution) {
          final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-         try {
-            stats.histogram.outputPercentileDistribution(new PrintStream(baos, true, "UTF-8"), 1000.00);
-            String data = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+         stats.histogram.outputPercentileDistribution(new PrintStream(baos, true, StandardCharsets.UTF_8), 1000.00);
+         String data = baos.toString(StandardCharsets.UTF_8);
 
-            log.info("\nPercentile Distribution\n\n{}", data);
-         } catch (UnsupportedEncodingException e) {
-            log.error("Could not write Percentile Distribution to log");
-         }
+         log.info("\nPercentile Distribution\n\n{}", data);
       }
 
       if (stats.errors() > 0) {

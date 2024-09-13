@@ -66,15 +66,16 @@ public class Upload extends BaseUploadCommand {
    }
 
    private CommandResult uploadFromFile(HyperfoilCommandInvocation invocation) throws CommandException {
-      String sanitizedPath = CliUtil.sanitize(benchmarkPath);
+      String sanitizedPathStr = CliUtil.sanitize(benchmarkPath);
+      Path sanitizedPath = Paths.get(sanitizedPathStr);
       String benchmarkYaml;
       try {
-         benchmarkYaml = Files.readString(Path.of(sanitizedPath));
+         benchmarkYaml = Files.readString(sanitizedPath);
       } catch (IOException e) {
          logError(invocation, e);
-         throw new CommandException("Failed to load the benchmark.", e);
+         throw new CommandException("Failed to load the benchmark", e);
       }
-      LocalBenchmarkData data = loadExtras(invocation, Paths.get(sanitizedPath).toAbsolutePath());
+      LocalBenchmarkData data = loadExtras(invocation, sanitizedPath.toAbsolutePath());
       if (data == null) {
          return CommandResult.FAILURE;
       }
@@ -82,7 +83,7 @@ public class Upload extends BaseUploadCommand {
       try {
          BenchmarkSource source = loadBenchmarkSource(invocation, benchmarkYaml, data);
 
-         Path benchmarkDir = Paths.get(sanitizedPath).toAbsolutePath().getParent();
+         Path benchmarkDir = sanitizedPath.toAbsolutePath().getParent();
          Map<String, Path> extraFiles = source.data.files().keySet().stream()
                .collect(Collectors.toMap(file -> file, file -> {
                   Path path = Paths.get(file);
@@ -90,7 +91,7 @@ public class Upload extends BaseUploadCommand {
                }));
          HyperfoilCliContext ctx = invocation.context();
          Client.BenchmarkRef benchmarkRef = ctx.client().register(
-               Paths.get(sanitizedPath).toAbsolutePath(), extraFiles, null, null);
+               sanitizedPath.toAbsolutePath(), extraFiles, null, null);
          ctx.setServerBenchmark(benchmarkRef);
          invocation.println("... done.");
          return CommandResult.SUCCESS;

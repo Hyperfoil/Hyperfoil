@@ -63,7 +63,7 @@ public class Report extends BaseRunIdCommand {
          invocation.error("Cannot write to '" + destination + "': ", e);
          return CommandResult.FAILURE;
       }
-      invocation.println("Written to " + destination);
+      invocation.println("Report written to " + destination);
       if (!"true".equalsIgnoreCase(System.getenv("HYPERFOIL_CONTAINER")) && !silent) {
          openInBrowser("file://" + destination);
       }

@@ -31,7 +31,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 
 public abstract class BaseUploadCommand extends ServerCommand {
    @Option(name = "print-stack-trace", hasValue = false)
-   boolean printStackTrace;
+   public boolean printStackTrace;
 
    @OptionList(name = "extra-files", shortName = 'f', description = "Extra files for upload (comma-separated) in case this benchmark is a template and files won't be auto-detected. Example: --extra-files foo.txt,bar.txt")
    protected List<String> extraFiles;

@@ -1,5 +1,8 @@
 package io.hyperfoil.benchmark;
 
+import java.io.File;
+import java.net.URL;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -27,5 +30,14 @@ public abstract class BaseBenchmarkTest {
 
    private void setupHttpServer(VertxTestContext ctx, Handler<HttpServerRequest> handler) {
       httpServer = vertx.createHttpServer().requestHandler(handler).listen(0, "localhost", ctx.succeedingThenComplete());
+   }
+
+   protected String getBenchmarkPath(String name) {
+      URL resource = getClass().getClassLoader().getResource(name);
+      if (resource == null) {
+         throw new AssertionError("Resource named: " + name + " not found");
+      }
+      File benchmark = new File(resource.getFile());
+      return benchmark.getAbsolutePath();
    }
 }

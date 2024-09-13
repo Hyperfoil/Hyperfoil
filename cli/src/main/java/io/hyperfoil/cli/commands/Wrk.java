@@ -20,9 +20,11 @@
 
 package io.hyperfoil.cli.commands;
 
+import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 
 public class Wrk extends WrkAbstract {
 
@@ -30,12 +32,17 @@ public class Wrk extends WrkAbstract {
 
    public static void main(String[] args) {
       Wrk wrk = new Wrk();
-      wrk.mainMethod(args, Wrk.WrkCommand.class);
+      wrk.exec(args);
    }
 
    @Override
-   protected String getCommand() {
+   protected String getCommandName() {
       return CMD;
+   }
+
+   @Override
+   protected Class<? extends Command<HyperfoilCommandInvocation>> getCommand() {
+      return WrkCommand.class;
    }
 
    @CommandDefinition(name = CMD, description = "Runs a workload simulation against one endpoint using the same vm")

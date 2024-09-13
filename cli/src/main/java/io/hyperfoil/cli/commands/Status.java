@@ -37,13 +37,8 @@ public class Status extends BaseRunIdCommand {
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
-      io.hyperfoil.controller.model.Run run;
-      try {
-         run = runRef.get();
-      } catch (RestClientException e) {
-         invocation.error(e);
-         throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
-      }
+      io.hyperfoil.controller.model.Run run = getRun(invocation, runRef);
+
       invocation.println("Run " + run.id + ", benchmark " + run.benchmark);
       if (run.description != null) {
          invocation.println(run.description);
