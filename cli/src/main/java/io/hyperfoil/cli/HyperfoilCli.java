@@ -75,6 +75,7 @@ import io.hyperfoil.cli.commands.Stats;
 import io.hyperfoil.cli.commands.Status;
 import io.hyperfoil.cli.commands.Upload;
 import io.hyperfoil.cli.commands.Version;
+import io.hyperfoil.cli.commands.Wait;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.commands.Wrk2;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
@@ -177,6 +178,7 @@ public class HyperfoilCli {
             Status.class,
             Upload.class,
             Version.class,
+            Wait.class,
             Wrk.WrkCommand.class,
             Wrk2.Wrk2Command.class);
    }

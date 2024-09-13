@@ -3,6 +3,7 @@ package io.hyperfoil.internal;
 import java.util.function.Function;
 
 public interface Properties {
+   String HYPERFOIL_STACKTRACE = "io.hyperfoil.stacktrace";
    String AGENT_DEBUG_PORT = "io.hyperfoil.agent.debug.port";
    String AGENT_DEBUG_SUSPEND = "io.hyperfoil.agent.debug.suspend";
    String AGENT_JAVA_EXECUTABLE = "io.hyperfoil.agent.java.executable";

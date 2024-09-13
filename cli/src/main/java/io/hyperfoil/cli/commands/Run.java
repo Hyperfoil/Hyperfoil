@@ -24,11 +24,15 @@ import io.hyperfoil.core.parser.ParserException;
 
 @CommandDefinition(name = "run", description = "Starts benchmark on Hyperfoil Controller server")
 public class Run extends ParamsCommand {
+
    @Option(shortName = 'd', description = "Run description")
    String description;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
+      // the implementation, by default, is empty as the benchmark should be loaded using upload cmd
+      setup(invocation);
+
       Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
       Map<String, String> currentParams = getParams(invocation);
 
@@ -80,8 +84,17 @@ public class Run extends ParamsCommand {
          invocation.error(e);
          throw new CommandException("Failed to start benchmark " + benchmarkRef.name(), e);
       }
-      invocation.executeSwitchable("status");
+      monitor(invocation);
       return CommandResult.SUCCESS;
+   }
+
+   protected void setup(HyperfoilCommandInvocation invocation) throws CommandException {
+      // nothing to do as the benchmark should be already loaded when running
+      // Run command in CLI mode
+   }
+
+   protected void monitor(HyperfoilCommandInvocation invocation) throws CommandException {
+      invocation.executeSwitchable("status");
    }
 
    protected boolean onMissingFile(HyperfoilCommandInvocation invocation, String file, ProvidedBenchmarkData data) {

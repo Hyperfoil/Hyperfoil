@@ -8,6 +8,7 @@ import io.hyperfoil.core.impl.ProvidedBenchmarkData;
 
 @CommandDefinition(name = "run", description = "Starts benchmark on Hyperfoil Controller server")
 public class WebRun extends Run {
+
    @Override
    protected boolean onMissingFile(HyperfoilCommandInvocation invocation, String file, ProvidedBenchmarkData data) {
       try {

@@ -32,21 +32,14 @@ import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.HistogramIterationValue;
-import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.Command;
-import org.aesh.command.CommandNotFoundException;
 import org.aesh.command.CommandResult;
-import org.aesh.command.CommandRuntime;
-import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
@@ -57,9 +50,7 @@ import org.aesh.terminal.utils.ANSI;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.HistogramConverter;
@@ -72,55 +63,7 @@ import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.impl.Util;
 
-public abstract class WrkAbstract {
-
-   //ignore logging when running in the console below severe
-   static {
-      Handler[] handlers = Logger.getLogger("").getHandlers();
-      for (int index = 0; index < handlers.length; index++) {
-         handlers[index].setLevel(Level.SEVERE);
-      }
-   }
-
-   protected abstract String getCommand();
-
-   public int mainMethod(String[] args, Class<? extends AbstractWrkCommand> wrkClass) {
-      CommandRuntime<HyperfoilCommandInvocation> cr = null;
-      CommandResult result = null;
-      try {
-         AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();
-         runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
-         @SuppressWarnings("unchecked")
-         AeshCommandRegistryBuilder<HyperfoilCommandInvocation> registry = AeshCommandRegistryBuilder
-               .<HyperfoilCommandInvocation> builder()
-               .commands(StartLocal.class, wrkClass, Exit.class);
-         runtime.commandRegistry(registry.create());
-         cr = runtime.build();
-         try {
-            cr.executeCommand("start-local --quiet");
-            // As -H option could contain a whitespace we have to either escape the space or quote the argument.
-            // However quoting would not work well if the argument contains a quote.
-            String optionsCollected = Stream.of(args).map(arg -> arg.replaceAll(" ", "\\\\ ")).collect(Collectors.joining(" "));
-            result = cr.executeCommand(getCommand() + " " + optionsCollected);
-         } finally {
-            cr.executeCommand("exit");
-         }
-      } catch (Exception e) {
-         System.out.println("Failed to execute command: " + e.getMessage());
-         if (Boolean.getBoolean("io.hyperfoil.stacktrace")) {
-            e.printStackTrace();
-         }
-         if (cr != null) {
-            try {
-               System.out.println(cr.getCommandRegistry().getCommand(getCommand(), getCommand()).printHelp(getCommand()));
-            } catch (CommandNotFoundException ex) {
-               throw new IllegalStateException(ex);
-            }
-         }
-         //todo: should provide help info here, will be added in newer version of æsh
-      }
-      return result == null ? CommandResult.FAILURE.getResultValue() : result.getResultValue();
-   }
+public abstract class WrkAbstract extends BaseStandaloneCommand {
 
    //   @CommandDefinition(name = "wrk", description = "Runs a workload simulation against one endpoint using the same vm")
    public abstract class AbstractWrkCommand implements Command<HyperfoilCommandInvocation> {
@@ -168,7 +111,7 @@ public abstract class WrkAbstract {
       @Override
       public CommandResult execute(HyperfoilCommandInvocation invocation) {
          if (help) {
-            invocation.println(invocation.getHelpInfo(getCommand()));
+            invocation.println(invocation.getHelpInfo(getCommandName()));
             return CommandResult.SUCCESS;
          }
          if (script != null) {
@@ -214,7 +157,7 @@ public abstract class WrkAbstract {
          Protocol protocol = Protocol.fromScheme(uri.getScheme());
          // @formatter:off
          BenchmarkBuilder builder = BenchmarkBuilder.builder()
-               .name(getCommand())
+               .name(getCommandName())
                .addPlugin(HttpPluginBuilder::new)
                   .ergonomics()
                      .repeatCookies(false)

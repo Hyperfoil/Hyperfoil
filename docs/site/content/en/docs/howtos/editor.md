@@ -1,5 +1,5 @@
 ---
-title: Benchmark schema support
+title: JSON schema support
 description: How to make your life easier while building your own benchmarks
 categories: [HowTo]
 tags: [how-to, guides, editor, json-schema]

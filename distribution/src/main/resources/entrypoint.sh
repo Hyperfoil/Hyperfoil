@@ -14,6 +14,9 @@ case ${1,,} in
 "wrk2")
   shift
   $DIR/wrk2.sh "$@" ;;
+"run")
+  shift
+  $DIR/run.sh "$@" ;;
 "sh" | "bash")
   bash ;;
 *)

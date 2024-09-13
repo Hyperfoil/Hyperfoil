@@ -48,8 +48,8 @@ public class WrkTest extends BaseBenchmarkTest {
    @Test
    public void testFailFastWrk() {
       Wrk cmd = new Wrk();
-      int result = cmd.mainMethod(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
-            "nonExistentHost:" + httpServer.actualPort() + "/foo/bar" }, Wrk.WrkCommand.class);
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
+            "nonExistentHost:" + httpServer.actualPort() + "/foo/bar" });
       ;
       assertEquals(CommandResult.FAILURE.getResultValue(), result);
    }

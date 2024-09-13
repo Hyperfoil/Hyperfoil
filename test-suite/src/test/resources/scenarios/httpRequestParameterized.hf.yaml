@@ -1,0 +1,38 @@
+# For parser testing
+name: generators
+http:
+  protocol: http
+  host: localhost
+  port: !param SERVER_PORT
+ergonomics:
+  autoRangeCheck: false
+phases:
+- testPhase:
+    atOnce:
+      users: 1
+      duration: 0
+      scenario:
+        initialSequences:
+        - testSequence:
+          - httpRequest:
+              GET: /foo
+              sla:
+                meanResponseTime: 1s
+              handler:
+                status:
+                  range: 2xx
+          - set: x <- y
+          - httpRequest:
+              PUT:
+                pattern: /foo?bar=${x}
+              sla:
+              - meanResponseTime: 500ms
+              - window: 10s
+                meanResponseTime: 1s
+              handler:
+                status:
+                # Check list syntax
+                - range:
+                    min: 201
+                    max: 259
+                - range: 200-210
