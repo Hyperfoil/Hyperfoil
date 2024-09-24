@@ -70,7 +70,7 @@ public abstract class BaseHttpScenarioTest extends BaseScenarioTest {
       server = vertx.createHttpServer(options)
             .requestHandler(router)
             .listen(0, "localhost", ctx.succeeding(srv -> {
-               initWithServer(tls);
+               initWithServer(srv, tls);
                promise.complete();
                ctx.completeNow();
             }));
@@ -86,12 +86,12 @@ public abstract class BaseHttpScenarioTest extends BaseScenarioTest {
       return false;
    }
 
-   protected void initWithServer(boolean tls) {
+   protected void initWithServer(HttpServer srv, boolean tls) {
       HttpPluginBuilder httpPlugin = benchmarkBuilder.plugin(HttpPluginBuilder.class);
       HttpBuilder http = httpPlugin.http();
       http.protocol(tls ? Protocol.HTTPS : Protocol.HTTP)
             .name("myhost")
-            .host("localhost").port(server.actualPort());
+            .host("localhost").port(srv.actualPort());
       initHttp(http);
    }
 
