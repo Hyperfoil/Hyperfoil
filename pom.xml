@@ -84,7 +84,7 @@
         <version.assertj>3.10.0</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
         <version.fabric8.kubernetes-client>4.7.2</version.fabric8.kubernetes-client>
-        <version.jkube.maven-plugin>1.16.2</version.jkube.maven-plugin>
+        <version.jkube.maven-plugin>1.17.0</version.jkube.maven-plugin>
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.javaparser>3.14.12</version.javaparser>
         <version.marshalling>2.0.6.Final</version.marshalling>
