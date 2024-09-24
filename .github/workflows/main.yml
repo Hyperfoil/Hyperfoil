@@ -34,6 +34,7 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+    # setup local ssh key for benchmark tests
     - name: Generate SSH keys
       run: ssh-keygen -t rsa -b 4096 -C "github@hyperfoil.io" -f ~/.ssh/id_rsa
     - name: Authorize SSH key on localhost
@@ -42,10 +43,10 @@ jobs:
       run: ssh-keyscan localhost >> ~/.ssh/known_hosts
     - name: Fix home dir permissions
       run: chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
+    # Run a full build with all tests
     - name: Build with Maven
       run: mvn clean -B package --file pom.xml -Pbenchmark -Pbuild-image -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
     - name: Check uncommitted changes
-      if: matrix.os.name == 'ubuntu-latest'
       run: |
         clean=$(git status --porcelain)
         if [[ -z "$clean" ]]; then
@@ -57,9 +58,9 @@ jobs:
         fi
     - name: Upload artifact for failed workflow
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: test logs
+        name: tests_logs
         path: |
           */target/surefire-reports/*
           test-suite/target/hyperfoil/*.log
