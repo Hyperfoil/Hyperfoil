@@ -9,9 +9,9 @@ weight: 1
 #### 1. Download [latest release](https://github.com/Hyperfoil/Hyperfoil/releases/latest) and unpack it
 
 ```sh
-wget {{ site.last_release.url }} \
-    && unzip {{ site.last_release.zip }} \
-    && cd {{ site.last_release.dir }}
+wget {{< param url_latest_distribution >}} \
+    && unzip {{< param zip_latest_distribution >}} \
+    && cd <extracted dir>
 ```
 
 
@@ -38,7 +38,7 @@ As you can see below, the benchmark is really minimalistic as it is doing only s
 {{< readfile file="/static/benchmarks/single-request.hf.yaml" code="true" lang="yaml" >}}
 
 Create the same benchmark in your local environment or [download it](/benchmarks/single-request.hf.yaml).
-After that, upload it using the `upload` command as follow:
+After that, upload it using the `upload` command as follows:
 
 ```sh
 [hyperfoil@in-vm]$ upload .../single-request.hf.yaml
