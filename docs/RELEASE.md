@@ -127,6 +127,7 @@ All changes should be already in place at the time a new release is being perfor
       version: X.Y.Z
       github_branch: X.Y.x
       url_latest_distribution: https://github.com/Hyperfoil/Hyperfoil/releases/download/hyperfoil-all-X.Y.Z/hyperfoil-X.Y.Z.zip
+      zip_latest_distribution: hyperfoil-X.Y.Z.zip
    ```
 
 4. [Optional] If you had to do some of the previous changes, most likely bullet #3, commit the new changes
