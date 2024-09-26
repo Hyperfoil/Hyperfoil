@@ -8,7 +8,7 @@ menu: {main: {weight: 30}}
 
 <p class="lead mt-5 mb-5">It seems you're ready to try Hyperfoil! Check out the latest release.</p>
 
-<a class="btn btn-lg btn-primary me-3 mb-4" href="{{< param url_latest_distribution >}}">
+<a class="btn btn-lg btn-primary me-3 mb-4" href="{{< param url_latest_distribution >}}/{{< param zip_latest_distribution >}}">
   Download {{< param version >}} <i class="fas fa-arrow-alt-circle-right ms-2"></i>
 </a>
 
