@@ -174,7 +174,7 @@ params:
     # End user relevant links. These will show up on left side of footer and in the community page if you have one.
     user:
       - name: GitHub Discussions
-        url: https://github.com/Hyperfoil/Hyperofil/discussions
+        url: https://github.com/Hyperfoil/Hyperfoil/discussions
         icon: fab fa-github
         desc: If you have a question, please ask the Hyperfoil team
       - name: Twitter
@@ -184,7 +184,7 @@ params:
     # Developer relevant links. These will show up on right side of footer and in the community page if you have one.
     developer:
       - name: GitHub
-        url: https://github.com/Hyperfoil/Hyperofil
+        url: https://github.com/Hyperfoil/Hyperfoil
         icon: fab fa-github
         desc: Development takes place here!
       - name: Zulip
@@ -192,7 +192,7 @@ params:
         icon: fab fa-z
         desc: Chat with other Hyperfoil developers
       - name: GitHub Issues
-        url: https://github.com/Hyperfoil/Hyperofil/issues
+        url: https://github.com/Hyperfoil/Hyperfoil/issues
         icon: fab fa-github
         desc: If you find a bug, or want to suggest a new feature!
 
