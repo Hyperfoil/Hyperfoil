@@ -1,12 +1,12 @@
 /**
- * <h1>Design</h1>
+ * <h2>Design</h2>
  * <p>
  * There are two main components:
  * <ul>
  * <li>{@link io.hyperfoil.api.config.Sequence Sequence templates} - instructions 'what to do'
  * <li>Session (execution context) holds any state, including current state of the state machine and variables
  * </ul>
- * <h2>Memory allocation</h2>
+ * <h3>Memory allocation</h3>
  * <p>
  * In order to keep object allocations at minimum we're expected to know all variables in advance and pre-allocate
  * these in the Session object. During consecutive repetitions of the user scenario
@@ -19,7 +19,7 @@
  * which in turn calls this on all {@link io.hyperfoil.api.config.Step steps} and these call the
  * {@link io.hyperfoil.api.processor.Processor processors} or any other handlers.
  *
- * <h2>Execution</h2>
+ * <h3>Execution</h3>
  * <p>
  * After the session is constructed or reset you should create {@link io.hyperfoil.api.session.SequenceInstance sequence
  * instances}
@@ -39,7 +39,7 @@
  * <p>
  * Execution is terminated when there are no enabled sequences in the session.
  *
- * <h2>Variables</h2>
+ * <h3>Variables</h3>
  * <p>
  * The {@link io.hyperfoil.api.session.Session} is provided as a parameter to most calls and stores all state of the scenario.
  * The state is operated using "accessors"; these can be retrieved from
@@ -62,7 +62,7 @@
  * The choice of index is up to the Step that creates the new sequences. Two concurrently enabled sequences may share
  * the same index, but in that case these should not use the same variable names for sequence-scoped data.
  *
- * <h2>Threading model</h2>
+ * <h3>Threading model</h3>
  * <p>
  * There's no internal synchronization of anything; we rely on the event-loop model.
  * Each {@link io.hyperfoil.api.session.Session session} is tied to a single-threaded {@link io.netty.channel.EventLoop event
