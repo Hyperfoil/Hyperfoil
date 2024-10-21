@@ -155,14 +155,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                stopSimulation(run);
             }
          } else if (msg instanceof AgentReadyMessage) {
-            if (!run.validation) {
-               agent.status = AgentInfo.Status.READY;
-               if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.READY)) {
-                  startSimulation(run);
-               }
-            } else { //stop simulation from running if a validation run
-               agent.status = AgentInfo.Status.STOPPED;
-               stopSimulation(run);
+            agent.status = AgentInfo.Status.READY;
+            if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.READY)) {
+               startSimulation(run);
             }
          } else {
             log.error("Unexpected type of message: {}", msg);
@@ -212,10 +207,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      ControllerPhase controllerPhase = run.phases.get(pscm.phase);
                      if (controllerPhase != null) {
                         tryCompletePhase(run, pscm.phase, controllerPhase);
-                     } else if (!run.validation) {
-                        // if run.validation is true, then startSimulation is not executed and the phases are not
-                        // added in the list, therefore it is expected that the phase is not found
-                        // log the error if and only if the phase is not found, and we are not running just validation
+                     } else {
                         log.error("Run {}: Cannot find phase {}!", run.id, pscm.phase);
                      }
                   }
@@ -500,13 +492,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   Run createRun(Benchmark benchmark, String description, Boolean validate) {
+   Run createRun(Benchmark benchmark, String description) {
       ensureMaxInMemoryRuns();
       String runId = String.format("%04X", runIds.getAndIncrement());
       Path runDir = Controller.RUN_DIR.resolve(runId);
       //noinspection ResultOfMethodCallIgnored
       runDir.toFile().mkdirs();
-      Run run = new Run(runId, runDir, benchmark, validate);
+      Run run = new Run(runId, runDir, benchmark);
       run.initStore(new StatisticsStore(benchmark, failure -> log.warn("Failed verify SLA(s) for {}/{}: {}",
             failure.phase(), failure.metric(), failure.message())));
       run.description = description;
@@ -532,7 +524,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   String startBenchmark(Run run, Boolean validation) {
+   String startBenchmark(Run run) {
       Set<String> activeAgents = new HashSet<>();
       for (Run r : runs.values()) {
          if (!r.terminateTime.future().isComplete()) {
