@@ -98,7 +98,7 @@
         <version.infinispan>15.0.8.Final</version.infinispan>
         <version.jboss-threads>3.5.0.Final</version.jboss-threads>
         <version.jboss-logging>3.6.0.Final</version.jboss-logging>
-        <version.wildfly-common>1.6.0.Final</version.wildfly-common>
+        <version.wildfly-common>2.0.1</version.wildfly-common>
         <version.jctools>4.0.5</version.jctools>
 
         <version.sonatype.nexus>1.7.0</version.sonatype.nexus>
