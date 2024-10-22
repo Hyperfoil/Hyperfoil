@@ -44,7 +44,7 @@ jobs:
       - name: Backporting
         uses: kiegroup/git-backporting@v4
         with:
-          target-branch: 0.26.x
+          target-branch: 0.27.x
           pull-request: ${{ github.event.pull_request.url }}
           auth: ${{ secrets.RH_PERF_BOT_TOKEN }}
           no-squash: ${{ env.NO_SQUASH_OPTION }}
