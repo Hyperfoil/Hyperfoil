@@ -5,6 +5,30 @@ type: docs
 weight: 1
 ---
 
+## 0.27 (2024-10-22)
+
+* Upgrade to JDK 17
+* Extends max sequences and requests wrk settings to HTTP 2 as well
+* Fixes #385 Optimize 0 and 1 Sequence's concurrency on HTTP
+* Better tune calibration wrk2 phase
+* Avoid byte[] allocation per event object
+* Export standard deviation for response time
+* Add max response time in CLI stats
+* Rate generators refactoring and compensation unification
+* Add simulation initialization time log
+* Make HTTP cache configurable
+* Skip benchmark validation run on wrk/wrk2
+* Rate generators session pool workstealing
+* Reduce maxRequests to 1 for Wrk HTTP 1.1
+* Add utility hyperfoil run script
+* Replace HyperfoilChannelLookup
+* Bump version.infinispan from 15.0.8.Final
+* Bump org.jboss.logging:jboss-logging to 3.6.0.Final
+* Bump org.yaml:snakeyaml to 2.2
+* Fix incorrect log messages
+* Migrate tests to junit 5
+* Generic improvements in the CI
+
 ## 0.26 (2024-05-31)
 
 * Remove java.net.preferIPv4Stack=true
