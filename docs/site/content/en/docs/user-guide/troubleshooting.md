@@ -10,7 +10,7 @@ weight: 5
 
 The first step to identifying any issue is getting a verbose log - setting logging level to TRACE. How exactly you do that depends on the way you deploy Hyperfoil:
 
-1. If you use CLI and the `start-local` command, just run it as `start-local -l TRACE` which sets the default logging level. You'll find the log in `/tmp/hyperfoil.local.log` by default.
+1. If you use CLI and the `start-local` command, just run it as `start-local -l TRACE` which sets the default logging level. You'll find the log in `/tmp/hyperfoil/hyperfoil.local.log` by default.
 
 2. If you run Hyperfoil manually in [standalone mode](/docs/user-guide/installation/start_manual/) (non-clustered) the agent will run in the same JVM as the controller. You need to add `-Dlog4j.configurationFile=file:///path/to/log4j2-trace.xml` option when starting `standalone.sh`. If you start Hyperfoil through Ansible the same is set using `hyperfoil_log_config` variable.
 
