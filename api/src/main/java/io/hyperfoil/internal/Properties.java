@@ -26,7 +26,6 @@ public interface Properties {
    String CPU_WATCHDOG_IDLE_THRESHOLD = "io.hyperfoil.cpu.watchdog.idle.threshold";
    String DEPLOYER = "io.hyperfoil.deployer";
    String DEPLOY_TIMEOUT = "io.hyperfoil.deploy.timeout";
-   String DIST_DIR = "io.hyperfoil.distdir";
    String JITTER_WATCHDOG_PERIOD = "io.hyperfoil.jitter.watchdog.period";
    String JITTER_WATCHDOG_THRESHOLD = "io.hyperfoil.jitter.watchdog.threshold";
    String LOG4J2_CONFIGURATION_FILE = "log4j.configurationFile";
