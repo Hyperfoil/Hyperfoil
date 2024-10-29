@@ -30,6 +30,8 @@ class Run {
    Promise<Long> terminateTime = Promise.promise();
    boolean cancelled;
    boolean completed;
+   // set to true once the all.json and related files are persisted in the filesystem
+   boolean persisted;
    boolean validation;
    Supplier<StatisticsStore> statsSupplier;
    private StatisticsStore statisticsStore;
