@@ -532,6 +532,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    String startBenchmark(Run run, Boolean validation) {
       Set<String> activeAgents = new HashSet<>();
       for (Run r : runs.values()) {
@@ -638,6 +639,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    private void startSimulation(Run run) {
       vertx.executeBlocking(future -> {
          // combine shared and benchmark-private hooks
@@ -786,6 +788,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    private void persistRun(Run run) {
       vertx.executeBlocking(future -> {
          try {
@@ -815,7 +818,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      .collect(Collectors.toList())));
 
          try {
-            Files.write(run.dir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
+            Files.writeString(run.dir.resolve("info.json"), info.encodePrettily());
          } catch (IOException e) {
             log.error("Cannot write info file", e);
             future.fail(e);
@@ -852,7 +855,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                .map(r -> new JsonObject().put("name", r.name).put("output", r.output))
                .collect(Collectors.toList()));
          try {
-            Files.write(run.dir.resolve("hooks.json"), hookResults.encodePrettily().getBytes(StandardCharsets.UTF_8));
+            Files.writeString(run.dir.resolve("hooks.json"), hookResults.encodePrettily());
          } catch (IOException e) {
             log.error("Cannot write hook results", e);
             future.fail(e);
@@ -861,6 +864,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          future.tryComplete();
       }, result -> {
          run.completed = true;
+         run.persisted = true;
          if (result.failed()) {
             log.error("Failed to persist run {}", run.id, result.cause());
          } else {
@@ -914,6 +918,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    public Future<Void> addBenchmark(Benchmark benchmark, String prevVersion) {
       if (prevVersion != null) {
          Benchmark prev = benchmarks.get(benchmark.name());
@@ -940,6 +945,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    public Future<Void> addTemplate(BenchmarkSource template, String prevVersion) {
       if (prevVersion != null) {
          BenchmarkSource prev = templates.get(template.name);
@@ -980,6 +986,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       return templates.get(name);
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    private void loadBenchmarks(Handler<AsyncResult<Void>> handler) {
       vertx.executeBlocking(future -> {
          try {
@@ -1089,6 +1096,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       return deployer != null && deployer.hasControllerLog();
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    public void downloadControllerLog(long offset, File tempFile, Handler<AsyncResult<Void>> handler) {
       vertx.executeBlocking(future -> deployer.downloadControllerLog(offset, tempFile.toString(), handler), result -> {
          if (result.failed()) {
@@ -1097,6 +1105,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
    }
 
+   @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    public void downloadAgentLog(DeployedAgent deployedAgent, long offset, File tempFile, Handler<AsyncResult<Void>> handler) {
       vertx.executeBlocking(future -> deployer.downloadAgentLog(deployedAgent, offset, tempFile.toString(), handler),
             result -> {

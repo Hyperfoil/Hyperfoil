@@ -687,8 +687,8 @@ class ControllerServer implements ApiService {
    public void listRuns(RoutingContext ctx, boolean details) {
       io.hyperfoil.controller.model.Run[] runs = controller.runs().stream()
             .map(r -> details ? runInfo(r, false)
-                  : new io.hyperfoil.controller.model.Run(r.id, null, null, null, r.cancelled, r.completed, null, null, null,
-                        null))
+                  : new io.hyperfoil.controller.model.Run(r.id, null, null, null, r.cancelled,
+                        r.completed, r.persisted, null, null, null, null))
             .toArray(io.hyperfoil.controller.model.Run[]::new);
       respondWithJson(ctx, true, runs);
    }
@@ -757,7 +757,7 @@ class ControllerServer implements ApiService {
             .map(ai -> new io.hyperfoil.controller.model.Agent(ai.name, ai.deploymentId, ai.status.toString()))
             .collect(Collectors.toList());
       return new io.hyperfoil.controller.model.Run(run.id, benchmark, started, terminated, run.cancelled, run.completed,
-            run.description, phases, agents,
+            run.persisted, run.description, phases, agents,
             run.errors.stream().map(Run.Error::toString).collect(Collectors.toList()));
    }
 

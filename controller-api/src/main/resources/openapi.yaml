@@ -774,6 +774,7 @@ components:
       - benchmark
       - started
       - terminated
+      - persisted
       properties:
         id:
           type: string
@@ -792,6 +793,8 @@ components:
         cancelled:
           type: boolean
         completed:
+          type: boolean
+        persisted:
           type: boolean
         description:
           type: string

@@ -18,6 +18,7 @@ public class Wait extends BaseRunIdCommand {
 
    private boolean started = false;
    private boolean terminated = false;
+   private boolean persisted = false;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
@@ -47,6 +48,14 @@ public class Wait extends BaseRunIdCommand {
                }
             }
             invocation.context().notifyRunCompleted(run);
+         }
+
+         // right now if for some reason the run.persisted is not set to true, the process will wait forever.
+         // we could implement a timeout to be safe
+         if (terminated && !persisted && run.persisted) {
+            // this monitoring will guarantee that if we try to run the report, the all.json is already persisted
+            persisted = true;
+            invocation.println("Run persisted in the local filesystem");
             return CommandResult.SUCCESS;
          }
 
