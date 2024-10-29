@@ -1,9 +1,11 @@
 package io.hyperfoil.clustering;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
@@ -36,6 +38,7 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.infinispan.commons.util.FileLookupFactory;
 
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
@@ -792,22 +795,42 @@ class ControllerServer implements ApiService {
    @Override
    public void createReport(RoutingContext ctx, String runId, String source) {
       withRun(ctx, runId, run -> {
-         String template;
-         File templateFile = Path.of(Properties.get(Properties.DIST_DIR, "."), "templates", "report-template.html")
-               .toFile();
-         if (templateFile.exists() && templateFile.isFile()) {
-            try {
-               template = Files.readString(templateFile.toPath(), StandardCharsets.UTF_8);
+         StringBuilder template = new StringBuilder();
+         String providedTemplatePath = Properties.get(Properties.REPORT_TEMPLATE, "");
+
+         if (providedTemplatePath.isBlank()) {
+            // use the embedded template html
+            try (InputStream stream = FileLookupFactory.newInstance().lookupFile("report-template.html",
+                  Thread.currentThread().getContextClassLoader());
+                  BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+               String line;
+               while ((line = reader.readLine()) != null) {
+                  template.append(line).append("\n");
+               }
             } catch (IOException e) {
                log.error("Cannot read report template: ", e);
                ctx.response().setStatusCode(500).end();
                return;
             }
          } else {
-            log.error("Template file is not available.");
-            ctx.response().setStatusCode(500).end();
-            return;
+            // use the provided template
+            log.info("Using the provided report template at {}", providedTemplatePath);
+            File templateFile = Path.of(providedTemplatePath).toFile();
+            if (templateFile.exists() && templateFile.isFile()) {
+               try {
+                  template.append(Files.readString(templateFile.toPath(), StandardCharsets.UTF_8));
+               } catch (IOException e) {
+                  log.error("Cannot read report template: ", e);
+                  ctx.response().setStatusCode(500).end();
+                  return;
+               }
+            } else {
+               log.error("Template file is not available.");
+               ctx.response().setStatusCode(500).end();
+               return;
+            }
          }
+
          String sourceFile = source != null ? source : ControllerVerticle.DEFAULT_STATS_JSON;
          Path runDir = controller.getRunDir(run).toAbsolutePath();
          Path filePath = runDir.resolve(sourceFile).toAbsolutePath();
