@@ -2,10 +2,13 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ master ]
-    tags: [ "*" ]
+    branches:
+      - master
+      - 0.27.x
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - 0.27.x
     paths-ignore:
     - "LICENSE*"
     - "**.gitignore"
