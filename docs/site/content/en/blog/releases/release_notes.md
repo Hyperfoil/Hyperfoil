@@ -5,6 +5,11 @@ type: docs
 weight: 1
 ---
 
+## 0.27.1 (2024-11-20)
+
+* Add run persistence monitoring by @lampajr in #499
+* Embed the report template in the clustering module by @lampajr in #503
+
 ## 0.27 (2024-10-22)
 
 * Upgrade to JDK 17
