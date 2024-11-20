@@ -3,14 +3,14 @@
     <parent>
         <artifactId>hyperfoil-all</artifactId>
         <groupId>io.hyperfoil</groupId>
-        <version>0.27.1</version>
+        <version>0.27.2-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>hyperfoil-cli</artifactId>
 
-    <version>0.27.1</version>
+    <version>0.27.2-SNAPSHOT</version>
 
     <name>Hyperfoil CLI</name>
 
