@@ -93,7 +93,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: ${{ github.ref }}
-        name: Release ${{ env.PROJECT_VERSION }}
+        name: hyperfoil-all-${{ env.PROJECT_VERSION }}
         draft: false
         prerelease: false
         generate_release_notes: true
