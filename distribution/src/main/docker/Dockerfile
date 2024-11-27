@@ -4,7 +4,6 @@ RUN microdnf install -y less vim && curl -s -L https://github.com/stedolan/jq/re
 EXPOSE 8090
 ENV EDITOR=vim HYPERFOIL_CONTAINER=true
 COPY maven/bin /deployment/bin/
-COPY maven/templates /deployment/templates
 COPY maven/examples /home/default/examples/
 ADD maven/hyperfoil-*-deps.tar /deployment/
 ADD maven/hyperfoil-*-hyperfoil.tar /deployment/

@@ -15,7 +15,6 @@
         <mkdir dir="${dist.dir}/bin"/>
         <mkdir dir="${dist.dir}/lib"/>
         <mkdir dir="${dist.dir}/extensions"/>
-        <mkdir dir="${dist.dir}/templates"/>
 
         <copy-module module="api"/>
         <copy-module module="cli"/>
@@ -47,12 +46,6 @@
         <copy tofile="${dist.dir}/extensions/example-extension.jar" failonerror="true">
             <fileset dir="target">
                 <include name="hyperfoil-distribution-*.jar"/>
-            </fileset>
-        </copy>
-
-        <copy tofile="${dist.dir}/templates/report-template.html" failonerror="true">
-            <fileset dir="${docs.dir}">
-                <include name="report-template-v3.2.html"/>
             </fileset>
         </copy>
     </target>
