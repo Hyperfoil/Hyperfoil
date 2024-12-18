@@ -3,7 +3,6 @@ package io.hyperfoil.schema;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -128,12 +127,12 @@ public class Generator extends BaseGenerator {
          addBuilder(builders, simpleBuilders, entry.getKey(), implClazz, InitFromParam.class.isAssignableFrom(implClazz));
       }
 
-      if (simpleBuilders.size() == 0) {
+      if (simpleBuilders.isEmpty()) {
          oneOf.remove(1);
       }
       definitions.forEach(e -> schemaDefinitions.put(e.getKey(), e.getValue()));
 
-      Files.write(output, schema.encodePrettily().getBytes(StandardCharsets.UTF_8));
+      Files.writeString(output, schema.encodePrettily());
    }
 
    private void addBuilder(JsonObject builders, JsonArray simpleBuilders, String name, Class<?> builder, boolean inline) {
@@ -142,7 +141,7 @@ public class Generator extends BaseGenerator {
          JsonObject step = new JsonObject();
          definitions.put(builder.getName(), step);
          describeBuilder(builder, step, properties);
-         if (properties.size() == 0) {
+         if (properties.isEmpty()) {
             simpleBuilders.add(name);
          }
       }

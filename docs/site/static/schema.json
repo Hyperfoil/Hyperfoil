@@ -359,6 +359,10 @@
               "type" : "string"
             }
           }
+        },
+        "useHttpCache" : {
+          "description" : "Make use of HTTP cache on client-side. If multiple authorities are involved, disable the HTTP cache for all of them to achieve the desired outcomes. The default is true except for wrk/wrk2 wrappers where it is set to false.\n",
+          "type" : "boolean"
         }
       }
     },
