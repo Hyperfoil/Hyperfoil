@@ -349,10 +349,6 @@
                                                         </includes>
                                                     </fileSet>
                                                     <fileSet>
-                                                        <outputDirectory>templates</outputDirectory>
-                                                        <directory>target/distribution/templates</directory>
-                                                    </fileSet>
-                                                    <fileSet>
                                                         <outputDirectory>.</outputDirectory>
                                                         <directory>target</directory>
                                                         <includes>
