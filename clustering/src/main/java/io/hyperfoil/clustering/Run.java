@@ -32,21 +32,15 @@ class Run {
    boolean completed;
    // set to true once the all.json and related files are persisted in the filesystem
    boolean persisted;
-   boolean validation;
    Supplier<StatisticsStore> statsSupplier;
    private StatisticsStore statisticsStore;
    Map<String, GlobalData.Element> newGlobalData = new HashMap<>();
 
    Run(String id, Path dir, Benchmark benchmark) {
-      this(id, dir, benchmark, false);
-   }
-
-   Run(String id, Path dir, Benchmark benchmark, Boolean validation) {
       this.id = id;
       this.dir = dir;
       this.benchmark = benchmark;
       this.phasesById = benchmark.phasesById();
-      this.validation = validation;
    }
 
    void initStore(StatisticsStore store) {

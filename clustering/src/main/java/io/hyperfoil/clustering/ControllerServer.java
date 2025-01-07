@@ -535,7 +535,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId,
-         List<String> templateParam, boolean validate) {
+         List<String> templateParam) {
       Benchmark benchmark = controller.getBenchmark(name);
       if (benchmark == null) {
          BenchmarkSource template = controller.getTemplate(name);
@@ -551,7 +551,7 @@ class ControllerServer implements ApiService {
       String triggerUrl = benchmark.triggerUrl() != null ? benchmark.triggerUrl() : TRIGGER_URL;
       if (triggerUrl != null) {
          if (xTriggerJob == null) {
-            Run run = controller.createRun(benchmark, desc, validate);
+            Run run = controller.createRun(benchmark, desc);
             if (!triggerUrl.endsWith("&") && !triggerUrl.endsWith("?")) {
                if (triggerUrl.contains("?")) {
                   triggerUrl = triggerUrl + "&";
@@ -569,7 +569,7 @@ class ControllerServer implements ApiService {
       }
       Run run;
       if (runId == null) {
-         run = controller.createRun(benchmark, desc, validate);
+         run = controller.createRun(benchmark, desc);
       } else {
          run = controller.run(runId);
          if (run == null || run.startTime != Long.MIN_VALUE) {
@@ -577,7 +577,7 @@ class ControllerServer implements ApiService {
             return;
          }
       }
-      String error = controller.startBenchmark(run, validate);
+      String error = controller.startBenchmark(run);
       if (error == null) {
          ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code())
                .putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
