@@ -103,7 +103,7 @@
 
         <version.sonatype.nexus>1.7.0</version.sonatype.nexus>
         <version.maven.source>3.3.1</version.maven.source>
-        <version.maven.javadoc>3.8.0</version.maven.javadoc>
+        <version.maven.javadoc>3.11.2</version.maven.javadoc>
         <version.maven.gpg>3.2.5</version.maven.gpg>
         <version.maven-core>3.9.8</version.maven-core>
         <version.maven-plugin-annotations>3.15.1</version.maven-plugin-annotations>
