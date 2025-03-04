@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -16,7 +15,6 @@ import io.hyperfoil.http.api.HttpMethod;
 import io.vertx.junit5.VertxExtension;
 
 @ExtendWith(VertxExtension.class)
-@Disabled // Ignoring in default run since it takes 3x 5 seconds
 public class PacingTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
@@ -45,11 +43,19 @@ public class PacingTest extends BaseHttpScenarioTest {
       assertRequests(stats, 5);
    }
 
-   private void assertRequests(Map<String, StatisticsSnapshot> stats, int expected) {
-      assertThat(stats.size()).isEqualTo(1);
-      StatisticsSnapshot snapshot = stats.values().iterator().next();
-      assertThat(snapshot.requestCount).isEqualTo(expected);
-      assertThat(snapshot.responseCount).isEqualTo(expected);
+   @Test
+   public void testSmallThinkTimes() {
+      scenario().initialSequence("loop")
+            .step(SC).loop("counter", 5)
+            .steps()
+            .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
+            .step(SC).clearHttpCache()
+            .step(SC).thinkTime(1, TimeUnit.NANOSECONDS).endStep()
+            .end()
+            .endSequence();
+
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      assertRequests(stats, 5);
    }
 
    @Test
@@ -63,7 +69,7 @@ public class PacingTest extends BaseHttpScenarioTest {
             .step(SC).clearHttpCache()
             .step(SC).awaitDelay("foo")
             .end()
-            .step(SC).log("Final value: ${counter}").end()
+            .step(SC).log("Final value: ${counter}")
             .endSequence();
 
       Map<String, StatisticsSnapshot> stats = runScenario();
@@ -87,4 +93,27 @@ public class PacingTest extends BaseHttpScenarioTest {
       assertRequests(stats, 5);
    }
 
+   @Test
+   public void testSmallCycleTimesPrecise() {
+      scenario().initialSequence("loop")
+            .step(SC).loop("counter", 5)
+            .steps()
+            // Delaying from last does not accumulate time skew as it bases the delay on previous iteration
+            .step(SC).scheduleDelay("bar", 500, TimeUnit.NANOSECONDS).fromLast().endStep()
+            .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
+            .step(SC).clearHttpCache()
+            .step(SC).awaitDelay("bar")
+            .end()
+            .endSequence();
+
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      assertRequests(stats, 5);
+   }
+
+   private void assertRequests(Map<String, StatisticsSnapshot> stats, int expected) {
+      assertThat(stats.size()).isEqualTo(1);
+      StatisticsSnapshot snapshot = stats.values().iterator().next();
+      assertThat(snapshot.requestCount).isEqualTo(expected);
+      assertThat(snapshot.responseCount).isEqualTo(expected);
+   }
 }
