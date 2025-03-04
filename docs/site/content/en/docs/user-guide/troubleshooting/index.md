@@ -107,8 +107,6 @@ even if that will never happen because of how the benchmark is configured.
 First of all just check whether the benchmark uses `awaitVar` and if so, double check whether there might be cases
 where that variable the step is waiting for could be NOT set.
 
-Another check
-
 **Can you give me an example?**
 
 Consider a simple use case where you are calling an endpoint and save the result into a variable:

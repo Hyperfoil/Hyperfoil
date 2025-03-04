@@ -574,7 +574,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
                      ReadAccess inputVar = sequenceScopedReadAccess(delayedCoordVar);
                      ObjectAccess delayVar = sequenceScopedObjectAccess(delay);
                      SerializableToLongFunction<Session> delayFunc = session -> TimeUnit.SECONDS
-                           .toMillis(((Redirect.Coords) inputVar.getObject(session)).delay);
+                           .toNanos(((Redirect.Coords) inputVar.getObject(session)).delay);
                      return new ScheduleDelayStep(delayVar, ScheduleDelayStep.Type.FROM_NOW, delayFunc);
                   })
                   .step(() -> new AwaitDelayStep(sequenceScopedReadAccess(delay)))
