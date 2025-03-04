@@ -42,7 +42,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    @Override
    public boolean invoke(Session session) {
       Timestamp blockedUntil = (Timestamp) key.activate(session);
-      long now = System.currentTimeMillis();
+      long now = System.nanoTime();
       long baseTimestamp;
       switch (type) {
          case FROM_LAST:
@@ -62,7 +62,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       long delay = blockedUntil.timestamp - now;
       if (delay > 0) {
          log.trace("Scheduling #{} to run in {}", session.uniqueId(), delay);
-         session.executor().schedule(session.runTask(), delay, TimeUnit.MILLISECONDS);
+         session.executor().schedule(session.runTask(), delay, TimeUnit.NANOSECONDS);
       } else {
          log.trace("Continuing, duration {} resulted in delay {}", duration, delay);
       }
@@ -126,7 +126,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       public Builder duration(long duration, TimeUnit timeUnit) {
-         this.duration = timeUnit == null ? 0 : timeUnit.toMillis(duration);
+         this.duration = timeUnit == null ? 0 : timeUnit.toNanos(duration);
          return this;
       }
 
@@ -137,7 +137,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        * @return Self.
        */
       public Builder duration(String duration) {
-         this.duration = Util.parseToMillis(duration);
+         this.duration = Util.parseToNanos(duration);
          return this;
       }
 
