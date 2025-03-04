@@ -84,5 +84,81 @@ Errors:
 in-vm: Variable foo is not set!
 ```
 
- On occasion a scenario step has been seen to execute out of sequence. To ensure the variable is set beforehand use `initialSequences` with the step that populates the variable.
- 
+On occasion a scenario step has been seen to execute out of sequence. To ensure the variable is set beforehand use `initialSequences` with the step that populates the variable.
+
+
+## My benchmark hangs indefinitely
+
+If you experience your benchmark hanging indefinitely, 
+
+This is usually reflected by having some phases marked as `FINISHED` and never terminated, i.ei, the `REMAINING` column
+keeps decreasing over time.
+
+{{% imgproc indefinite_hanging Fit "1600x200" %}}
+{{% /imgproc %}}
+
+This is most likely caused by a wrong assumption made as part of the benchmark configuration.
+
+The indefinite hanging is usually caused by the `awaitVar` step that indefinitely waits for some variable to be set
+even if that will never happen because of how the benchmark is configured.
+
+**How do I know whether this is the problem I am facing?**
+
+First of all just check whether the benchmark uses `awaitVar` and if so, double check whether there might be cases
+where that variable the step is waiting for could be NOT set.
+
+Another check
+
+**Can you give me an example?**
+
+Consider a simple use case where you are calling an endpoint and save the result into a variable:
+
+```yaml
+- httpRequest:
+      GET: /login?email=${urlencode:email}&password=${urlencode:password}
+      headers:
+      accept: application/json
+      handler:
+      body:
+         json:
+            query: .token
+            toVar: token
+- awaitVar: token
+```
+
+Now consider that, for any reason, we have disabled the `autoRangeCheck` ergonomic, either globally
+
+```yaml
+ergonomics:
+  autoRangeCheck: false
+```
+
+or on the `httpRequest`
+
+```yaml
+- httpRequest:
+      GET: /login?email=${urlencode:email}&password=${urlencode:password}
+      headers:
+      accept: application/json
+      handler:
+      autoRangeCheck: false
+      body:
+         json:
+            query: .token
+            toVar: token
+- awaitVar: token
+```
+
+This is a very simple example where we made the wrong assumption/configuration: we are waiting for a variable
+`token` that is going to be set by the http request handler, but what happen if the request fails? Given that we disabled
+the `autoRangeCheck`, that request won't be marked as invalid and the benchmark will proceed executing the next step
+anyway (the `awaitVar`) that will wait for a state that will never happen.
+
+Moreover, in this specific case we don't even need the `awaitVar` as by default the `httpRequest` steps are synchronouds by 
+default - you change this behavior by setting `sync: false` at `httpRequest` level. See [httpRequest configuration](/docs/reference/steps/step_httprequest/)
+for more details.
+
+In conclusion, a couple of considerations:
+* Use `awaitVar` only if dealing with *async* processes, by default this is not necessary as requests are *sync*
+* Change the default ergonomics, e.g., `autoRangeCheck` or `stopOnInvalid`, with caution as they can heavily impact the overall behavior and
+your expectations
