@@ -35,6 +35,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    private PhaseChangeHandler phaseChangeHandler;
    // Reads are done without locks
    protected volatile Status status = Status.NOT_STARTED;
+   // in milliseconds
    protected long absoluteStartTime;
    protected String absoluteStartTimeString;
    protected AtomicInteger activeSessions = new AtomicInteger(0);
