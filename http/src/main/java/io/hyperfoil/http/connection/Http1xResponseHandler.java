@@ -477,26 +477,33 @@ public class Http1xResponseHandler extends BaseResponseHandler {
          log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", connection);
       } else {
          HttpResponseHandlers handlers = request.handlers();
-         request.enter();
-         try {
-            AsciiString name = Util.toAsciiString(buf, startOfName, endOfName - startOfName);
-            final int valueLen = endOfValue - startOfValue;
-            // HTTP 1.1 RFC admit just latin header values, but still; better be safe and check it
-            final CharSequence value;
-            // Java Compact strings already perform this check, why doing it again?
-            // AsciiString allocate the backed byte[] just once, saving to create/cache
-            // a tmp one just to read buf content, if it won't be backed by a byte[] as well.
-            if (Util.isAscii(buf, startOfValue, valueLen)) {
-               value = Util.toAsciiString(buf, startOfValue, valueLen);
-            } else {
-               // the built-in method has the advantage vs Util.toString that the backing byte[] is cached, if ever happen
-               value = buf.toString(startOfName, valueLen, CharsetUtil.UTF_8);
-            }
-            handlers.handleHeader(request, name, value);
-         } finally {
-            request.exit();
+         if (handlers.requiresHandlingHeaders(request)) {
+            handleHeader(buf, startOfName, endOfName, startOfValue, endOfValue, request, handlers);
          }
          request.session.proceed();
+      }
+   }
+
+   private static void handleHeader(ByteBuf buf, int startOfName, int endOfName, int startOfValue, int endOfValue,
+         HttpRequest request, HttpResponseHandlers handlers) {
+      request.enter();
+      try {
+         AsciiString name = Util.toAsciiString(buf, startOfName, endOfName - startOfName);
+         final int valueLen = endOfValue - startOfValue;
+         // HTTP 1.1 RFC admit just latin header values, but still; better be safe and check it
+         final CharSequence value;
+         // Java Compact strings already perform this check, why doing it again?
+         // AsciiString allocate the backed byte[] just once, saving to create/cache
+         // a tmp one just to read buf content, if it won't be backed by a byte[] as well.
+         if (Util.isAscii(buf, startOfValue, valueLen)) {
+            value = Util.toAsciiString(buf, startOfValue, valueLen);
+         } else {
+            // the built-in method has the advantage vs Util.toString that the backing byte[] is cached, if ever happen
+            value = buf.toString(startOfName, valueLen, CharsetUtil.UTF_8);
+         }
+         handlers.handleHeader(request, name, value);
+      } finally {
+         request.exit();
       }
    }
 
