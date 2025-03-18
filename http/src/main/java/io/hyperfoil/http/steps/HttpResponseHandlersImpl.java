@@ -86,6 +86,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
    }
 
    @Override
+   public boolean requiresHandlingHeaders(HttpRequest request) {
+      return (headerHandlers != null && headerHandlers.length > 0) || request.hasCacheControl() || trace;
+   }
+
+   @Override
    public void handleStatus(HttpRequest request, int status, String reason) {
       Session session = request.session;
       if (request.isCompleted()) {
