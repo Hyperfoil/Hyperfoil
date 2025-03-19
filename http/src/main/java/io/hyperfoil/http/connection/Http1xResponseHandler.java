@@ -190,23 +190,32 @@ public class Http1xResponseHandler extends BaseResponseHandler {
                   lineBuf = buf;
                   lineEndIndex = readerIndex - 1; // account the CR
                }
-               if (matches(lineBuf, lineStartIndex, HttpHeaderNames.CONTENT_LENGTH)) {
-                  contentLength = readDecNumber(lineBuf, lineStartIndex + HttpHeaderNames.CONTENT_LENGTH.length() + 1);
-               } else if (matches(lineBuf, lineStartIndex, HttpHeaderNames.TRANSFER_ENCODING)) {
-                  chunked = matches(lineBuf, lineStartIndex + HttpHeaderNames.TRANSFER_ENCODING.length() + 1,
-                        HttpHeaderValues.CHUNKED);
-                  skipChunkBytes = 0;
-               }
                int endOfNameIndex = lineEndIndex, startOfValueIndex = lineStartIndex;
                final int indexOfColon = lineBuf.indexOf(lineStartIndex, lineEndIndex, (byte) ':');
                if (indexOfColon != -1) {
                   final int i = indexOfColon;
+                  // skip the trailing whitespaces of the header name
                   for (endOfNameIndex = i - 1; endOfNameIndex >= lineStartIndex
                         && lineBuf.getByte(endOfNameIndex) == ' '; --endOfNameIndex)
                      ;
+                  // skip the leading whitespaces of the header value
                   for (startOfValueIndex = i + 1; startOfValueIndex < lineEndIndex
                         && lineBuf.getByte(startOfValueIndex) == ' '; ++startOfValueIndex)
                      ;
+                  int nameLength = (endOfNameIndex + 1) - lineStartIndex;
+                  switch (nameLength) {
+                     case 14:
+                        if (equalsIgnoreMatches(lineBuf, lineStartIndex, HttpHeaderNames.CONTENT_LENGTH)) {
+                           contentLength = readDecNumber(lineBuf, startOfValueIndex);
+                        }
+                        break;
+                     case 17:
+                        if (equalsIgnoreMatches(lineBuf, lineStartIndex, HttpHeaderNames.TRANSFER_ENCODING)) {
+                           chunked = equalsIgnoreMatches(lineBuf, startOfValueIndex, HttpHeaderValues.CHUNKED);
+                           skipChunkBytes = 0;
+                        }
+                        break;
+                  }
                }
                onHeaderRead(lineBuf, lineStartIndex, endOfNameIndex + 1, startOfValueIndex, lineEndIndex);
                lastLine.writerIndex(0);
@@ -352,8 +361,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
       onData(ctx, buf);
    }
 
-   private static boolean matches(ByteBuf buf, int bufOffset, AsciiString string) {
-      bufOffset = skipWhitespaces(buf, bufOffset);
+   private static boolean equalsIgnoreMatches(ByteBuf buf, int bufOffset, AsciiString string) {
       if (bufOffset + string.length() > buf.writerIndex()) {
          return false;
       }
