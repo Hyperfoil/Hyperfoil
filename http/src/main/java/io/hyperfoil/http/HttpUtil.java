@@ -3,6 +3,7 @@ package io.hyperfoil.http;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
@@ -11,13 +12,27 @@ import org.apache.logging.log4j.Logger;
 import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
+import io.netty.util.concurrent.FastThreadLocal;
 
 public final class HttpUtil {
    private static final Logger log = LogManager.getLogger(HttpUtil.class);
+
+   private static final AsciiString UTC_ASCII = new AsciiString("UTC");
+   private static final AsciiString GMT_ASCII = new AsciiString("GMT");
+   private static final TimeZone UTC = TimeZone.getTimeZone(UTC_ASCII.toString());
+   private static final TimeZone GMT = TimeZone.getTimeZone(GMT_ASCII.toString());
+   private static final FastThreadLocal<Map<AsciiString, Calendar>> CALENDARS = new FastThreadLocal<>() {
+      @Override
+      protected Map<AsciiString, Calendar> initialValue() {
+         return Map.of(
+               UTC_ASCII, Calendar.getInstance(UTC),
+               GMT_ASCII, Calendar.getInstance(GMT));
+      }
+   };
+
    private static final CharSequence[] MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov",
          "dec" };
-   private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-   private static final TimeZone GMT = TimeZone.getTimeZone("GMT");
+
    private static final byte[] BYTES_80 = "80".getBytes(StandardCharsets.UTF_8);
    private static final byte[] BYTES_443 = "443".getBytes(StandardCharsets.UTF_8);
 
@@ -131,18 +146,21 @@ public final class HttpUtil {
       for (i += 8; i < end && seq.charAt(i) == ' '; ++i)
          ; // skip spaces
 
-      TimeZone timeZone = UTC;
+      Calendar calendar;
       if (i < end) {
-         if (end - i >= 3 && AsciiString.regionMatches(seq, false, i, "GMT", 0, 3)) {
-            timeZone = GMT;
-         } else if (end - i >= 3 && AsciiString.regionMatches(seq, false, i, "UTC", 0, 3)) {
-            timeZone = UTC;
+         if (end - i >= 3 && AsciiString.regionMatches(seq, false, i, GMT_ASCII, 0, 3)) {
+            calendar = CALENDARS.get().get(GMT_ASCII);
+         } else if (end - i >= 3 && AsciiString.regionMatches(seq, false, i, UTC_ASCII, 0, 3)) {
+            calendar = CALENDARS.get().get(UTC_ASCII);
          } else {
-            timeZone = TimeZone.getTimeZone(seq.subSequence(i, end).toString());
+            // allocate a new calendar only if not UTC or GMT
+            TimeZone timeZone = TimeZone.getTimeZone(seq.subSequence(i, end).toString());
+            calendar = Calendar.getInstance(timeZone);
          }
+      } else {
+         calendar = CALENDARS.get().get(UTC_ASCII);
       }
-      // TODO: calculate epoch millis without allocation
-      Calendar calendar = Calendar.getInstance(timeZone);
+
       calendar.set(year, month, dayOfMonth, hour, minute, second);
       return calendar.getTimeInMillis();
    }

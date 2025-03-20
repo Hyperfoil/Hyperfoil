@@ -33,6 +33,10 @@
             <groupId>io.hyperfoil</groupId>
             <artifactId>hyperfoil-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.hyperfoil</groupId>
+            <artifactId>hyperfoil-http</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
