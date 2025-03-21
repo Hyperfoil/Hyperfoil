@@ -41,9 +41,10 @@ public class ThinkTimeTest extends BaseBenchmarkTest {
    // parameters source
    private static Stream<Arguments> thinkTimesConfigs() {
       return Stream.of(
-            Arguments.of("phase a", 50),
-            Arguments.of("phase b", 500),
-            Arguments.of("phase c", 1000));
+            Arguments.of("phase a", 1),
+            Arguments.of("phase a", TimeUnit.MILLISECONDS.toNanos(50)),
+            Arguments.of("phase b", TimeUnit.MILLISECONDS.toNanos(500)),
+            Arguments.of("phase c", TimeUnit.MILLISECONDS.toNanos(1000)));
    }
 
    @Override
@@ -55,8 +56,8 @@ public class ThinkTimeTest extends BaseBenchmarkTest {
 
    @ParameterizedTest
    @MethodSource("thinkTimesConfigs")
-   public void testThinkTime(String phase1, long delayMs) {
-      BenchmarkBuilder builder = createBuilder(phase1, delayMs);
+   public void testThinkTime(String phase1, long delayNs) {
+      BenchmarkBuilder builder = createBuilder(phase1, delayNs);
       Benchmark benchmark = builder.build();
 
       // check think time is correctly setup
@@ -107,7 +108,7 @@ public class ThinkTimeTest extends BaseBenchmarkTest {
                      .endHandler()
                   .endStep()
                   .step(SC)
-                     .thinkTime(thinkTime, TimeUnit.MILLISECONDS)
+                     .thinkTime(thinkTime, TimeUnit.NANOSECONDS)
                   .endStep()
                .endSequence();
       // @formatter:on
