@@ -25,7 +25,18 @@ public class AwaitDelayStep implements Step {
    public boolean invoke(Session session) {
       ScheduleDelayStep.Timestamp blockedUntil = (ScheduleDelayStep.Timestamp) key.getObject(session);
       // checking the diff because of the possibility of numerical overflow.
-      return (System.nanoTime() - blockedUntil.timestamp) >= 0;
+      boolean canProgress = (System.nanoTime() - blockedUntil.timestamp) >= 0;
+      if (canProgress) {
+         var expirationTask = blockedUntil.delayExpired;
+         if (expirationTask != null) {
+            // there's no point here to check if the task isDone, since "normally"
+            // we get here while it is still executing, but if AwaitDelayStep detect progress, before that,
+            // it will cancel the task, before will trigger a further usage of a Session we don't own anymore
+            expirationTask.cancel(false);
+            blockedUntil.delayExpired = null;
+         }
+      }
+      return canProgress;
    }
 
    /**

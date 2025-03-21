@@ -3,6 +3,7 @@ package io.hyperfoil.core.steps;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -62,7 +63,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       long delay = blockedUntil.timestamp - now;
       if (delay > 0) {
          log.trace("Scheduling #{} to run in {}", session.uniqueId(), delay);
-         session.executor().schedule(session.runTask(), delay, TimeUnit.NANOSECONDS);
+         blockedUntil.delayExpired = session.executor().schedule(session.runTask(), delay, TimeUnit.NANOSECONDS);
       } else {
          log.trace("Continuing, duration {} resulted in delay {}", duration, delay);
       }
@@ -97,6 +98,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
    static class Timestamp {
       long timestamp = Long.MAX_VALUE;
+      ScheduledFuture<?> delayExpired;
    }
 
    /**
