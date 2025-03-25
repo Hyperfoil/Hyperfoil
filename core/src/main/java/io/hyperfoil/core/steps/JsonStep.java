@@ -3,8 +3,6 @@ package io.hyperfoil.core.steps;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.kohsuke.MetaInfServices;
 
@@ -18,6 +16,7 @@ import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.handlers.json.ByteArrayByteStream;
 import io.hyperfoil.core.handlers.json.ByteStream;
 import io.hyperfoil.core.handlers.json.JsonParser;
 import io.hyperfoil.core.handlers.json.JsonUnquotingTransformer;
@@ -35,7 +34,10 @@ public class JsonStep implements Step {
    @Override
    public boolean invoke(Session session) {
       Object object = fromVar.getObject(session);
-      if (object instanceof byte[]) {
+      if (object instanceof byte[] array) {
+         if (array.length == 0) {
+            return true;
+         }
          ByteArrayParser.Context ctx = session.getResource(byteArrayParser);
          byteArrayParser.before(session);
          ctx.parse(ctx.wrap((byte[]) object), session, true);
@@ -107,7 +109,7 @@ public class JsonStep implements Step {
       protected void record(JsonParser.Context context, Session session, ByteStream data, int offset, int length,
             boolean isLastPart) {
          Context ctx = (Context) context;
-         byte[] array = ((ByteArrayByteStream) data).array;
+         byte[] array = ((ByteArrayByteStream) data).array();
          processor.process(session, ctx.buffer.wrap(array), offset, length, isLastPart);
       }
 
@@ -143,64 +145,13 @@ public class JsonStep implements Step {
          @Override
          protected void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length,
                boolean lastFragment) {
-            replace.transform(session, buffer.wrap(((ByteArrayByteStream) data).array), offset, length, lastFragment,
+            replace.transform(session, buffer.wrap(((ByteArrayByteStream) data).array()), offset, length, lastFragment,
                   replaceBuffer);
          }
 
          public ByteStream wrap(byte[] object) {
-            actualStream.set(object);
-            return actualStream;
+            return actualStream.wrap(object);
          }
-      }
-   }
-
-   static class ByteArrayByteStream implements ByteStream {
-      final Function<ByteStream, ByteStream> retain;
-      final Consumer<ByteStream> release;
-      byte[] array;
-      int readerIndex;
-
-      ByteArrayByteStream(Function<ByteStream, ByteStream> retain, Consumer<ByteStream> release) {
-         this.retain = retain;
-         this.release = release;
-      }
-
-      @Override
-      public int getByte(int index) {
-         return array[index];
-      }
-
-      @Override
-      public int writerIndex() {
-         return array.length;
-      }
-
-      @Override
-      public int readerIndex() {
-         return readerIndex;
-      }
-
-      @Override
-      public void release() {
-         release.accept(this);
-      }
-
-      @Override
-      public ByteStream retain() {
-         return retain.apply(this);
-      }
-
-      @Override
-      public void moveTo(ByteStream other) {
-         ByteArrayByteStream o = (ByteArrayByteStream) other;
-         o.array = array;
-         o.readerIndex = readerIndex;
-         array = null;
-      }
-
-      public void set(byte[] array) {
-         this.array = array;
-         this.readerIndex = 0;
       }
    }
 }

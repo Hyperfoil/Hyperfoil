@@ -1,8 +1,5 @@
 package io.hyperfoil.core.handlers.json;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
@@ -30,6 +27,9 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
 
    @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLast) {
+      if (data.readableBytes() == 0) {
+         return;
+      }
       Context ctx = session.getResource(this);
       ctx.parse(ctx.wrap(data, offset, length), session, isLast);
    }
@@ -60,7 +60,7 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
    @Override
    protected void record(JsonParser.Context context, Session session, ByteStream data, int offset, int length,
          boolean isLastPart) {
-      processor.process(session, ((ByteBufByteStream) data).buffer, offset, length, isLastPart);
+      processor.process(session, ((ByteBufByteStream) data).buffer(), offset, length, isLastPart);
    }
 
    public class Context extends JsonParser.Context {
@@ -72,16 +72,13 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
       }
 
       public ByteStream wrap(ByteBuf data, int offset, int length) {
-         actualStream.buffer = data;
-         actualStream.readerIndex = offset;
-         actualStream.writerIndex = offset + length;
-         return actualStream;
+         return actualStream.wrap(data, offset, offset + length);
       }
 
       @Override
       protected void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length,
             boolean lastFragment) {
-         replace.transform(session, ((ByteBufByteStream) data).buffer, offset, length, lastFragment, replaceBuffer);
+         replace.transform(session, ((ByteBufByteStream) data).buffer(), offset, length, lastFragment, replaceBuffer);
       }
    }
 
@@ -116,58 +113,5 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
       public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
          return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, processors::processor);
       }
-   }
-
-   static class ByteBufByteStream implements ByteStream {
-      private final Function<ByteStream, ByteStream> retain;
-      private final Consumer<ByteStream> release;
-      private ByteBuf buffer;
-      private int readerIndex, writerIndex;
-
-      ByteBufByteStream(Function<ByteStream, ByteStream> retain, Consumer<ByteStream> release) {
-         this.retain = retain;
-         this.release = release;
-      }
-
-      @Override
-      public int getByte(int index) {
-         return buffer.getByte(index);
-      }
-
-      @Override
-      public int writerIndex() {
-         return writerIndex;
-      }
-
-      @Override
-      public int readerIndex() {
-         return readerIndex;
-      }
-
-      @Override
-      public void release() {
-         buffer.release();
-         buffer = null;
-         readerIndex = -1;
-         release.accept(this);
-      }
-
-      @Override
-      public ByteStream retain() {
-         buffer.retain();
-         return retain.apply(this);
-      }
-
-      @Override
-      public void moveTo(ByteStream other) {
-         ByteBufByteStream o = (ByteBufByteStream) other;
-         assert o.buffer == null;
-         o.buffer = buffer;
-         o.readerIndex = readerIndex;
-         o.writerIndex = writerIndex;
-         buffer = null;
-         readerIndex = -1;
-      }
-
    }
 }
