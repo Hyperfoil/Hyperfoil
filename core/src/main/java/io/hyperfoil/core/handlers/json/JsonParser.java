@@ -2,6 +2,7 @@ package io.hyperfoil.core.handlers.json;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Function;
@@ -25,7 +26,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 
 public abstract class JsonParser implements Serializable {
    protected static final Logger log = LogManager.getLogger(JsonParser.class);
-   protected static final int MAX_PARTS = 16;
+   protected static final int INITIAL_PARTS = 16;
 
    protected final String query;
    protected final boolean delete;
@@ -171,20 +172,19 @@ public abstract class JsonParser implements Serializable {
       boolean inQuote;
       boolean inKey;
       boolean escaped;
-      StreamQueue stream = new StreamQueue(MAX_PARTS);
+      StreamQueue stream = new StreamQueue(INITIAL_PARTS);
       int keyStartIndex;
       int lastCharIndex; // end of key name
       int valueStartIndex;
       int lastOutputIndex; // last byte we have written out
       int safeOutputIndex; // last byte we could definitely write out
-      ByteStream[] pool = new ByteStream[MAX_PARTS];
+      ArrayDeque<ByteStream> pool = new ArrayDeque<>(INITIAL_PARTS);
       protected final ByteBuf replaceBuffer = PooledByteBufAllocator.DEFAULT.buffer();
       final StreamQueue.Consumer<Void, Session> replaceConsumer = this::replaceConsumer;
+      final Function<Context, ByteStream> byteStreamFactory;
 
       protected Context(Function<Context, ByteStream> byteStreamSupplier) {
-         for (int i = 0; i < pool.length; ++i) {
-            pool[i] = byteStreamSupplier.apply(this);
-         }
+         this.byteStreamFactory = byteStreamSupplier;
          for (int i = 0; i < selectors.length; ++i) {
             selectorContext[i] = selectors[i].newContext();
          }
@@ -222,13 +222,13 @@ public abstract class JsonParser implements Serializable {
       }
 
       public void parse(ByteStream data, Session session, boolean isLast) {
+         final int readableBytes = data.writerIndex() - data.readerIndex();
          int readerIndex = stream.append(data);
-         PARSING: while (true) {
+         for (int i = 0; i < readableBytes; i++) {
             int b = stream.getByte(readerIndex++);
             switch (b) {
                case -1:
-                  --readerIndex;
-                  break PARSING;
+                  throw new IllegalStateException("End of input while the JSON is not complete.");
                case ' ':
                case '\n':
                case '\t':
@@ -367,7 +367,7 @@ public abstract class JsonParser implements Serializable {
             }
          }
          if (keyStartIndex >= 0 || valueStartIndex >= 0) {
-            stream.release(Math.min(Math.min(keyStartIndex, valueStartIndex), safeOutputIndex));
+            stream.releaseUntil(safeReleaseIndex());
             if (isLast) {
                throw new IllegalStateException("End of input while the JSON is not complete.");
             }
@@ -376,8 +376,24 @@ public abstract class JsonParser implements Serializable {
                stream.consume(lastOutputIndex, safeOutputIndex, record, this, session, isLast);
                lastOutputIndex = safeOutputIndex;
             }
-            stream.release(readerIndex);
+            stream.releaseUntil(readerIndex);
          }
+      }
+
+      private int safeReleaseIndex() {
+         final int releaseIndex;
+         if (keyStartIndex < 0 && valueStartIndex < 0) {
+            releaseIndex = safeOutputIndex;
+         } else if (keyStartIndex < 0) {
+            assert valueStartIndex >= 0;
+            releaseIndex = Math.min(valueStartIndex, safeOutputIndex);
+         } else if (valueStartIndex < 0) {
+            assert keyStartIndex >= 0;
+            releaseIndex = Math.min(keyStartIndex, safeOutputIndex);
+         } else {
+            releaseIndex = Math.min(Math.min(keyStartIndex, valueStartIndex), safeOutputIndex);
+         }
+         return releaseIndex;
       }
 
       private boolean onMatch(int readerIndex) {
@@ -447,25 +463,16 @@ public abstract class JsonParser implements Serializable {
       }
 
       public ByteStream retain(ByteStream stream) {
-         for (int i = 0; i < pool.length; ++i) {
-            ByteStream pooled = pool[i];
-            if (pooled != null) {
-               pool[i] = null;
-               stream.moveTo(pooled);
-               return pooled;
-            }
+         ByteStream pooled = pool.poll();
+         if (pooled == null) {
+            pooled = byteStreamFactory.apply(this);
          }
-         throw new IllegalStateException();
+         stream.moveTo(pooled);
+         return pooled;
       }
 
       public void release(ByteStream stream) {
-         for (int i = 0; i < pool.length; ++i) {
-            if (pool[i] == null) {
-               pool[i] = stream;
-               return;
-            }
-         }
-         throw new IllegalStateException();
+         pool.add(stream);
       }
 
       protected abstract void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length,

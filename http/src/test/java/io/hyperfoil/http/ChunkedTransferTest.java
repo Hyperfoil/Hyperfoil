@@ -2,18 +2,27 @@ package io.hyperfoil.http;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.RawBytesHandler;
+import io.hyperfoil.core.data.DataFormat;
+import io.hyperfoil.core.handlers.StoreProcessor;
+import io.hyperfoil.core.handlers.json.JsonHandler;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpDestinationTable;
@@ -31,6 +40,8 @@ import io.vertx.core.http.HttpServerResponse;
 public class ChunkedTransferTest extends BaseHttpScenarioTest {
 
    public static final String SHIBBOLETH = "Shibboleth";
+   private static final int FOO_VALUE_SIZE = 10 * 1024 * 1024;
+   private String fooValue;
 
    @Override
    protected void initHttp(HttpBuilder http) {
@@ -58,6 +69,52 @@ public class ChunkedTransferTest extends BaseHttpScenarioTest {
          }
          response.end();
       });
+      router.route("/test4").handler(ctx -> {
+         if (fooValue == null) {
+            final byte[] hugeValue = new byte[FOO_VALUE_SIZE];
+            Arrays.fill(hugeValue, (byte) 'a');
+            final String hugeValueString = new String(hugeValue, 0, 0, hugeValue.length);
+            fooValue = hugeValueString;
+         }
+         HttpServerResponse response = ctx.response().setChunked(true);
+         response.write("{");
+         // many useless crap ones
+         for (int i = 0; i < 100; i++) {
+            response.write("\"crap" + i + "\":\"crap\",");
+         }
+         response.write("\"foo\":\"");
+         response.write(fooValue);
+         response.write("\"}");
+         response.end();
+      });
+   }
+
+   @Test
+   public void testChunkedJsonTransfer() {
+      var capturedValue = new AtomicReference<>();
+      Locator.push(TestUtil.locator());
+      var fooValueReadAccess = SessionFactory.readAccess("foo");
+      Locator.pop();
+      // @formatter:off
+      scenario().initialSequence("test")
+            .step(SC).httpRequest(HttpMethod.GET).path("/test4")
+            .handler()
+            .body(new JsonHandler.Builder().query(".foo")
+                  .processors().processor(new StoreProcessor.Builder().toVar("foo").format(DataFormat.STRING)).end())
+            .endHandler()
+            .sync(true)
+            .endStep()
+            .step(s -> {
+               capturedValue.set(fooValueReadAccess.getObject(s));
+               return true;
+            })
+            .endSequence();
+      // @formatter:on
+      runScenario();
+      assertNotNull(capturedValue.get());
+      assertNotNull(fooValue);
+      // we're not using equals because the string is too long and will blow the test output on failure!
+      assertTrue(fooValue.equals(capturedValue.get()));
    }
 
    @Test
@@ -165,7 +222,7 @@ public class ChunkedTransferTest extends BaseHttpScenarioTest {
 
       @Override
       public void handlerRemoved(ChannelHandlerContext ctx) {
-         if (composite != null) {
+         if (composite != null && composite.refCnt() > 0) {
             composite.release();
          }
       }
