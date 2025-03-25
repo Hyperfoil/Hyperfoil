@@ -2,6 +2,7 @@ package io.hyperfoil.core.handlers.json;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Function;
@@ -177,14 +178,13 @@ public abstract class JsonParser implements Serializable {
       int valueStartIndex;
       int lastOutputIndex; // last byte we have written out
       int safeOutputIndex; // last byte we could definitely write out
-      ByteStream[] pool = new ByteStream[MAX_PARTS];
+      ArrayDeque<ByteStream> pool = new ArrayDeque<>(MAX_PARTS);
       protected final ByteBuf replaceBuffer = PooledByteBufAllocator.DEFAULT.buffer();
       final StreamQueue.Consumer<Void, Session> replaceConsumer = this::replaceConsumer;
+      final Function<Context, ByteStream> byteStreamFactory;
 
       protected Context(Function<Context, ByteStream> byteStreamSupplier) {
-         for (int i = 0; i < pool.length; ++i) {
-            pool[i] = byteStreamSupplier.apply(this);
-         }
+         this.byteStreamFactory = byteStreamSupplier;
          for (int i = 0; i < selectors.length; ++i) {
             selectorContext[i] = selectors[i].newContext();
          }
@@ -447,25 +447,16 @@ public abstract class JsonParser implements Serializable {
       }
 
       public ByteStream retain(ByteStream stream) {
-         for (int i = 0; i < pool.length; ++i) {
-            ByteStream pooled = pool[i];
-            if (pooled != null) {
-               pool[i] = null;
-               stream.moveTo(pooled);
-               return pooled;
-            }
+         ByteStream pooled = pool.poll();
+         if (pooled == null) {
+            pooled = byteStreamFactory.apply(this);
          }
-         throw new IllegalStateException();
+         stream.moveTo(pooled);
+         return pooled;
       }
 
       public void release(ByteStream stream) {
-         for (int i = 0; i < pool.length; ++i) {
-            if (pool[i] == null) {
-               pool[i] = stream;
-               return;
-            }
-         }
-         throw new IllegalStateException();
+         pool.add(stream);
       }
 
       protected abstract void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length,
