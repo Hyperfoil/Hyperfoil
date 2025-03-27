@@ -6,7 +6,7 @@ tags: [how-to, guides, editor, json-schema]
 weight: 1
 ---
 
-For your convenience we recommend using editor with YAML validation against JSON schema; you can point your editor to `docs/schema.json`. We can recommend [Visual Studio Code](https://code.visualstudio.com/)
+For your convenience we recommend using editor with YAML validation against JSON schema; you can point your editor to [schema.json](https://hyperfoil.io/schema.json). We can recommend [Visual Studio Code](https://code.visualstudio.com/)
 with [redhat.vscode-yaml](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) plugin.
 
 
