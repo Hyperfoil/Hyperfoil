@@ -41,7 +41,7 @@ public class StreamQueueTest {
       return stream;
    }
 
-   private static void trackRelease(ByteStream stream) {
+   private static void trackReleaseUntil(ByteStream stream) {
       releaseCounters.computeIfAbsent(stream, s -> new AtomicInteger()).incrementAndGet();
    }
 
@@ -52,7 +52,10 @@ public class StreamQueueTest {
       byte[] array = new byte[length];
       int value = generatedDataBytes;
       for (int i = 0; i < length; ++i) {
-         array[i] = (byte) value++;
+         int nextValue = value + i;
+         byte positiveValue = (byte) (nextValue & 0x7F);
+         assert positiveValue >= 0;
+         array[i] = positiveValue;
       }
       generatedDataBytes += length;
       generatedData.add(array);
@@ -87,7 +90,7 @@ public class StreamQueueTest {
 
    static Supplier<ByteStream>[] byteStreamProvider() {
       Function<ByteStream, ByteStream> retain = StreamQueueTest::trackRetain;
-      Consumer<ByteStream> release = StreamQueueTest::trackRelease;
+      Consumer<ByteStream> release = StreamQueueTest::trackReleaseUntil;
       return new Supplier[] {
             () -> new ByteBufByteStream(retain, release).wrap(Unpooled.wrappedBuffer(generateData(DATA_SIZE)), 0, 10),
             () -> new ByteArrayByteStream(retain, release).wrap(generateData(DATA_SIZE))
@@ -141,7 +144,7 @@ public class StreamQueueTest {
       streamQueue.append(stream);
       assertRetain(stream, 1);
       assertEquals(1, streamQueue.parts());
-      assertEquals(DATA_SIZE, streamQueue.totalAppendedBytes());
+      assertEquals(DATA_SIZE, streamQueue.bytes());
       assertArrayEquals(dumpGeneratedData(), streamDataOf(streamQueue));
    }
 
@@ -155,12 +158,12 @@ public class StreamQueueTest {
       streamQueue.append(streamFactory.get());
       assertEquals(0, streamQueue.availableCapacityBeforeEnlargement());
       assertEquals(2, streamQueue.parts());
-      assertEquals(DATA_SIZE * 2, streamQueue.totalAppendedBytes());
+      assertEquals(DATA_SIZE * 2, streamQueue.bytes());
       assertArrayEquals(dumpGeneratedData(), streamDataOf(streamQueue));
       streamQueue.append(streamFactory.get());
       assertEquals(1, streamQueue.availableCapacityBeforeEnlargement());
       assertEquals(3, streamQueue.parts());
-      assertEquals(DATA_SIZE * 3, streamQueue.totalAppendedBytes());
+      assertEquals(DATA_SIZE * 3, streamQueue.bytes());
       assertArrayEquals(dumpGeneratedData(), streamDataOf(streamQueue));
    }
 
@@ -171,9 +174,35 @@ public class StreamQueueTest {
       streamQueue.append(streamFactory.get());
       streamQueue.append(streamFactory.get());
       assertEquals(0, streamQueue.availableCapacityBeforeEnlargement());
-      // this should remove enough data to fit another stream
-      streamQueue.release(DATA_SIZE);
+      streamQueue.releaseUntil(DATA_SIZE);
       assertEquals(1, streamQueue.availableCapacityBeforeEnlargement());
+      removeFirstGeneratedData();
+      streamQueue.append(streamFactory.get());
+      assertEquals(0, streamQueue.availableCapacityBeforeEnlargement());
+      assertArrayEquals(dumpGeneratedData(), streamDataOf(streamQueue));
+   }
+
+   @ParameterizedTest
+   @MethodSource("byteStreamProvider")
+   public void removeIfEmptyShouldNotThrowErrors(Supplier<ByteStream> streamFactory) {
+      var streamQueue = new StreamQueue(1);
+      streamQueue.releaseUntil(1);
+   }
+
+   @ParameterizedTest
+   @MethodSource("byteStreamProvider")
+   public void removeBeyondExistingIndexesShouldStillRetainLastAppended(Supplier<ByteStream> streamFactory) {
+      var streamQueue = new StreamQueue(2);
+      var firstPart = streamFactory.get();
+      streamQueue.append(firstPart);
+      var secondPart = streamFactory.get();
+      streamQueue.append(secondPart);
+      int beyondLastIndex = streamQueue.bytes();
+      assertEquals(-1, streamQueue.getByte(beyondLastIndex));
+      streamQueue.releaseUntil(3 * DATA_SIZE);
+      assertRelease(firstPart, 1);
+      assertRelease(secondPart, 0);
+      assertEquals(1, streamQueue.parts());
       removeFirstGeneratedData();
       assertArrayEquals(dumpGeneratedData(), streamDataOf(streamQueue));
    }

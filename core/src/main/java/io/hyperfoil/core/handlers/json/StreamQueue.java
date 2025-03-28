@@ -12,7 +12,7 @@ import org.jctools.util.Pow2;
  * new buffers to the back and use absolute positioning with single index.
  */
 public class StreamQueue {
-   protected static final Logger log = LogManager.getLogger(StreamQueue.class);
+   private static final Logger log = LogManager.getLogger(StreamQueue.class);
 
    private ByteStream[] parts;
    // indices used by users for the beginning (readerIndex) of the bytestream
@@ -30,16 +30,6 @@ public class StreamQueue {
       Arrays.fill(userIndex, -1);
    }
 
-   int firstIndex() {
-      if (end < 0) {
-         return -1;
-      }
-      var lastPart = parts[end];
-      int lastPartSize = lastPart.writerIndex() - lastPart.readerIndex();
-      int totalIndexes = userIndex[end] + lastPartSize - length;
-      return totalIndexes;
-   }
-
    /**
     * WARNING: use this only for testing!
     */
@@ -54,7 +44,7 @@ public class StreamQueue {
       int bytes = 0;
       for (ByteStream part : this.parts) {
          if (part != null) {
-            bytes += (part.writerIndex() - part.readerIndex());
+            bytes += readableBytesOf(part);
          }
       }
       return bytes;
@@ -75,7 +65,7 @@ public class StreamQueue {
             if (parts[next] != null) {
                break;
             }
-            next = (next + 1) & mask;
+            next = next(next);
             contiguousNulls++;
          }
          return contiguousNulls;
@@ -95,10 +85,7 @@ public class StreamQueue {
       return count;
    }
 
-   /**
-    * WARNING: use this only for testing!
-    */
-   int totalAppendedBytes() {
+   private int totalAppendedBytes() {
       return length;
    }
 
@@ -134,26 +121,25 @@ public class StreamQueue {
       ByteStream retained = stream.retain();
       parts[tail] = retained;
       userIndex[tail] = length;
-      length += retained.writerIndex() - retained.readerIndex();
+      length += readableBytesOf(retained);
       end = tail;
-      tail = (tail + 1) & mask;
+      tail = next(tail);
       return userIndex[end];
    }
 
-   public void release(int index) {
+   public void releaseUntil(int index) {
       int i = findPartIndexWith(index);
       if (i < 0) {
          return;
       }
-      i = (i + mask) & mask;
-      if (i == end || parts[i] == null) {
-         return;
-      }
-      while (i != end && parts[i] != null) {
+      assert end >= 0;
+      // release all parts until the one containing the index
+      i = prev(i);
+      while (hasMoreParts(i)) {
          userIndex[i] = -1;
          parts[i].release();
          parts[i] = null;
-         i = (i + mask) & mask;
+         i = prev(i);
       }
    }
 
@@ -163,11 +149,11 @@ public class StreamQueue {
          return -1;
       }
       ByteStream part = parts[i];
-      int partIndex = index - userIndex[i];
-      if (part.readerIndex() + partIndex >= part.writerIndex()) {
+      int partIndex = partOffset(index, i);
+      if (partIndex >= readableBytesOf(part)) {
          return -1;
       }
-      return part.getByte(part.readerIndex() + partIndex);
+      return part.getByte(readerIndexOf(part, partIndex));
    }
 
    /**
@@ -179,10 +165,12 @@ public class StreamQueue {
          return -1;
       }
       int i = end;
+      if (i < 0) {
+         return -1;
+      }
       while (index < userIndex[i]) {
-         // move backwards while dealing with the wrap-around
-         i = (i + mask) & mask;
-         if (i == end || parts[i] == null) {
+         i = prev(i);
+         if (!hasMoreParts(i)) {
             return -1;
          }
       }
@@ -199,34 +187,73 @@ public class StreamQueue {
       }
       length = 0;
       end = -1;
+      tail = 0;
    }
 
    public <P1, P2> void consume(int startIndex, int endIndex, Consumer<P1, P2> consumer, P1 p1, P2 p2, boolean isComplete) {
-      int i = end;
-      while (startIndex < userIndex[i]) {
-         i = (i + mask) & mask;
-         if (i == end || parts[i] == null) {
-            //            throw new IndexOutOfBoundsException("Underflowing the queue with index " + index);
-            ++i;
-            break;
-         }
+      validateIndexes(startIndex, endIndex);
+      if (startIndex == endIndex) {
+         return;
       }
-      int partIndex = startIndex - userIndex[i];
+      int i = findPartIndexWith(startIndex);
+      if (i < 0) {
+         throw new IllegalArgumentException("Start index " + startIndex + " not found.");
+      }
+      int partStartIndex = partOffset(startIndex, i);
       boolean isLast = false;
       while (!isLast) {
          ByteStream part = parts[i];
-         int end = part.writerIndex();
-         if (endIndex <= userIndex[i] + part.writerIndex() - part.readerIndex()) {
-            end = endIndex - userIndex[i] + part.readerIndex();
-            isLast = true;
+         final int readableBytes = readableBytesOf(part);
+         final int partEndIndex = partOffset(endIndex, i);
+         isLast = partEndIndex <= readableBytes;
+         final int length;
+         if (isLast) {
+            length = partEndIndex - partStartIndex;
+         } else {
+            length = readableBytes - partStartIndex;
          }
-         int length = end - partIndex - part.readerIndex();
          if (length > 0) {
-            consumer.accept(p1, p2, part, part.readerIndex() + partIndex, length, isComplete && isLast);
+            consumer.accept(p1, p2, part, readerIndexOf(part, partStartIndex), length, isComplete && isLast);
          }
-         partIndex = 0;
-         i = (i + 1) & mask;
+         partStartIndex = 0;
+         i = next(i);
       }
+   }
+
+   private static int readableBytesOf(ByteStream stream) {
+      return stream.writerIndex() - stream.readerIndex();
+   }
+
+   private static int readerIndexOf(ByteStream part, int partIndex) {
+      return part.readerIndex() + partIndex;
+   }
+
+   private int partOffset(int streamIndex, int part) {
+      return streamIndex - userIndex[part];
+   }
+
+   private void validateIndexes(int startIndex, int endIndex) {
+      if (startIndex < 0 || endIndex < 0) {
+         throw new IllegalArgumentException("Start and end indexes must be non-negative.");
+      }
+      if (startIndex >= length || endIndex > length) {
+         throw new IllegalArgumentException("Start and end indexes must be within the bounds of the stream.");
+      }
+      if (startIndex > endIndex) {
+         throw new IllegalArgumentException("Start index must be less than end index.");
+      }
+   }
+
+   private int prev(int i) {
+      return (i + mask) & mask;
+   }
+
+   private int next(int i) {
+      return (i + 1) & mask;
+   }
+
+   private boolean hasMoreParts(int i) {
+      return i != end && userIndex[i] != -1;
    }
 
    public interface Consumer<P1, P2> extends Serializable {

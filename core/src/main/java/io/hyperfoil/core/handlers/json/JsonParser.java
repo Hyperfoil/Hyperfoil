@@ -367,7 +367,7 @@ public abstract class JsonParser implements Serializable {
             }
          }
          if (keyStartIndex >= 0 || valueStartIndex >= 0) {
-            stream.release(Math.min(Math.min(keyStartIndex, valueStartIndex), safeOutputIndex));
+            stream.releaseUntil(Math.min(Math.min(keyStartIndex, valueStartIndex), safeOutputIndex));
             if (isLast) {
                throw new IllegalStateException("End of input while the JSON is not complete.");
             }
@@ -376,7 +376,7 @@ public abstract class JsonParser implements Serializable {
                stream.consume(lastOutputIndex, safeOutputIndex, record, this, session, isLast);
                lastOutputIndex = safeOutputIndex;
             }
-            stream.release(readerIndex);
+            stream.releaseUntil(readerIndex);
          }
       }
 
