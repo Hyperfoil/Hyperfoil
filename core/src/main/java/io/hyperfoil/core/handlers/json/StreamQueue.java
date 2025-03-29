@@ -120,11 +120,12 @@ public class StreamQueue {
       }
       ByteStream retained = stream.retain();
       parts[tail] = retained;
-      userIndex[tail] = length;
+      int newUserIndex = length;
+      userIndex[tail] = newUserIndex;
       length += readableBytesOf(retained);
       end = tail;
       tail = next(tail);
-      return userIndex[end];
+      return newUserIndex;
    }
 
    public void releaseUntil(int index) {
