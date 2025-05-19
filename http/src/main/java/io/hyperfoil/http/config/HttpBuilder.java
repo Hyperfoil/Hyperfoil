@@ -54,6 +54,7 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
    private int pipeliningLimit = 1;
    private boolean directHttp2 = false;
    private long requestTimeout = 30000;
+   private long sslHandshakeTimeout = 10000;
    private boolean rawBytesHandlers = true;
    private KeyManagerBuilder keyManager = new KeyManagerBuilder(this);
    private TrustManagerBuilder trustManager = new TrustManagerBuilder(this);
@@ -206,6 +207,24 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
       return requestTimeout;
    }
 
+   public HttpBuilder sslHandshakeTimeout(long sslHandshakeTimeout) {
+      this.sslHandshakeTimeout = sslHandshakeTimeout;
+      return this;
+   }
+
+   public HttpBuilder sslHandshakeTimeout(String sslHandshakeTimeout) {
+      if ("none".equals(sslHandshakeTimeout)) {
+         this.sslHandshakeTimeout = -1;
+      } else {
+         this.sslHandshakeTimeout = Util.parseToMillis(sslHandshakeTimeout);
+      }
+      return this;
+   }
+
+   public long sslHandshakeTimeout() {
+      return sslHandshakeTimeout;
+   }
+
    public HttpBuilder addAddress(String address) {
       addresses.add(address);
       return this;
@@ -273,8 +292,8 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
       Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
       return http = new Http(name, isDefault, originalDestination, protocol, host, protocol.portOrDefault(port),
             addresses.toArray(new String[0]), httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams,
-            pipeliningLimit, sharedConnections.build(), directHttp2, requestTimeout, rawBytesHandlers,
-            keyManager.build(), trustManager.build(), connectionStrategy, useHttpCache);
+            pipeliningLimit, sharedConnections.build(), directHttp2, requestTimeout, sslHandshakeTimeout,
+            rawBytesHandlers, keyManager.build(), trustManager.build(), connectionStrategy, useHttpCache);
    }
 
    public static class KeyManagerBuilder implements BuilderBase<KeyManagerBuilder> {

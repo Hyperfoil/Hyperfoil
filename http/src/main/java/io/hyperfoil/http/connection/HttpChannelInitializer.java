@@ -69,6 +69,8 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
             // the handler works only with TLSv1.2: https://github.com/netty/netty/issues/10957
             sslHandler.engine().setEnabledProtocols(new String[] { "TLSv1.2" });
          }
+         long sslHandshakeTimeout = clientPool.config().sslHandshakeTimeout();
+         sslHandler.setHandshakeTimeoutMillis(sslHandshakeTimeout < 0 ? 0 : sslHandshakeTimeout);
          pipeline.addLast(sslHandler);
          pipeline.addLast(alpnHandler);
          if (logMasterKey) {
