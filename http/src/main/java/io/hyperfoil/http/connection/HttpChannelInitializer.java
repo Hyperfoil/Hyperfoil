@@ -71,6 +71,11 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
          }
          long sslHandshakeTimeout = clientPool.config().sslHandshakeTimeout();
          sslHandler.setHandshakeTimeoutMillis(sslHandshakeTimeout < 0 ? 0 : sslHandshakeTimeout);
+         sslHandler.handshakeFuture().addListener(future -> {
+            if (!future.isSuccess()) {
+               handler.accept(null, new IOException("SSL handshake failure", future.cause()));
+            }
+         });
          pipeline.addLast(sslHandler);
          pipeline.addLast(alpnHandler);
          if (logMasterKey) {
@@ -108,4 +113,5 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
       }
       pipeline.addLast("handler", connection);
    }
+
 }
