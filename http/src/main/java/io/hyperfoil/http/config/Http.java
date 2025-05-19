@@ -42,6 +42,7 @@ public class Http implements Serializable {
    private final ConnectionPoolConfig sharedConnections;
    private final boolean directHttp2;
    private final long requestTimeout;
+   private final long sslHandshakeTimeout;
    private final boolean rawBytesHandlers;
    private final KeyManager keyManager;
    private final TrustManager trustManager;
@@ -50,7 +51,7 @@ public class Http implements Serializable {
 
    public Http(String name, boolean isDefault, String originalDestination, Protocol protocol, String host, int port,
          String[] addresses, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit,
-         ConnectionPoolConfig sharedConnections, boolean directHttp2, long requestTimeout,
+         ConnectionPoolConfig sharedConnections, boolean directHttp2, long requestTimeout, long sslHandshakeTimeout,
          boolean rawBytesHandlers, KeyManager keyManager, TrustManager trustManager,
          ConnectionStrategy connectionStrategy, boolean useHttpCache) {
       this.name = name;
@@ -66,6 +67,7 @@ public class Http implements Serializable {
       this.sharedConnections = sharedConnections;
       this.directHttp2 = directHttp2;
       this.requestTimeout = requestTimeout;
+      this.sslHandshakeTimeout = sslHandshakeTimeout;
       this.rawBytesHandlers = rawBytesHandlers;
       this.keyManager = keyManager;
       this.trustManager = trustManager;
@@ -124,6 +126,10 @@ public class Http implements Serializable {
 
    public long requestTimeout() {
       return requestTimeout;
+   }
+
+   public long sslHandshakeTimeout() {
+      return sslHandshakeTimeout;
    }
 
    public String[] addresses() {

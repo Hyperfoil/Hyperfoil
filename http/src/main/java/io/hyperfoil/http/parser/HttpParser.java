@@ -30,6 +30,7 @@ public class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
       register("pipeliningLimit", new PropertyParser.Int<>(HttpBuilder::pipeliningLimit));
       register("directHttp2", new PropertyParser.Boolean<>(HttpBuilder::directHttp2));
       register("requestTimeout", new PropertyParser.String<>(HttpBuilder::requestTimeout));
+      register("sslHandshakeTimeout", new PropertyParser.String<>(HttpBuilder::sslHandshakeTimeout));
       register("addresses", HttpParser::parseAddresses);
       register("rawBytesHandlers", new PropertyParser.Boolean<>(HttpBuilder::rawBytesHandlers));
       register("keyManager", new ReflectionParser<>(HttpBuilder::keyManager));

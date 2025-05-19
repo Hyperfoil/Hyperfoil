@@ -37,6 +37,7 @@ HTTP configuration has these properties:
 | [connectionStrategy](#connection-strategies) | SHARED_POOL | Connection pooling model (see details below) |
 | addresses         |         | Supply list of IPs or IP:port targets that will be used for the connections instead of resolving the `host` in DNS and using `port` as set - `host` and `port` will be used only for `Host` headers and SNI. If this list contains more addresses the connections will be split evenly. |
 | requestTimeout    | 30 seconds | Default request timeout, this can be overridden in each `httpRequest`. |
+| sslHandshakeTimeout | 10 seconds | SSL handshake timeout |
 | allowHttp1x       | true    | Allow HTTP 1.1 for connections (e.g. during ALPN). |
 | allowHttp2x       | true    | Allow HTTP 2.0 for connections (e.g. during ALPN). If both 1.1 and 2.0 are allowed and `https` is not used (which would trigger ALPN) Hyperfoil will use HTTP 1.1. If only 2.0 is allowed Hyperfoil will start with HTTP 1.1 and perform protocol upgrade to 2.0. |
 | directHttp2       | false   | Start with H2C HTTP 2.0 without protocol upgrade. Makes sense only for plain text (`http`) connections. Currently not implemented. |
