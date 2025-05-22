@@ -59,7 +59,7 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
    private KeyManagerBuilder keyManager = new KeyManagerBuilder(this);
    private TrustManagerBuilder trustManager = new TrustManagerBuilder(this);
    private ConnectionStrategy connectionStrategy = ConnectionStrategy.SHARED_POOL;
-   private boolean useHttpCache = true;
+   private boolean useHttpCache = false;
 
    public static HttpBuilder forTesting() {
       return new HttpBuilder(null);
