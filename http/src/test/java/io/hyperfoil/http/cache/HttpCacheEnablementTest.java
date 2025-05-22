@@ -38,9 +38,9 @@ public class HttpCacheEnablementTest extends BaseHttpScenarioTest {
    }
 
    @Test
-   public void testOkWithCacheByDefaultHttp1x() {
+   public void testOkWithoutCacheByDefaultHttp1x() {
       http().sharedConnections(1);
-      testSingle("/ok", true);
+      testSingle("/ok", false);
    }
 
    private void testSingle(String path, boolean isUsingCache) {
