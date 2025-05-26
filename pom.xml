@@ -38,13 +38,9 @@
 
     <distributionManagement>
         <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/releases</url>
+            <id>central</id>
+            <url>https://central.sonatype.com/artifact</url>
         </repository>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
     </distributionManagement>
 
     <modules>
@@ -101,7 +97,7 @@
         <version.wildfly-common>1.6.0.Final</version.wildfly-common>
         <version.jctools>4.0.5</version.jctools>
 
-        <version.sonatype.nexus>1.7.0</version.sonatype.nexus>
+        <version.sonatype.central>0.7.0</version.sonatype.central>
         <version.maven.source>3.3.1</version.maven.source>
         <version.maven.javadoc>3.11.2</version.maven.javadoc>
         <version.maven.gpg>3.2.5</version.maven.gpg>
@@ -721,11 +717,14 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>org.sonatype.plugins</groupId>
-                    <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>${version.sonatype.nexus}</version>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
+                    <version>${version.sonatype.central}</version>
+                    <extensions>true</extensions>
                     <configuration>
-                        <stagingProgressTimeoutMinutes>15</stagingProgressTimeoutMinutes>
+                        <publishingServerId>central</publishingServerId>
+                        <autoPublish>true</autoPublish>
+                        <waitUntil>published</waitUntil>
                     </configuration>
                 </plugin>
             </plugins>
@@ -743,17 +742,13 @@
 
             <build>
                 <plugins>
-                    <!-- To release to Maven central -->
+                    <!-- To release to Central Portal -->
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
                         <extensions>true</extensions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                        </configuration>
                     </plugin>
+
                     <!-- To generate javadoc -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
