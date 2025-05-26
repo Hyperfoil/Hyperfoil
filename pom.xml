@@ -83,7 +83,7 @@
         <version.apache.sshd>2.10.0</version.apache.sshd>
         <version.assertj>3.10.0</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
-        <version.fabric8.kubernetes-client>4.7.2</version.fabric8.kubernetes-client>
+        <version.fabric8.kubernetes-client>7.3.1</version.fabric8.kubernetes-client>
         <version.jkube.maven-plugin>1.17.0</version.jkube.maven-plugin>
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.javaparser>3.14.12</version.javaparser>
