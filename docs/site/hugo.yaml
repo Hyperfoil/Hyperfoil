@@ -121,15 +121,15 @@ params:
   # The version number for the version of the docs represented in this doc set.
   # Used in the "version-banner" partial to display a version number for the
   # current doc set.
-  version: 0.27.1
+  version: 0.27.2
   
   # Uncomment this if your GitHub repo does not have "main" as the default branch,
   # or specify a new value if you want to reference another branch in your GitHub links
   github_branch: 0.27.x
   
   # Custom param: latest distribution url
-  url_latest_distribution: https://github.com/Hyperfoil/Hyperfoil/releases/download/hyperfoil-all-0.27.1
-  zip_latest_distribution: hyperfoil-0.27.1.zip
+  url_latest_distribution: https://github.com/Hyperfoil/Hyperfoil/releases/download/hyperfoil-all-0.27.2
+  zip_latest_distribution: hyperfoil-0.27.2.zip
   url_all_releases: https://github.com/Hyperfoil/Hyperfoil/releases/
 
   # Enable syntax highlighting and copy buttons on code blocks with Prism
