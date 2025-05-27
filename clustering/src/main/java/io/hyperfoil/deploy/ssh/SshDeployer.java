@@ -117,17 +117,17 @@ public class SshDeployer implements Deployer {
    }
 
    @Override
-   public void downloadControllerLog(long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+   public void downloadControllerLog(long offset, long maxLength, String destinationFile, Handler<AsyncResult<Void>> handler) {
       throw new UnsupportedOperationException();
    }
 
    @Override
-   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile,
+   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, long maxLength, String destinationFile,
          Handler<AsyncResult<Void>> handler) {
       SshDeployedAgent sshAgent = (SshDeployedAgent) deployedAgent;
       try {
          ClientSession session = connectAndLogin(sshAgent.sshKey, sshAgent.username, sshAgent.hostname, sshAgent.port);
-         sshAgent.downloadLog(session, offset, destinationFile, handler);
+         sshAgent.downloadLog(session, offset, maxLength, destinationFile, handler);
       } catch (IOException | DeploymentException | GeneralSecurityException e) {
          handler.handle(Future.failedFuture(e));
       }

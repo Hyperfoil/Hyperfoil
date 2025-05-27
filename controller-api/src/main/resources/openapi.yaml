@@ -673,6 +673,12 @@ paths:
           type: integer
           format: long
           default: 0
+      - in: query
+        name: maxLength
+        schema:
+          type: integer
+          format: long
+          default: -1
       - in: header
         name: if-match
         description: Identifier of the previously downloaded log chunk.
@@ -701,6 +707,12 @@ paths:
           type: integer
           format: long
           default: 0
+      - in: query
+        name: maxLength
+        schema:
+          type: integer
+          format: long
+          default: -1
       - in: header
         name: if-match
         description: Identifier of the previously downloaded log chunk.

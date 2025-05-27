@@ -1089,17 +1089,19 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
-   public void downloadControllerLog(long offset, File tempFile, Handler<AsyncResult<Void>> handler) {
-      vertx.executeBlocking(future -> deployer.downloadControllerLog(offset, tempFile.toString(), handler), result -> {
-         if (result.failed()) {
-            handler.handle(Future.failedFuture(result.cause()));
-         }
-      });
+   public void downloadControllerLog(long offset, long maxLength, File tempFile, Handler<AsyncResult<Void>> handler) {
+      vertx.executeBlocking(future -> deployer.downloadControllerLog(offset, maxLength, tempFile.toString(), handler),
+            result -> {
+               if (result.failed()) {
+                  handler.handle(Future.failedFuture(result.cause()));
+               }
+            });
    }
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
-   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, File tempFile, Handler<AsyncResult<Void>> handler) {
-      vertx.executeBlocking(future -> deployer.downloadAgentLog(deployedAgent, offset, tempFile.toString(), handler),
+   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, long maxLength, File tempFile,
+         Handler<AsyncResult<Void>> handler) {
+      vertx.executeBlocking(future -> deployer.downloadAgentLog(deployedAgent, offset, maxLength, tempFile.toString(), handler),
             result -> {
                if (result.failed()) {
                   handler.handle(Future.failedFuture(result.cause()));
