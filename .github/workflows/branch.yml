@@ -1,0 +1,66 @@
+name: Create New Stable Branch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Create new branch
+    env:
+      ENVIRONMENT: CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RH_PERF_BOT_TOKEN }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: 17
+      - name: install yq
+        run: wget https://github.com/mikefarah/yq/releases/download/v4.2.0/yq_linux_amd64 -O ~/yq && chmod +x ~/yq
+      - name: Maven Version
+        run: mvn --version
+      # Retrieve current version from the root pom
+      - name: Get versions
+        run: |
+          PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo PROJECT_VERSION=${PROJECT_VERSION} >> $GITHUB_ENV
+          echo CUR_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+0"."$3}' | sed s/[.]$//) >> $GITHUB_ENV
+          echo STABLE_BRANCH=$(echo "${CUR_VERSION}.x") >> $GITHUB_ENV
+          echo NEXT_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+1}' | sed s/[.]$//) >> $GITHUB_ENV
+          echo NEXT_SNAPSHOT_VERSION=$(echo "${NEXT_VERSION}-SNAPSHOT") >> $GITHUB_ENV
+          echo NEXT_STREAM_VERSION=$(echo "${NEXT_VERSION}.x") >> $GITHUB_ENV
+
+      - name: Create branch ${{ env.STABLE_BRANCH }}
+        run: git branch ${{ env.STABLE_BRANCH }} master
+      - name: Bump next version ${{ env.NEXT_SNAPSHOT_VERSION }}
+        run: mvn -B -ntp versions:set -DnewVersion=${{ env.NEXT_SNAPSHOT_VERSION }}
+
+      # Update existing workflow branches
+      - name: Update main workflow
+        run: ~/yq -i e '.on.push.branches |= [ "master", '${{ env.STABLE_BRANCH }}' ]' .github/workflows/main.yml
+      - name: Update release branch
+        run: ~/yq -i e '.env.RELEASE_BRANCH |= '${{ env.NEXT_STREAM_VERSION }} .github/workflows/release.yml
+      - name: Update backport workflow
+        run: ~/yq -i e '.jobs.backporting.steps[1].with.target-branch |= '${{ env.STABLE_BRANCH }} .github/workflows/backport.yml
+
+      # Update new changes
+      - name: Configure git
+        run: |
+          git config --global user.name "rh-appservices-perf"
+          git config --global user.email "rh-appservices-perf@users.noreply.github.com"
+      - name: Commit main branch changes
+        run: |
+          git commit -am "Next is ${{ env.NEXT_VERSION }}"
+      - name: Update cur stable branch
+        run: |
+          git checkout ${{ env.STABLE_BRANCH }}
+          mvn -B -ntp versions:set -DnewVersion=${{ env.CUR_VERSION }}.0-SNAPSHOT
+          git commit -am "Branching ${{ env.STABLE_BRANCH }}"
+      - name: push branches
+        run: |
+          git push origin ${{ env.STABLE_BRANCH }}
+          git push origin master
