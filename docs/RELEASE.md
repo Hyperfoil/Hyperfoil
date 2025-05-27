@@ -2,7 +2,40 @@
 
 This document summarizes all the steps needed to release next version of Hyperfoil.
 
-## Prerequisites
+## Automated Release Process
+
+We automated the release process using GitHub workflows. 
+
+The process consists of two main steps.
+
+### Create stable branch
+
+Create the stable branch by running [Branch workflow](../.github/workflows/branch.yml).
+This will generate a new stable branch from the current `master` SNAPSHOT version, e.g., from `0.28-SNAPSHOT` 
+it will create `0.28.x` branch.
+
+>[!NOTE]
+> This is meant to be triggered when branching new `minor` release
+
+### Perform Release
+
+The release MUST be performed from the current active stable branch, e.g., `0.28.x`.
+
+Simply trigger the [Release workflow](../.github/workflows/release.yml) that will take care of 
+* Create the new maven artifacts
+* Push the artifacts to Central Portal
+* Build and push the container image
+* Prepare for the next dev cycle
+
+>[!NOTE]
+> If for any reason something goes wrong or the CI does not work, check the [manual release process](#manual-release-process)
+
+
+## Manual Release Process
+
+Below you can find a step-by-step guide to release a new Hyperfoil version.
+
+### Prerequisites
 
 Here the full list of prerequisites and privileges that are required to release a new Hyperfoil version:
 
@@ -13,10 +46,6 @@ Here the full list of prerequisites and privileges that are required to release 
 3. [Optional] [Quay.io/hyperfoil](https://quay.io/organization/hyperfoil) push rights.
    1. This is only required if the automated process that pushes the container image does not work.
    2. More details on this step can be found in the [release process](#release-process).
-
-## Release Process
-
-Below you can find a step-by-step guide to release a new Hyperfoil version.
 
 ### Prepare tag and next development cycle
 
@@ -29,7 +58,7 @@ You will be asked to confirm or change the version, something like:
 ```bash
 What is the release version for "Hyperfoil"? ... <- Use semantic version (X.Y.Z), default guessed by Maven works.
 ...
-What is SCM release tag or label for "Hyperfoil"? <- Use tag 'release-X.Y.Z'
+What is SCM release tag or label for "Hyperfoil"? <- Use tag 'hyperfoil-all-X.Y.Z'
 What is the new development version for "Hyperfoil"? ... <- Use semantic version (X.Y.Z) with -SNAPSHOT suffix
 ...
 ```
@@ -54,14 +83,12 @@ To push the maven artifacts you just need to run:
 mvn release:perform -Prelease
 ```
 
-Once the command finishes, you should see the new artifacts available at [s01.oss.sonatype.org/content/repositories/releases/io/hyperfoil/](https://s01.oss.sonatype.org/content/repositories/releases/io/hyperfoil/)
+Once the command finishes, you should see the new artifacts available at [central.sonatype.com](https://central.sonatype.com/search?q=hyperfoil)
 
 ### [Optional] Push container image to quay.io
 
-This process should be automatically triggered by [workflows/build-and-push-image.yml](https://github.com/Hyperfoil/Hyperfoil/blob/226c7ce15f55d4bbd5964ff6b1855d21c36be91d/.github/workflows/build-and-push-image.yml)
-as soon as the previous step pushes the new _tag_ on GitHub.
-
-If, for any reason, the GitHub workflow does not work you could manually follow these steps:
+If, for any reason, the GitHub workflow did not work (or the container image has not been published) 
+you could manually follow these steps:
 
 1. Checkout the latest generated tag
 2. Build the container image
@@ -82,7 +109,7 @@ If, for any reason, the GitHub workflow does not work you could manually follow 
 
 ## Website Update
 
-By default the documentation hosted at https://hyperfoil.io points to the latest stable branch on this repository, e.g., `0.26.x`.
+By default, the documentation hosted at https://hyperfoil.io points to the latest stable branch on this repository, e.g., `0.27.x`.
 
 The deployment is managed by [github.com/Hyperfoil/Hyperfoil.github.io](https://github.com/Hyperfoil/Hyperfoil.github.io).
 
