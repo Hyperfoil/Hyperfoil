@@ -1087,7 +1087,10 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void getControllerLog(RoutingContext ctx, long offset, String ifMatch) {
+   public void getControllerLog(RoutingContext ctx, long offset, long maxLength, String ifMatch) {
+      if (maxLength < 0) {
+         maxLength = Long.MAX_VALUE;
+      }
       String logPath = Properties.get(Properties.CONTROLLER_LOG, controller.getConfig().getString(Properties.CONTROLLER_LOG));
       if (ifMatch != null && !ifMatch.equals(controller.deploymentID())) {
          ctx.response().setStatusCode(HttpResponseStatus.PRECONDITION_FAILED.code()).end();
@@ -1097,7 +1100,7 @@ class ControllerServer implements ApiService {
          try {
             File tempFile = File.createTempFile("controller.", ".log");
             tempFile.deleteOnExit();
-            controller.downloadControllerLog(offset, tempFile, result -> {
+            controller.downloadControllerLog(offset, maxLength, tempFile, result -> {
                if (result.succeeded()) {
                   sendFile(ctx, tempFile, controller.deploymentID());
                } else {
@@ -1130,7 +1133,7 @@ class ControllerServer implements ApiService {
                      .setStatusMessage("Offset must be non-negative").end();
             } else {
                ctx.response().putHeader(HttpHeaders.ETAG, controller.deploymentID());
-               ctx.response().sendFile(logPath, offset);
+               ctx.response().sendFile(logPath, offset, maxLength);
             }
          }
       }
@@ -1144,15 +1147,19 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void getAgentLog(RoutingContext ctx, String agent, long offset, String ifMatch) {
+   public void getAgentLog(RoutingContext ctx, String agent, long offset, long maxLength, String ifMatch) {
       if (agent == null || "controller".equals(agent)) {
-         getControllerLog(ctx, offset, ifMatch);
+         getControllerLog(ctx, offset, maxLength, ifMatch);
          return;
+      }
+      if (maxLength < 0) {
+         maxLength = Long.MAX_VALUE;
       }
       if (offset < 0) {
          ctx.response()
                .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
                .setStatusMessage("Offset must be non-negative").end();
+         return;
       }
       Optional<AgentInfo> agentInfo = controller.runs.values().stream()
             .reduce(LAST_RUN_OPERATOR)
@@ -1170,7 +1177,7 @@ class ControllerServer implements ApiService {
       try {
          File tempFile = File.createTempFile("agent." + agent, ".log");
          tempFile.deleteOnExit();
-         controller.downloadAgentLog(agentInfo.get().deployedAgent, offset, tempFile, result -> {
+         controller.downloadAgentLog(agentInfo.get().deployedAgent, offset, maxLength, tempFile, result -> {
             if (result.succeeded()) {
                sendFile(ctx, tempFile, agentInfo.get().deploymentId);
             } else {

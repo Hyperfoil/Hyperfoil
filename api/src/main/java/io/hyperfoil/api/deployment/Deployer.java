@@ -14,9 +14,10 @@ public interface Deployer extends Closeable {
 
    boolean hasControllerLog();
 
-   void downloadControllerLog(long offset, String destinationFile, Handler<AsyncResult<Void>> handler);
+   void downloadControllerLog(long offset, long maxLength, String destinationFile, Handler<AsyncResult<Void>> handler);
 
-   void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile, Handler<AsyncResult<Void>> handler);
+   void downloadAgentLog(DeployedAgent deployedAgent, long offset, long maxLength, String destinationFile,
+         Handler<AsyncResult<Void>> handler);
 
    interface Factory {
       String name();

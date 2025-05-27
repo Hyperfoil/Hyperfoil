@@ -306,25 +306,26 @@ public class K8sDeployer implements Deployer {
    }
 
    @Override
-   public void downloadControllerLog(long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
-      downloadRunningLog(CONTROLLER_POD_NAME, offset, destinationFile, handler);
+   public void downloadControllerLog(long offset, long maxLength, String destinationFile, Handler<AsyncResult<Void>> handler) {
+      downloadRunningLog(CONTROLLER_POD_NAME, offset, maxLength, destinationFile, handler);
    }
 
    @Override
-   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile,
+   public void downloadAgentLog(DeployedAgent deployedAgent, long offset, long maxLength, String destinationFile,
          Handler<AsyncResult<Void>> handler) {
       K8sAgent agent = (K8sAgent) deployedAgent;
       ensureClient();
       if (agent.outputPath != null) {
          try (InputStream stream = new FileInputStream(agent.outputPath.toFile())) {
             skipBytes(offset, stream);
-            Files.copy(stream, Paths.get(destinationFile), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(new TruncatingInputStream(stream, maxLength), Paths.get(destinationFile),
+                  StandardCopyOption.REPLACE_EXISTING);
             handler.handle(Future.succeededFuture());
          } catch (IOException e) {
             handler.handle(Future.failedFuture(e));
          }
       } else {
-         downloadRunningLog(agent.pod.getMetadata().getName(), offset, destinationFile, handler);
+         downloadRunningLog(agent.pod.getMetadata().getName(), offset, maxLength, destinationFile, handler);
       }
    }
 
@@ -338,13 +339,16 @@ public class K8sDeployer implements Deployer {
       }
    }
 
-   private void downloadRunningLog(String podName, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+   private void downloadRunningLog(String podName, long offset, long maxLength, String destinationFile,
+         Handler<AsyncResult<Void>> handler) {
       ensureClient();
       try {
          PodResource<Pod, DoneablePod> podResource = client.pods().inNamespace(NAMESPACE).withName(podName);
-         InputStream stream = getLog(podResource);
-         skipBytes(offset, stream);
-         Files.copy(stream, Paths.get(destinationFile), StandardCopyOption.REPLACE_EXISTING);
+         try (InputStream stream = getLog(podResource)) {
+            skipBytes(offset, stream);
+            Files.copy(new TruncatingInputStream(stream, maxLength), Paths.get(destinationFile),
+                  StandardCopyOption.REPLACE_EXISTING);
+         }
          handler.handle(Future.succeededFuture());
       } catch (IOException e) {
          handler.handle(Future.failedFuture(e));
@@ -375,6 +379,40 @@ public class K8sDeployer implements Deployer {
       @Override
       public K8sDeployer create() {
          return new K8sDeployer();
+      }
+   }
+
+   private static class TruncatingInputStream extends InputStream {
+      private final InputStream stream;
+      private long remain;
+
+      public TruncatingInputStream(InputStream stream, long maxLength) {
+         this.stream = stream;
+         remain = maxLength;
+      }
+
+      @Override
+      public int read() throws IOException {
+         if (remain <= 0) {
+            return -1;
+         }
+         int b = stream.read();
+         if (b >= 0) {
+            remain--;
+         }
+         return b;
+      }
+
+      @Override
+      public int read(byte[] b, int off, int len) throws IOException {
+         if (remain <= 0) {
+            return -1;
+         }
+         int n = stream.read(b, off, Math.toIntExact(Math.min(len, remain)));
+         if (n > 0) {
+            remain -= n;
+         }
+         return n;
       }
    }
 

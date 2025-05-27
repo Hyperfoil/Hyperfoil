@@ -47,7 +47,7 @@ public class Log extends ServerCommand {
          }
       }
 
-      String newLogId = invocation.context().client().downloadLog(node, logId, offset, logFile);
+      String newLogId = invocation.context().client().downloadLog(node, logId, offset, Long.MAX_VALUE, logFile);
       // when the agent did not start correctly the newLogId will be null (as we use deployment ID for that)
       // and we won't store it at all.
       if (newLogId != null) {

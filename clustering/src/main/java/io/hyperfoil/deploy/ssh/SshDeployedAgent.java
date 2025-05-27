@@ -359,19 +359,27 @@ public class SshDeployedAgent implements DeployedAgent {
       return md5map;
    }
 
-   public void downloadLog(ClientSession session, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+   public void downloadLog(ClientSession session, long offset, long maxLength, String destinationFile,
+         Handler<AsyncResult<Void>> handler) {
       try (SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session)) {
          try (SftpClient.CloseableHandle handle = sftpClient.open(dir + File.separatorChar + "agent." + name + ".log")) {
             byte[] buffer = new byte[65536];
             try (FileOutputStream output = new FileOutputStream(destinationFile)) {
                long readOffset = offset;
+               long totalRead = 0;
                for (;;) {
-                  int nread = sftpClient.read(handle, readOffset, buffer);
+                  long remaining = maxLength - totalRead;
+                  if (remaining <= 0) {
+                     break;
+                  }
+                  int nread = sftpClient.read(handle, readOffset, buffer, 0,
+                        Math.toIntExact(Math.min(remaining, buffer.length)));
                   if (nread < 0) {
                      break;
                   }
                   output.write(buffer, 0, nread);
                   readOffset += nread;
+                  totalRead += nread;
                }
             }
          }

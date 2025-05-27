@@ -44,7 +44,7 @@ public interface Client {
 
    Collection<String> agents();
 
-   String downloadLog(String node, String logId, long offset, File destinationFile);
+   String downloadLog(String node, String logId, long offset, long maxLength, File destinationFile);
 
    void shutdown(boolean force);
 
