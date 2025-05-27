@@ -283,13 +283,13 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public String downloadLog(String node, String logId, long offset, File destinationFile) {
+   public String downloadLog(String node, String logId, long offset, long maxLength, File destinationFile) {
       String url = "/log" + (node == null ? "" : "/" + node);
       // When there's no more data, content-length won't be present and the body is null
       // the etag does not match
       CompletableFuture<String> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
-         HttpRequest<Buffer> request = request(HttpMethod.GET, url + "?offset=" + offset);
+         HttpRequest<Buffer> request = request(HttpMethod.GET, url + "?offset=" + offset + "&maxLength=" + maxLength);
          if (logId != null) {
             request.putHeader(HttpHeaders.IF_MATCH.toString(), logId);
          }
