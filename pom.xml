@@ -25,14 +25,14 @@
     <groupId>io.hyperfoil</groupId>
     <artifactId>hyperfoil-all</artifactId>
     <packaging>pom</packaging>
-    <version>0.29.1-SNAPSHOT</version>
+    <version>0.29.0</version>
     <name>Hyperfoil</name>
     <description>Hyperfoil will rock your application with load</description>
     <scm>
         <connection>scm:git:git://github.com/Hyperfoil/Hyperfoil.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/Hyperfoil/Hyperfoil.git</developerConnection>
         <url>https://github.com/Hyperfoil/Hyperfoil</url>
-        <tag>HEAD</tag>
+        <tag>hyperfoil-all-0.29.0</tag>
     </scm>
     <url>https://hyperfoil.io</url>
 
