@@ -95,6 +95,6 @@ jobs:
       # Push the current version to quay.io, either the tag or snapshot version
 
     - name: Push image version ${{ env.SNAPSHOT_VERSION }}
-      if: matrix.os == 'ubuntu-latest' && env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master' && endsWith(env.SNAPSHOT_VERSION, 'SNAPSHOT')
+      if: matrix.os == 'ubuntu-latest' && env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master'
       run: docker push quay.io/hyperfoil/hyperfoil:${{ env.SNAPSHOT_VERSION }}
 
