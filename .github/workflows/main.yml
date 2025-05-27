@@ -20,9 +20,14 @@ on:
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
     env:
       NO_DOWNLOAD_MESSAGE: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
-    runs-on: ubuntu-latest
+      QUAY_BOT_LOGIN: ${{secrets.QUAY_BOT_LOGIN}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
@@ -31,25 +36,31 @@ jobs:
       with:
         distribution: 'adopt'
         java-version: 17
+
     - name: Cache Maven packages
       uses: actions/cache@v4
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+
     # setup local ssh key for benchmark tests
     - name: Generate SSH keys
-      run: ssh-keygen -t rsa -b 4096 -C "github@hyperfoil.io" -f ~/.ssh/id_rsa
-    - name: Authorize SSH key on localhost
-      run: cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-    - name: Gather known hosts
-      run: ssh-keyscan localhost >> ~/.ssh/known_hosts
-    - name: Fix home dir permissions
-      run: chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
-    # Run a full build with all tests
+      run: |
+        ssh-keygen -t rsa -b 4096 -C "github@hyperfoil.io" -f ~/.ssh/id_rsa
+        # Authorize SSH key on localhost
+        cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+        # Gather known hosts
+        ssh-keyscan localhost >> ~/.ssh/known_hosts
+        # Fix home dir permissions
+        chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
+
+    # Run a full build with all tests and create container image
     - name: Build with Maven
       run: mvn clean -B package --file pom.xml -Pbenchmark -Pbuild-image -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
+
     - name: Check uncommitted changes
+      if: matrix.os == 'ubuntu-latest'
       run: |
         clean=$(git status --porcelain)
         if [[ -z "$clean" ]]; then
@@ -59,6 +70,7 @@ jobs:
           git diff
           exit 1
         fi
+
     - name: Upload artifact for failed workflow
       if: failure()
       uses: actions/upload-artifact@v4
@@ -67,3 +79,22 @@ jobs:
         path: |
           */target/surefire-reports/*
           test-suite/target/hyperfoil/*.log
+
+    # Login using Hyperfoil robot account
+    - name: Login to Quay.io
+      if: matrix.os == 'ubuntu-latest' && env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master'
+      uses: docker/login-action@v3
+      with:
+        registry: quay.io
+        username: ${{ secrets.QUAY_BOT_LOGIN }}
+        password: ${{ secrets.QUAY_BOT_PASSWORD }}
+        
+    # Retrieve current version from the root pom
+    - name: Get version
+      run: echo SNAPSHOT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_ENV
+      # Push the current version to quay.io, either the tag or snapshot version
+
+    - name: Push image version ${{ env.SNAPSHOT_VERSION }}
+      if: matrix.os == 'ubuntu-latest' && env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master' && endsWith(env.SNAPSHOT_VERSION, 'SNAPSHOT')
+      run: docker push quay.io/hyperfoil/hyperfoil:${{ env.SNAPSHOT_VERSION }}
+
