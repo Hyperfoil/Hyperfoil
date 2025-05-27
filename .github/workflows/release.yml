@@ -7,7 +7,7 @@ env:
 jobs:
   build-and-release:
     name: Build & Release
-    if: github.ref != 'refs/heads/master' && endsWith(github.ref, env.RELEASE_BRANCH)
+    if: github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT: CI
