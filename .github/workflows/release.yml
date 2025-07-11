@@ -27,11 +27,11 @@ jobs:
       - name: List keys
         run: gpg -K
       # Setup java with proper settings
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 17
+          java-version: 21
           server-id: central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD

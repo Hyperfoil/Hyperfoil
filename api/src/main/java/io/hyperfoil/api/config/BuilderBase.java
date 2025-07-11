@@ -86,7 +86,7 @@ public interface BuilderBase<S extends BuilderBase<S>> {
    default S copy(Object newParent) {
       if (getClass().isSynthetic()) {
          // This is most likely a lambda supplier of the instance (which should be immutable anyway)
-         assert getClass().getSimpleName().contains("$$Lambda$");
+         assert getClass().getSimpleName().contains("$$Lambda");
          return (S) this;
       }
       try {
