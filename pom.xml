@@ -85,7 +85,7 @@
         <version.javaparser>3.14.12</version.javaparser>
         <version.marshalling>2.0.6.Final</version.marshalling>
         <version.junit-jupiter-api>5.10.3</version.junit-jupiter-api>
-        <version.log4j2>2.24.0</version.log4j2>
+        <version.log4j2>2.25.1</version.log4j2>
         <version.metainf-services>1.8</version.metainf-services>
         <version.netty.tcnative.boringssl>2.0.70.Final</version.netty.tcnative.boringssl>
         <version.slf4j>2.0.6</version.slf4j>
