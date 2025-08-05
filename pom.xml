@@ -97,7 +97,7 @@
         <version.wildfly-common>2.0.1</version.wildfly-common>
         <version.jctools>4.0.5</version.jctools>
 
-        <version.sonatype.central>0.7.0</version.sonatype.central>
+        <version.sonatype.central>0.8.0</version.sonatype.central>
         <version.maven.source>3.3.1</version.maven.source>
         <version.maven.javadoc>3.11.2</version.maven.javadoc>
         <version.maven.gpg>3.2.5</version.maven.gpg>
