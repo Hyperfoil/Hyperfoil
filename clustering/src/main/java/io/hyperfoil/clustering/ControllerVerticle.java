@@ -57,6 +57,7 @@ import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.controller.CsvWriter;
+import io.hyperfoil.controller.HdrWriter;
 import io.hyperfoil.controller.JsonLoader;
 import io.hyperfoil.controller.JsonWriter;
 import io.hyperfoil.controller.StatisticsStore;
@@ -183,13 +184,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   if (log.isDebugEnabled()) {
                      log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests) - added:{}",
                            rsm.runId, agentName, rsm.address, phase, rsm.stepId, rsm.metric,
-                           rsm.statistics.sequenceId, rsm.statistics.requestCount, added);
+                           rsm.statistics.sampleId, rsm.statistics.requestCount, added);
                   }
                   if (!added) {
                      // warning already logged
                      String errorMessage = String.format(
                            "Received statistics for %s/%d/%s:%d with %d requests but the statistics are already completed; these statistics won't be reported.",
-                           phase, rsm.stepId, rsm.metric, rsm.statistics.sequenceId, rsm.statistics.requestCount);
+                           phase, rsm.stepId, rsm.metric, rsm.statistics.sampleId, rsm.statistics.requestCount);
                      log.error(errorMessage);
                      run.errors.add(new Run.Error(null, new BenchmarkExecutionException(errorMessage)));
                   }
@@ -433,9 +434,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       log.info("Loading stats from {}", jsonPath);
       StatisticsStore store = new StatisticsStore(benchmark, f -> {
-      });
+      }, Controller.PERSIST_HDR);
       try {
-         JsonLoader.read(Files.readString(jsonPath, StandardCharsets.UTF_8), store);
+         JsonLoader.read(Files.readString(jsonPath, StandardCharsets.UTF_8), store, Controller.PERSIST_HDR);
       } catch (Exception e) {
          log.error("Cannot load stats from {}", jsonPath, e);
          return null;
@@ -503,7 +504,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       runDir.toFile().mkdirs();
       Run run = new Run(runId, runDir, benchmark);
       run.initStore(new StatisticsStore(benchmark, failure -> log.warn("Failed verify SLA(s) for {}/{}: {}",
-            failure.phase(), failure.metric(), failure.message())));
+            failure.phase(), failure.metric(), failure.message()), Controller.PERSIST_HDR));
       run.description = description;
       runs.put(run.id, run);
       if (run.benchmark.source() != null) {
@@ -794,6 +795,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          } catch (IOException e) {
             log.error("Failed to persist statistics", e);
             future.fail(e);
+         }
+
+         if (Controller.PERSIST_HDR) {
+            // by default skip downloading the HDRs
+            try {
+               HdrWriter.writeHdr(run.dir.resolve("hdr"), run.statisticsStore());
+            } catch (IOException e) {
+               log.error("Failed to persist hdr statistics", e);
+               future.fail(e);
+            }
          }
 
          JsonObject info = new JsonObject()

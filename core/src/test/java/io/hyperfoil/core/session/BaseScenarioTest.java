@@ -62,7 +62,7 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
       @Override
       public void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown) {
          log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase.name, stepId, metric,
-               snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
+               snapshot.sampleId, snapshot.requestCount, snapshot.responseCount);
          Map<String, StatisticsSnapshot> stats = phaseStats.get(phase.name);
          if (stats == null) {
             stats = new HashMap<>();

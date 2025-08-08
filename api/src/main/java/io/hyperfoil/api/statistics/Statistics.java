@@ -50,7 +50,7 @@ public class Statistics {
       active = new AtomicReferenceArray<>(16);
       inactive = new AtomicReferenceArray<>(16);
       StatisticsSnapshot first = new StatisticsSnapshot();
-      first.sequenceId = 0;
+      first.sampleId = 0;
       active.set(0, first);
       highestTrackableValue = first.histogram.getHighestTrackableValue();
    }
@@ -263,25 +263,25 @@ public class Statistics {
    }
 
    private StatisticsSnapshot active(long timestamp) {
-      int index = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
+      int sampleId = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
-      if (index >= active.length()) {
-         index = active.length() - 1;
-      } else if (index < 0) {
+      if (sampleId >= active.length()) {
+         sampleId = active.length() - 1;
+      } else if (sampleId < 0) {
          log.error("Record start timestamp {} predates statistics start {}", timestamp, startTimestamp);
-         index = 0;
+         sampleId = 0;
       }
-      StatisticsSnapshot snapshot = active.get(index);
+      StatisticsSnapshot snapshot = active.get(sampleId);
       if (snapshot == null) {
          snapshot = new StatisticsSnapshot();
-         snapshot.sequenceId = index;
-         active.set(index, snapshot);
+         snapshot.sampleId = sampleId;
+         active.set(sampleId, snapshot);
       }
-      lowestActiveUpdater.accumulateAndGet(this, index, Math::min);
+      lowestActiveUpdater.accumulateAndGet(this, sampleId, Math::min);
       // Highest active is increasing monotonically and it is updated only by the event-loop thread;
       // therefore we don't have to use CAS operation
-      if (index > highestActive) {
-         highestActive = index;
+      if (sampleId > highestActive) {
+         highestActive = sampleId;
       }
       return snapshot;
    }
