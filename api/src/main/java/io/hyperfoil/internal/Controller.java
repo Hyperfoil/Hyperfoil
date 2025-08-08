@@ -15,6 +15,7 @@ public interface Controller {
    Path BENCHMARK_DIR = Properties.get(Properties.BENCHMARK_DIR, Paths::get, ROOT_DIR.resolve("benchmark"));
    Path HOOKS_DIR = ROOT_DIR.resolve("hooks");
    Path RUN_DIR = Properties.get(Properties.RUN_DIR, Paths::get, ROOT_DIR.resolve("run"));
+   Boolean PERSIST_HDR = Properties.getBoolean(Properties.CONTROLLER_PERSIST_HDR);
 
    String host();
 

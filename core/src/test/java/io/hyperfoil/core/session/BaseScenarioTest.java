@@ -60,7 +60,7 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
       @Override
       public void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown) {
          log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
-               snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
+               snapshot.sampleId, snapshot.requestCount, snapshot.responseCount);
          stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()).add(snapshot);
       }
 
