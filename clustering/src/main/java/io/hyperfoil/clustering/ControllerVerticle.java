@@ -57,6 +57,7 @@ import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.controller.CsvWriter;
+import io.hyperfoil.controller.HdrWriter;
 import io.hyperfoil.controller.JsonLoader;
 import io.hyperfoil.controller.JsonWriter;
 import io.hyperfoil.controller.StatisticsStore;
@@ -787,6 +788,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             CsvWriter.writeCsv(run.dir.resolve("stats"), run.statisticsStore());
          } catch (IOException e) {
             log.error("Failed to persist statistics", e);
+            future.fail(e);
+         }
+
+         try {
+            HdrWriter.writeHdr(run.dir.resolve("hdr"), run.statisticsStore());
+         } catch (IOException e) {
+            log.error("Failed to persist hdr statistics", e);
             future.fail(e);
          }
 

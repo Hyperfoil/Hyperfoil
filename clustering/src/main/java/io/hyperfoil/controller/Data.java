@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.HdrHistogram.Histogram;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,6 +32,8 @@ final class Data {
    final Map<String, StatisticsSnapshot> perAgent = new HashMap<>();
    final Map<String, IntObjectMap<StatisticsSnapshot>> lastStats = new HashMap<>();
    final List<StatisticsSummary> series = new ArrayList<>();
+   final Map<String, List<Histogram>> intervalHistogramsPerAgent = new HashMap<>();
+   final List<Histogram> intervalHistograms = new ArrayList<>();
    final Map<String, List<StatisticsSummary>> agentSeries = new HashMap<>();
    // floating statistics for SLAs
    private final Map<SLA, StatisticsStore.Window> windowSlas;
@@ -83,10 +86,14 @@ final class Data {
             sum.add(snapshot);
             agentSeries.computeIfAbsent(entry.getKey(), a -> new ArrayList<>())
                   .add(snapshot.summary(StatisticsStore.PERCENTILES));
+            // interval histograms per agent
+            intervalHistogramsPerAgent.computeIfAbsent(entry.getKey(), a -> new ArrayList<>())
+                  .add(snapshot.histogram);
          }
       }
       if (!sum.isEmpty()) {
          series.add(sum.summary(StatisticsStore.PERCENTILES));
+         intervalHistograms.add(sum.histogram);
       }
       for (Map.Entry<SLA, StatisticsStore.Window> entry : windowSlas.entrySet()) {
          SLA sla = entry.getKey();
