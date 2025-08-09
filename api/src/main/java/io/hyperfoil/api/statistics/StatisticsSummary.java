@@ -60,7 +60,7 @@ public class StatisticsSummary {
       writer.print("Requests,Responses,Mean,StdDev,Min,");
       for (double p : percentiles) {
          writer.print('p');
-         writer.print(p * 100);
+         writer.print(p);
          writer.print(',');
       }
       writer.print("Max,ConnectionErrors,RequestTimeouts,InternalErrors,Invalid,BlockedTime");

@@ -25,7 +25,7 @@ import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.util.LowHigh;
 
 public class StatisticsStore {
-   static final double[] PERCENTILES = new double[] { 0.5, 0.9, 0.99, 0.999, 0.9999 };
+   static final double[] PERCENTILES = new double[] { 50, 90, 99, 99.9, 99.99 };
    private static final Comparator<RequestStats> REQUEST_STATS_COMPARATOR = Comparator
          .<RequestStats, Long> comparing(rs -> rs.summary.startTime)
          .thenComparing(rs -> rs.phase).thenComparing(rs -> rs.metric);

@@ -109,7 +109,7 @@ public class StatisticsSnapshot implements Serializable {
 
    public TreeMap<Double, Long> getPercentiles(double[] percentiles) {
       return DoubleStream.of(percentiles).collect(TreeMap::new,
-            (map, p) -> map.put(p * 100, histogram.getValueAtPercentile(p * 100)), TreeMap::putAll);
+            (map, p) -> map.put(p, histogram.getValueAtPercentile(p)), TreeMap::putAll);
    }
 
    public long errors() {
