@@ -53,16 +53,16 @@ public class JsonWriterTest {
       for (int i = 0; i < expectedPercentiles.length; i++) {
          assertEquals(expectedPercentiles[i], names.next());
       }
-      double[] expectedPerentileValues = new double[] {
+      double[] expectedPercentileValues = new double[] {
             latencies.getValueAtPercentile(50.0),
             latencies.getValueAtPercentile(90.0),
             latencies.getValueAtPercentile(99.0),
             latencies.getValueAtPercentile(99.9),
             latencies.getValueAtPercentile(99.99)
       };
-      for (int i = 0; i < expectedPerentileValues.length; i++) {
+      for (int i = 0; i < expectedPercentileValues.length; i++) {
          String percentileName = expectedPercentiles[i];
-         double expectedValue = expectedPerentileValues[i];
+         double expectedValue = expectedPercentileValues[i];
          assertEquals(expectedValue, p.get(percentileName).asDouble(), "Percentile " + percentileName);
       }
    }
