@@ -88,6 +88,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    private SLABuilder.ListBuilder<HttpRequestStepBuilder> sla = null;
    private CompensationBuilder compensation;
    private CompressionBuilder compression = new CompressionBuilder(this);
+   private boolean useSessionStartTime = false;
 
    /**
     * HTTP method used for the request.
@@ -544,7 +545,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    public void prepareBuild() {
       stepId = StatisticsStep.nextId();
       Locator locator = Locator.current();
-      // TODO I want to make sure the builder is the next step in a sequence with a model generator
+      // TODO we need to make sure this sequence is the first if is an ordered sequence!
+      this.useSessionStartTime = locator.sequence().indexOf(this) == 0;
       HttpErgonomics ergonomics = locator.benchmark().plugin(HttpPluginBuilder.class).ergonomics();
       if (ergonomics.repeatCookies()) {
          headerAppender(new CookieAppender());
@@ -646,7 +648,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
       HttpRequestContext.Key contextKey = new HttpRequestContext.Key();
       PrepareHttpRequestStep prepare = new PrepareHttpRequestStep(stepId, contextKey, method.build(), endpoint, authority,
-            pathGenerator, metricSelector, handler.build());
+            pathGenerator, metricSelector, handler.build(), useSessionStartTime);
       SendHttpRequestStep step = new SendHttpRequestStep(stepId, contextKey, bodyGenerator, headerAppenders, injectHostHeader,
             timeout, sla);
       return Arrays.asList(prepare, step);
