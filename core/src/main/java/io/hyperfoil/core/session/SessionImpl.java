@@ -53,6 +53,7 @@ class SessionImpl implements Session {
    private AgentData agentData;
    private GlobalData globalData;
    private SessionStatistics statistics;
+   private long startTimestampMillis;
 
    private final int threadId;
    private final int uniqueId;
@@ -344,11 +345,12 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void start(PhaseInstance phase) {
+   public void start(long intendedStartTimeMs, PhaseInstance phase) {
       if (trace) {
          log.trace("#{} Session starting in {}", uniqueId, phase.definition().name);
       }
       resetPhase(phase);
+      this.startTimestampMillis = intendedStartTimeMs;
       executor.execute(deferredStart);
    }
 
@@ -457,6 +459,7 @@ class SessionImpl implements Session {
 
    @Override
    public void reset() {
+      startTimestampMillis = -1;
       resetting = true;
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();

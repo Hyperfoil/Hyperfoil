@@ -89,8 +89,8 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
    }
 
    @Override
-   public void onFireTime() {
-      if (!startNewSession()) {
+   public void onFireTime(long startTimeMs) {
+      if (!startNewSession(startTimeMs)) {
          throttledUsers.incrementAndGet();
       }
    }
@@ -104,7 +104,7 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
                // TODO: it would be nice to compensate response times
                // in these invocations for the fact that we're applying
                // SUT feedback, but that would be imprecise anyway.
-               session.start(this);
+               session.start(-1, this);
                // this prevents the session to be pooled
                return;
             } else {

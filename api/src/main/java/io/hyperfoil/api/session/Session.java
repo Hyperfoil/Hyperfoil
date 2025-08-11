@@ -88,7 +88,7 @@ public interface Session {
    void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, GlobalData globalData,
          SessionStatistics statistics);
 
-   void start(PhaseInstance phase);
+   void start(long intendedStartTimes, PhaseInstance phase);
 
    /**
     * Run anything that can be executed.

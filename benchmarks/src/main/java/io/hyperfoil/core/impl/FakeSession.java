@@ -152,7 +152,7 @@ public class FakeSession implements Session {
    }
 
    @Override
-   public void start(PhaseInstance phase) {
+   public void start(long intendedStartTimeMs, PhaseInstance phase) {
 
    }
 
