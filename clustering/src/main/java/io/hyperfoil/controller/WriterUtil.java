@@ -1,5 +1,8 @@
 package io.hyperfoil.controller;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,17 @@ class WriterUtil {
             }
          }
       } while (hadNext);
+   }
+
+   static void createLocalDir(Path dir) throws IOException {
+      File dirAsFile = dir.toFile();
+      if (!dirAsFile.exists() && !dirAsFile.mkdirs()) {
+         throw new IOException("Cannot create directory " + dir);
+      }
+   }
+
+   static String sanitize(String phase) {
+      return phase.replaceAll(File.separator, "_");
    }
 
    @FunctionalInterface
