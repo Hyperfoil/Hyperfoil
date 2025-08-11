@@ -90,7 +90,7 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
 
    @Override
    public void onFireTime(long startTimeMs) {
-      if (!startNewSession(startTimeMs)) {
+      if (!startNewSession(absoluteStartTime + startTimeMs)) {
          throttledUsers.incrementAndGet();
       }
    }

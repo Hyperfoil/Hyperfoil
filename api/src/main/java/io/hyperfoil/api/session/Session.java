@@ -47,6 +47,8 @@ public interface Session {
 
    long phaseStartTimestamp();
 
+   long scheduledStartTimestamp();
+
    Statistics statistics(int stepId, String name);
 
    void pruneStats(Phase phase);

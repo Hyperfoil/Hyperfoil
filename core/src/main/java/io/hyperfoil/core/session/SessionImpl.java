@@ -156,6 +156,11 @@ class SessionImpl implements Session {
    }
 
    @Override
+   public long scheduledStartTimestamp() {
+      return startTimestampMillis;
+   }
+
+   @Override
    public long phaseStartTimestamp() {
       return phase.absoluteStartTime();
    }

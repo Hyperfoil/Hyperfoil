@@ -60,7 +60,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void start(SequenceInstance sequence, Statistics statistics) {
-      this.startTimestampMillis = System.currentTimeMillis();
+      this.startTimestampMillis = session.scheduledStartTimestamp();
       this.startTimestampNanos = System.nanoTime();
       this.sequence = sequence;
       // The reason for using separate sequence reference just for the sake of decrementing

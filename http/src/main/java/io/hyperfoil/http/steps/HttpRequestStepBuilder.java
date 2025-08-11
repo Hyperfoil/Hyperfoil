@@ -544,7 +544,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    public void prepareBuild() {
       stepId = StatisticsStep.nextId();
       Locator locator = Locator.current();
-
+      // TODO I want to make sure the builder is the next step in a sequence with a model generator
       HttpErgonomics ergonomics = locator.benchmark().plugin(HttpPluginBuilder.class).ergonomics();
       if (ergonomics.repeatCookies()) {
          headerAppender(new CookieAppender());

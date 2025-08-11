@@ -106,6 +106,11 @@ public class FakeSession implements Session {
    }
 
    @Override
+   public long scheduledStartTimestamp() {
+      return 0;
+   }
+
+   @Override
    public Statistics statistics(int stepId, String name) {
       return null;
    }
