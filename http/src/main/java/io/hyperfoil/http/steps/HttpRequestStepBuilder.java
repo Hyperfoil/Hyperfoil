@@ -545,8 +545,9 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    public void prepareBuild() {
       stepId = StatisticsStep.nextId();
       Locator locator = Locator.current();
-      // TODO we need to make sure this sequence is the first if is an ordered sequence!
-      this.useSessionStartTime = locator.sequence().indexOf(this) == 0;
+      this.useSessionStartTime = locator.scenario().hasOpenModelPhase() &&
+            locator.scenario().isRootSequence(locator.sequence()) &&
+            locator.sequence().indexOf(this) == 0;
       HttpErgonomics ergonomics = locator.benchmark().plugin(HttpPluginBuilder.class).ergonomics();
       if (ergonomics.repeatCookies()) {
          headerAppender(new CookieAppender());

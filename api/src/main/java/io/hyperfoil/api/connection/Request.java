@@ -67,6 +67,11 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       long sessionStartTime;
       if (useSessionStartTime && (sessionStartTime = session.scheduledStartTimestamp()) != -1) {
          startTimestampMillis = sessionStartTime;
+         if (sessionStartTime != System.currentTimeMillis()) {
+            log.warn("#{} Request start time {} differs from current time {}. " +
+                  "This may lead to incorrect statistics.", toString(), startTimestampMillis, System.currentTimeMillis());
+            System.exit(1);
+         }
       } else {
          startTimestampMillis = System.currentTimeMillis();
       }

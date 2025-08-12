@@ -108,6 +108,10 @@ public class SequenceBuilder extends BaseSequenceBuilder<SequenceBuilder> {
       this.nextSequence = nextSequence;
    }
 
+   public String nextSequence() {
+      return nextSequence;
+   }
+
    private static class NextSequenceStep implements Step {
       private final String sequence;
 

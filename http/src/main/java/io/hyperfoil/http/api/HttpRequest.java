@@ -42,14 +42,14 @@ public class HttpRequest extends Request {
    }
 
    public void start(HttpConnectionPool pool, HttpResponseHandlers handlers, SequenceInstance sequence, Statistics statistics,
-                     boolean useSessionStartTime) {
+         boolean useSessionStartTime) {
       this.handlers = handlers;
       this.pool = pool;
       start(sequence, statistics, useSessionStartTime);
    }
 
    public void start(HttpConnectionPool pool, HttpResponseHandlers handlers, SequenceInstance sequence, Statistics statistics) {
-     start(pool, handlers, sequence, statistics, false);
+      start(pool, handlers, sequence, statistics, false);
    }
 
    public void send(HttpConnection connection,
