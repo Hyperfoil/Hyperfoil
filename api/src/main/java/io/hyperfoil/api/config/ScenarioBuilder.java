@@ -122,24 +122,10 @@ public class ScenarioBuilder {
          // this includes all impl of BaseSequenceBuilder that are not SequenceBuilder e.g. loop, etc
          return false;
       }
-      if (!initialSequences.contains(seq) && !sequences.contains(seq)) {
+      if (!sequences.contains(seq)) {
          throw new IllegalStateException("Sequence " + sequence.name() + " is not part of the scenario!");
       }
-      if (!isRootSequence(initialSequences, seq)) {
-         return false;
-      }
-      return isRootSequence(sequences, seq);
-   }
-
-   private static boolean isRootSequence(List<SequenceBuilder> sequences, SequenceBuilder sequence) {
-      // check if any of the other sequences has this one as a next sequence
-      for (int i = 0; i < sequences.size(); i++) {
-         var seq = sequences.get(i);
-         if (seq != sequence && sequence.name().equals(seq.nextSequence())) {
-            return false;
-         }
-      }
-      return true;
+      return initialSequences.contains(sequence);
    }
 
    public void prepareBuild() {
