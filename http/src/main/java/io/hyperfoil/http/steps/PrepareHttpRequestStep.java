@@ -31,7 +31,6 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
    final HttpResponseHandlersImpl handler;
    final boolean useSessionStartTime;
 
-
    public PrepareHttpRequestStep(int stepId, HttpRequestContext.Key contextKey,
          SerializableFunction<Session, HttpMethod> method,
          SerializableFunction<Session, String> endpoint,

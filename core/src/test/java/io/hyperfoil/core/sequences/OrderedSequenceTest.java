@@ -1,6 +1,7 @@
 package io.hyperfoil.core.sequences;
 
-import io.vertx.junit5.VertxExtension;
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -12,8 +13,7 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.handlers.NewSequenceAction;
 import io.hyperfoil.core.session.BaseScenarioTest;
-
-import static org.junit.jupiter.api.Assertions.*;
+import io.vertx.junit5.VertxExtension;
 
 @ExtendWith(VertxExtension.class)
 public class OrderedSequenceTest extends BaseScenarioTest {
@@ -45,7 +45,8 @@ public class OrderedSequenceTest extends BaseScenarioTest {
       NEXT_SEQUENCE_STEP
    }
 
-   private static void validateOrder(Sequence current, String currentName, String expectedNextName, NextSequenceType expectedNextType) {
+   private static void validateOrder(Sequence current, String currentName, String expectedNextName,
+         NextSequenceType expectedNextType) {
       assertEquals(currentName, current.name());
       Step lastStep = current.steps()[current.steps().length - 1];
       switch (expectedNextType) {
