@@ -64,12 +64,16 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void start(SequenceInstance sequence, Statistics statistics, boolean useSessionStartTime) {
-      long sessionStartTime;
-      if (useSessionStartTime && (sessionStartTime = session.scheduledStartTimestamp()) != -1) {
+      if (useSessionStartTime) {
+         long sessionStartTime = session.scheduledStartTimestamp();
+         if (sessionStartTime == -1) {
+            throw new IllegalStateException("Session start time should be set before starting the request.");
+         }
          startTimestampMillis = sessionStartTime;
-         if (sessionStartTime != System.currentTimeMillis()) {
-            log.warn("#{} Request start time {} differs from current time {}. " +
-                  "This may lead to incorrect statistics.", toString(), startTimestampMillis, System.currentTimeMillis());
+         long delayMs = System.currentTimeMillis() - sessionStartTime;
+         if (delayMs > 0) {
+            log.error("Request took {} ms to be scheduled", delayMs);
+            // TODO would be better to have an additional histogram of the scheduling delays or a delay time
             System.exit(1);
          }
       } else {
