@@ -64,6 +64,6 @@ example  test           1  172.49 ms  173.02 ms  173.02 ms  173.02 ms  173.02 ms
 
 Doing one request is not much of a benchmark and the statistics above are moot, but hey, this is a quickstart.
 
-In the future you might find [editing with schema](/docs/editor) useful but at this point any editor with YAML syntax highlighting will do the job.
+In the future you might find [editing with schema](/docs/howtos/editor) useful but at this point any editor with YAML syntax highlighting will do the job.
 
 Ready? Let's continue with [something a bit more realistic...](/docs/getting-started/quickstart2)
