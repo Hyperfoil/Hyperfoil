@@ -19,7 +19,7 @@ import io.vertx.core.json.JsonObject;
 
 public class JsonLoader {
 
-   public static StatisticsStore read(String text, StatisticsStore store) {
+   public static StatisticsStore read(String text, StatisticsStore store, Boolean trackIntervalHistograms) {
       JsonObject object = new JsonObject(text);
       String schema = object.getString("$schema");
       if (!JsonWriter.RUN_SCHEMA.equals(schema)) {
@@ -40,7 +40,7 @@ public class JsonLoader {
       for (Object item : object.getJsonArray("stats")) {
          JsonObject stats = (JsonObject) item;
          Data data = new Data(store, stats.getString("name"), stats.getBoolean("isWarmup"), 0, stats.getString("metric"),
-               Collections.emptyMap(), new SLA[0]);
+               Collections.emptyMap(), new SLA[0], trackIntervalHistograms);
          dataMap.computeIfAbsent(data.phase, p -> new HashMap<>()).putIfAbsent(data.metric, data);
          store.addData(dataCounter++, data.metric, data);
          loadSnapshot(stats.getJsonObject("total"), data.total);
@@ -75,7 +75,8 @@ public class JsonLoader {
             boolean isWarmup = stats.getBoolean("isWarmup");
             Data data = dataMap.computeIfAbsent(phase, p -> new HashMap<>())
                   .computeIfAbsent(metric,
-                        m -> new Data(store, phase, isWarmup, 0, metric, Collections.emptyMap(), new SLA[0]));
+                        m -> new Data(store, phase, isWarmup, 0, metric, Collections.emptyMap(), new SLA[0],
+                              trackIntervalHistograms));
             StatisticsSnapshot snapshot = new StatisticsSnapshot();
             loadSnapshot(stats.getJsonObject("total"), snapshot);
             loadHistogram(stats.getJsonObject("histogram").getJsonArray("linear"), snapshot.histogram);
