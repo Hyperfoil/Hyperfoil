@@ -128,7 +128,7 @@ params:
   github_branch: 0.27.x
   
   # Custom param: latest distribution url
-  url_latest_distribution: https://github.com/Hyperfoil/Hyperfoil/releases/download/hyperfoil-all-0.27.1
+  url_latest_distribution: https://github.com/Hyperfoil/Hyperfoil/releases/download/hyperfoil-all-0.27.1/hyperfoil-0.27.1.zip
   zip_latest_distribution: hyperfoil-0.27.1.zip
   url_all_releases: https://github.com/Hyperfoil/Hyperfoil/releases/
 
