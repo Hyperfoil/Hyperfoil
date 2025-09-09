@@ -2,8 +2,11 @@ package io.hyperfoil.core.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
@@ -15,16 +18,30 @@ import io.hyperfoil.impl.Util;
 
 public abstract class BaseBenchmarkParserTest {
 
-   protected Benchmark loadScenario(String name) {
+   protected Benchmark loadScenario(String filePath) {
+      InputStream stream = null;
       try {
-         InputStream config = getClass().getClassLoader().getResourceAsStream(name);
-         Benchmark benchmark = loadBenchmark(config);
+
+         if (Files.exists(Path.of(filePath))) {
+            stream = new FileInputStream(filePath);
+         } else {
+            stream = getClass().getClassLoader().getResourceAsStream(filePath);
+         }
+         Benchmark benchmark = loadBenchmark(stream);
          // Serialization here is solely for the purpose of asserting serializability for all the components
          byte[] bytes = Util.serialize(benchmark);
          assertThat(bytes).isNotNull();
          return benchmark;
       } catch (IOException | ParserException e) {
          throw new AssertionError(e);
+      } finally {
+         if (stream != null) {
+            try {
+               stream.close();
+            } catch (IOException e) {
+               throw new RuntimeException(e);
+            }
+         }
       }
    }
 
