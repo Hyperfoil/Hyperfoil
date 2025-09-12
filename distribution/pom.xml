@@ -320,47 +320,84 @@
                             </execution>
                         </executions>
                         <configuration>
+                            <buildStrategy>jib</buildStrategy>
                             <access>
                                 <!-- We shouldn't connect anywhere, this is here to fail faster -->
                                 <masterUrl>http://127.0.0.1:12345</masterUrl>
                             </access>
                             <images>
                                 <image>
-                                    <name>${container.registry.repository}/hyperfoil:${project.version}</name>
+                                    <name>${container.registry.repository}/hyperfoil</name>
                                     <build>
-                                        <contextDir>${project.basedir}/src/main/docker/</contextDir>
+                                        <from>registry.access.redhat.com/ubi9/openjdk-21</from>
+                                        <platforms>
+                                            <platform>linux/amd64</platform>
+                                            <platform>linux/arm64</platform>
+                                        </platforms>
                                         <tags>
                                             <tag>latest</tag>
                                             <tag>${project.version}</tag>
                                         </tags>
+                                        <workdir>/deployment</workdir>
+                                        <user>root</user>
+                                        <ports>
+                                            <port>8090</port>
+                                        </ports>
+                                        <env>
+                                            <EDITOR>vim</EDITOR>
+                                            <HYPERFOIL_CONTAINER>true</HYPERFOIL_CONTAINER>
+                                        </env>
+                                        <shell>
+                                            <exec>
+                                            <arg>/bin/sh</arg>
+                                            <arg>-c</arg>
+                                            </exec>
+                                        </shell>
+                                        <runCmds>
+                                            <run>microdnf install -y less vim</run>
+                                            <run>curl -s -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /usr/bin/jq</run>
+                                            <run>chmod a+x /usr/bin/jq</run>
+                                        </runCmds>
+                                        <user>default</user>
+                                        <entryPoint>/deployment/bin/entrypoint.sh</entryPoint>
                                         <assembly>
-                                            <name>maven</name>
-                                            <inline>
-                                                <fileSets>
-                                                    <fileSet>
-                                                        <outputDirectory>bin</outputDirectory>
-                                                        <directory>target/distribution/bin</directory>
-                                                    </fileSet>
-                                                    <fileSet>
-                                                        <outputDirectory>examples</outputDirectory>
-                                                        <directory>target/distribution/examples</directory>
-                                                        <includes>
-                                                            <includes>*.hf.yaml</includes>
-                                                        </includes>
-                                                    </fileSet>
-                                                    <fileSet>
-                                                        <outputDirectory>templates</outputDirectory>
-                                                        <directory>target/distribution/templates</directory>
-                                                    </fileSet>
-                                                    <fileSet>
-                                                        <outputDirectory>.</outputDirectory>
-                                                        <directory>target</directory>
-                                                        <includes>
-                                                            <include>hyperfoil-*.tar</include>
-                                                        </includes>
-                                                    </fileSet>
-                                                </fileSets>
-                                            </inline>
+                                            <name>deployment</name>
+                                            <layers>
+                                                <layer>
+                                                    <id>deployment</id>
+                                                    <fileSets>
+                                                        <fileSet>
+                                                            <outputDirectory>bin</outputDirectory>
+                                                            <directory>target/distribution/bin</directory>
+                                                            <fileMode>0755</fileMode>
+                                                        </fileSet>
+                                                        <fileSet>
+                                                            <outputDirectory>templates</outputDirectory>
+                                                            <directory>target/distribution/templates</directory>
+                                                        </fileSet>
+                                                        <fileSet>
+                                                            <outputDirectory>.</outputDirectory>
+                                                            <directory>target</directory>
+                                                            <includes>
+                                                                <include>hyperfoil-*.tar</include>
+                                                            </includes>
+                                                        </fileSet>
+                                                    </fileSets>
+                                                </layer>
+                                                <layer>
+                                                    <id>home</id>
+                                                    <fileSets>
+                                                        <fileSet>
+                                                            <outputDirectory>default/examples</outputDirectory>
+                                                            <directory>target/distribution/examples</directory>
+                                                            <includes>
+                                                                <includes>*.hf.yaml</includes>
+                                                            </includes>
+                                                            <fileMode>0666</fileMode>
+                                                        </fileSet>
+                                                    </fileSets>
+                                                </layer>
+                                            </layers>
                                         </assembly>
                                     </build>
                                 </image>
