@@ -93,16 +93,23 @@ you could manually follow these steps:
 1. Checkout the latest generated tag
 2. Build the container image
    ```bash
-   mvn clean -B package --file pom.xml -Pbuild-image
+   mvn clean -B package --file pom.xml
    ```
-3. Push the container image
+3. Build the container image
    ```bash
-   docker push quay.io/hyperfoil/hyperfoil:<VERSION>
-   docker push quay.io/hyperfoil/hyperfoil:latest
+   cd distribution
+   podman build --platform=linux/amd64,linux/arm64 \
+     --manifest quay.io/hyperfoil/hyperfoil:<VERSION> \
+     -f src/main/docker/Dockerfile .
+   ```
+4. Push the container image
+   ```bash
+   podman manifest push quay.io/hyperfoil/hyperfoil:<VERSION>
+   podman manifest push quay.io/hyperfoil/hyperfoil:<VERSION> quay.io/hyperfoil/hyperfoil:latest
    ```
    > [!NOTE]
    > To run this command you need to have [quay.io/Hyperfoil](https://quay.io/organization/hyperfoil) push rights
-4. Create a new GitHub release
+5. Create a new GitHub release
    1. Start drafting the release using [GitHub web UI](https://github.com/Hyperfoil/Hyperfoil/releases/new).
    2. Auto-generate the release note
    3. Attach the Hyperfoil distribution zip file `./distribution/target/hyperfoil-<VERSION>.zip`

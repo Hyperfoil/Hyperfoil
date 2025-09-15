@@ -55,9 +55,22 @@ jobs:
         # Fix home dir permissions
         chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
 
-    # Run a full build with all tests and create container image
+    # Run a full build with all tests
     - name: Build with Maven
-      run: mvn clean -B package --file pom.xml -Pbenchmark -Pbuild-image -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
+      run: mvn clean -B package --file pom.xml -Pbenchmark -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
+
+    # Retrieve current version from the root pom
+    - name: Get version
+      run: echo SNAPSHOT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_ENV
+      # Push the current version to quay.io, either the tag or snapshot version
+
+    - name: Install qemu
+      run: sudo apt-get update && sudo apt-get install -y qemu-user-static
+
+    - name: Build container image ${{ env.SNAPSHOT_VERSION }}
+      run: |
+        cd distribution
+        podman build --platform=linux/arm64,linux/amd64 --manifest quay.io/hyperfoil/hyperfoil:${{ env.SNAPSHOT_VERSION }} -f src/main/docker/Dockerfile .
 
     - name: Check uncommitted changes
       if: matrix.os == 'ubuntu-latest'
@@ -83,18 +96,12 @@ jobs:
     # Login using Hyperfoil robot account
     - name: Login to Quay.io
       if: matrix.os == 'ubuntu-latest' && env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master'
-      uses: docker/login-action@v3
+      uses: redhat-actions/podman-login@v1
       with:
         registry: quay.io
         username: ${{ secrets.QUAY_BOT_LOGIN }}
         password: ${{ secrets.QUAY_BOT_PASSWORD }}
-        
-    # Retrieve current version from the root pom
-    - name: Get version
-      run: echo SNAPSHOT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_ENV
-      # Push the current version to quay.io, either the tag or snapshot version
 
     - name: Push image version ${{ env.SNAPSHOT_VERSION }}
       if: matrix.os == 'ubuntu-latest' && env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master'
-      run: docker push quay.io/hyperfoil/hyperfoil:${{ env.SNAPSHOT_VERSION }}
-
+      run: podman manifest push quay.io/hyperfoil/hyperfoil:${{ env.SNAPSHOT_VERSION }}

@@ -3,11 +3,10 @@ USER root
 RUN microdnf install -y less vim && curl -s -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /usr/bin/jq && chmod a+x /usr/bin/jq
 EXPOSE 8090
 ENV EDITOR=vim HYPERFOIL_CONTAINER=true
-COPY maven/bin /deployment/bin/
-COPY maven/templates /deployment/templates
-COPY maven/examples /home/default/examples/
-ADD maven/hyperfoil-*-deps.tar /deployment/
-ADD maven/hyperfoil-*-hyperfoil.tar /deployment/
+COPY target/distribution/bin /deployment/bin/
+COPY target/distribution/templates /deployment/templates
+COPY target/distribution/examples /home/default/examples/
+COPY target/distribution/lib /deployment/lib
 RUN mkdir /deployment/extensions
 RUN chown -R default /deployment
 USER default
