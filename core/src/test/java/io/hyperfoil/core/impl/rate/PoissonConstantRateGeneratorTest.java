@@ -14,7 +14,7 @@ public class PoissonConstantRateGeneratorTest extends RateGeneratorTest {
    @Override
    RateGenerator newUserGenerator() {
       // force the Random::nextDouble to return 0.5
-      return RateGenerator.poissonConstantRate(new Random(SEED), 1000);
+      return RateGenerator.poissonConstantRate(new Random(SEED), 1);
    }
 
    @Override
