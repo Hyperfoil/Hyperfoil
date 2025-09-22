@@ -1,20 +1,16 @@
 package io.hyperfoil.cli.commands;
 
-import java.text.SimpleDateFormat;
-
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.controller.Client;
+import io.hyperfoil.controller.model.RequestStatisticsResponse;
 
 @CommandDefinition(name = "wait", description = "Wait for a specific run termination.")
 public class Wait extends BaseRunIdCommand {
-
-   private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
    private boolean started = false;
    private boolean terminated = false;
@@ -25,21 +21,25 @@ public class Wait extends BaseRunIdCommand {
       Client.RunRef runRef = getRunRef(invocation);
       io.hyperfoil.controller.model.Run run = getRun(invocation, runRef);
 
-      invocation.println("Monitoring run " + run.id + ", benchmark " + run.benchmark);
+      invocation.println("Monitoring run " + runRef.id() + ", benchmark " + runRef.benchmark().name());
       if (run.description != null) {
          invocation.println(run.description);
       }
 
       for (;;) {
+         RequestStatisticsResponse recent = runRef.statsRecent();
+
          // check if started
-         if (!started && run.started != null) {
+         if (!started && "RUNNING".equals(recent.status)) {
             started = true;
+            run = runRef.get();
             invocation.println("Started:    " + DATE_FORMATTER.format(run.started));
          }
 
          // check if terminated
-         if (!terminated && run.terminated != null) {
+         if (!terminated && "TERMINATED".equals(recent.status)) {
             terminated = true;
+            run = runRef.get();
             invocation.println("Terminated: " + DATE_FORMATTER.format(run.terminated));
             if (!run.errors.isEmpty()) {
                invocation.println(ANSI.RED_TEXT + ANSI.BOLD + "Errors:" + ANSI.RESET);
@@ -51,21 +51,20 @@ public class Wait extends BaseRunIdCommand {
          }
 
          // right now if for some reason the run.persisted is not set to true, the process will wait forever.
-         // we could implement a timeout to be safe
-         if (terminated && !persisted && run.persisted) {
+         // TODO: we could implement a timeout to be safe
+         if (terminated && !persisted) {
+            run = runRef.get();
             // this monitoring will guarantee that if we try to run the report, the all.json is already persisted
-            persisted = true;
-            invocation.println("Run persisted in the local filesystem");
-            return CommandResult.SUCCESS;
+            if (run.persisted) {
+               persisted = true;
+               invocation.println("Run statistics persisted in the local filesystem");
+               return CommandResult.SUCCESS;
+            }
          }
 
          try {
-            run = runRef.get();
-         } catch (RestClientException e) {
-            if (e.getCause() instanceof InterruptedException) {
-               invocation.println("");
-               return CommandResult.SUCCESS;
-            }
+            Thread.sleep(1000);
+         } catch (InterruptedException e) {
             invocation.error(e);
             throw new CommandException("Cannot monitor run " + runRef.id(), e);
          }

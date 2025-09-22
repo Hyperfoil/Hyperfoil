@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -34,6 +35,7 @@ import io.hyperfoil.controller.model.Run;
 import io.hyperfoil.impl.Util;
 
 public abstract class ServerCommand implements Command<HyperfoilCommandInvocation> {
+   protected static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
    protected static final String MOVE_LINE_UP = new String(new byte[] { 27, 91, 49, 65 }, StandardCharsets.US_ASCII);
    protected static final String ERASE_WHOLE_LINE = new String(new byte[] { 27, 91, 50, 75 }, StandardCharsets.US_ASCII);
    protected static final String EDITOR;
