@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,8 +25,8 @@ import org.kohsuke.MetaInfServices;
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
-import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodSpecBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
@@ -36,13 +35,11 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.WatcherException;
 import io.fabric8.kubernetes.client.dsl.PodResource;
-import io.fabric8.kubernetes.client.dsl.internal.PodOperationsImpl;
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Benchmark;
@@ -53,8 +50,6 @@ import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import okhttp3.Request;
-import okhttp3.Response;
 
 /**
  * This deployer expects Hyperfoil to be deployed as Openshift/Kubernetes pod. In order to create one, run:
@@ -123,7 +118,7 @@ public class K8sDeployer implements Deployer {
                   .withMasterUrl(API_SERVER)
                   .withTrustCerts(true)
                   .build();
-            client = new DefaultKubernetesClient(config);
+            client = new KubernetesClientBuilder().withConfig(config).build();
          }
       }
    }
@@ -207,7 +202,7 @@ public class K8sDeployer implements Deployer {
          containerBuilder.withVolumeMounts(new VolumeMountBuilder()
                .withName("log")
                .withMountPath("/etc/log4j2")
-               .withNewReadOnly(true)
+               .withReadOnly(true)
                .build());
          spec.withVolumes(new VolumeBuilder()
                .withName("log")
@@ -283,17 +278,21 @@ public class K8sDeployer implements Deployer {
             labels.put(k.substring(POD_LABEL_PROPERTY_PREFIX.length()), v);
          }
       });
+
       // @formatter:off
-      Pod pod = client.pods().inNamespace(NAMESPACE).createNew()
+      Pod toCreate = new PodBuilder()
             .withNewMetadata()
                .withNamespace(NAMESPACE)
                .withName(podName)
                .withLabels(labels)
             .endMetadata()
-            .withSpec(spec.build()).done();
+            .withSpec(spec.build())
+            .build();
       // @formatter:on
 
-      K8sAgent k8sAgent = new K8sAgent(agent, client, pod, stop, outputPath, output);
+      Pod created = client.pods().inNamespace(NAMESPACE).resource(toCreate).create();
+
+      K8sAgent k8sAgent = new K8sAgent(agent, client, created, stop, outputPath, output);
       if (output != null) {
          client.pods().inNamespace(NAMESPACE).withName(podName).watch(new AgentWatcher(podName, k8sAgent));
       }
@@ -343,7 +342,7 @@ public class K8sDeployer implements Deployer {
          Handler<AsyncResult<Void>> handler) {
       ensureClient();
       try {
-         PodResource<Pod, DoneablePod> podResource = client.pods().inNamespace(NAMESPACE).withName(podName);
+         PodResource podResource = client.pods().inNamespace(NAMESPACE).withName(podName);
          try (InputStream stream = getLog(podResource)) {
             skipBytes(offset, stream);
             Files.copy(new TruncatingInputStream(stream, maxLength), Paths.get(destinationFile),
@@ -355,13 +354,11 @@ public class K8sDeployer implements Deployer {
       }
    }
 
-   private InputStream getLog(PodResource<Pod, DoneablePod> podResource) throws IOException {
-      PodOperationsImpl impl = (PodOperationsImpl) podResource;
-      URL url = new URL(impl.getResourceUrl().toString() + "/log");
-      Request.Builder requestBuilder = new Request.Builder().get().url(url);
-      Request request = requestBuilder.build();
-      Response response = ((HttpClientAware) client).getHttpClient().newCall(request).execute();
-      return response.body().byteStream();
+   /**
+    * Gets a streaming InputStream for a pod's logs.
+    */
+   private InputStream getLog(PodResource podResource) throws IOException {
+      return podResource.getLogInputStream();
    }
 
    @Override
@@ -438,7 +435,7 @@ public class K8sDeployer implements Deployer {
       }
 
       @Override
-      public void onClose(KubernetesClientException cause) {
+      public void onClose(WatcherException cause) {
       }
    }
 }
