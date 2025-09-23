@@ -66,7 +66,6 @@ import io.hyperfoil.cli.commands.Log;
 import io.hyperfoil.cli.commands.New;
 import io.hyperfoil.cli.commands.Report;
 import io.hyperfoil.cli.commands.Run;
-import io.hyperfoil.cli.commands.RunLocal;
 import io.hyperfoil.cli.commands.Runs;
 import io.hyperfoil.cli.commands.Sessions;
 import io.hyperfoil.cli.commands.Shutdown;
@@ -168,7 +167,6 @@ public class HyperfoilCli {
             Log.class,
             New.class,
             Report.class,
-            RunLocal.class,
             Run.class,
             Runs.class,
             Sessions.class,
