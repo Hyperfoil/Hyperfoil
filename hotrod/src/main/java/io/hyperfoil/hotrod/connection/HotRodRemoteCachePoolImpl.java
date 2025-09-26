@@ -13,7 +13,7 @@ import org.infinispan.client.hotrod.TransportFactory;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.client.hotrod.impl.ConfigurationProperties;
 import org.infinispan.client.hotrod.impl.HotRodURI;
-import org.infinispan.client.hotrod.impl.transport.netty.ChannelFactory;
+import org.infinispan.client.hotrod.impl.transport.netty.OperationDispatcher;
 
 import io.hyperfoil.hotrod.api.HotRodRemoteCachePool;
 import io.hyperfoil.hotrod.config.HotRodCluster;
@@ -56,11 +56,11 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
    }
 
    private void validateEventLoop(RemoteCacheManager remoteCacheManager) {
-      ChannelFactory channelFactory = remoteCacheManager.getChannelFactory();
       try {
-         Field eventLoopField = ChannelFactory.class.getDeclaredField("eventLoopGroup");
-         eventLoopField.setAccessible(true);
-         EventLoopGroup actualEventLoop = (EventLoopGroup) eventLoopField.get(channelFactory);
+         Field dispatcherField = RemoteCacheManager.class.getDeclaredField("dispatcher");
+         dispatcherField.setAccessible(true);
+         OperationDispatcher dispatcher = (OperationDispatcher) dispatcherField.get(remoteCacheManager);
+         EventLoopGroup actualEventLoop = dispatcher.getChannelHandler().getEventLoopGroup();
          if (actualEventLoop != eventLoop) {
             throw new IllegalStateException("Event loop was not injected correctly. This is a classpath issue.");
          }
