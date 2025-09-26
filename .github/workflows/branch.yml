@@ -29,10 +29,10 @@ jobs:
           PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout)
           echo PROJECT_VERSION=${PROJECT_VERSION} >> $GITHUB_ENV
           echo CUR_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+0"."$3}' | sed s/[.]$//) >> $GITHUB_ENV
-          echo STABLE_BRANCH=$(echo "${CUR_VERSION}.x") >> $GITHUB_ENV
-          echo NEXT_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+1}' | sed s/[.]$//) >> $GITHUB_ENV
-          echo NEXT_SNAPSHOT_VERSION=$(echo "${NEXT_VERSION}-SNAPSHOT") >> $GITHUB_ENV
-          echo NEXT_STREAM_VERSION=$(echo "${NEXT_VERSION}.x") >> $GITHUB_ENV
+          echo "STABLE_BRANCH=${CUR_VERSION}.x" >> $GITHUB_ENV
+          echo "NEXT_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+1}' | sed s/[.]$//)" >> $GITHUB_ENV
+          echo "NEXT_SNAPSHOT_VERSION=${NEXT_VERSION}-SNAPSHOT" >> $GITHUB_ENV
+          echo "NEXT_STREAM_VERSION=${NEXT_VERSION}.x" >> $GITHUB_ENV
 
       - name: Create branch ${{ env.STABLE_BRANCH }}
         run: git branch ${{ env.STABLE_BRANCH }} master
