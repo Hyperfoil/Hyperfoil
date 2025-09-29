@@ -46,11 +46,11 @@ jobs:
 
       # Update existing workflow branches
       - name: Update main workflow
-        run: ~/yq -i e '.on.push.branches |= [ "master", '${{ env.STABLE_BRANCH }}' ]' .github/workflows/main.yml
+        run: ~/yq -i e '.on.push.branches = ["master", strenv(STABLE_BRANCH)]' .github/workflows/main.yml
       - name: Update release branch
-        run: ~/yq -i e '.env.RELEASE_BRANCH |= '${{ env.NEXT_STREAM_VERSION }} .github/workflows/release.yml
+        run: ~/yq -i e '.env.RELEASE_BRANCH = strenv(NEXT_STREAM_VERSION)' .github/workflows/release.yml
       - name: Update backport workflow
-        run: ~/yq -i e '.jobs.backporting.steps[1].with.target-branch |= '${{ env.STABLE_BRANCH }} .github/workflows/backport.yml
+        run: ~/yq -i e '.jobs.backporting.steps[1].with.target-branch = strenv(STABLE_BRANCH)' .github/workflows/backport.yml
 
       # Update new changes
       - name: Configure git
