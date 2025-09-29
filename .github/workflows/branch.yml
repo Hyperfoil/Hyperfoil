@@ -28,11 +28,16 @@ jobs:
         run: |
           PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout)
           echo PROJECT_VERSION=${PROJECT_VERSION} >> $GITHUB_ENV
-          echo CUR_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+0"."$3}' | sed s/[.]$//) >> $GITHUB_ENV
-          echo "STABLE_BRANCH=${CUR_VERSION}.x" >> $GITHUB_ENV
-          echo "NEXT_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+1}' | sed s/[.]$//)" >> $GITHUB_ENV
-          echo "NEXT_SNAPSHOT_VERSION=${NEXT_VERSION}-SNAPSHOT" >> $GITHUB_ENV
-          echo "NEXT_STREAM_VERSION=${NEXT_VERSION}.x" >> $GITHUB_ENV
+          CUR_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+0"."$3}' | sed s/[.]$//)
+          echo CUR_VERSION=${CUR_VERSION} >> $GITHUB_ENV
+          STABLE_BRANCH=${CUR_VERSION}.x
+          echo STABLE_BRANCH=${STABLE_BRANCH} >> $GITHUB_ENV
+          NEXT_VERSION=$(echo ${PROJECT_VERSION} | awk -F'.' '{print $1"."$2+1}' | sed s/[.]$//)
+          echo NEXT_VERSION=${NEXT_VERSION} >> $GITHUB_ENV
+          NEXT_SNAPSHOT_VERSION=${NEXT_VERSION}-SNAPSHOT
+          echo NEXT_SNAPSHOT_VERSION=${NEXT_SNAPSHOT_VERSION} >> $GITHUB_ENV
+          NEXT_STREAM_VERSION=${NEXT_VERSION}.x
+          echo NEXT_STREAM_VERSION=${NEXT_STREAM_VERSION} >> $GITHUB_ENV
 
       - name: Create branch ${{ env.STABLE_BRANCH }}
         run: git branch ${{ env.STABLE_BRANCH }} master
