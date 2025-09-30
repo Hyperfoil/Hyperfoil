@@ -3,7 +3,7 @@ name: Perform Release
 on:
   workflow_dispatch:
 env:
-  RELEASE_BRANCH: 0.27.x
+  RELEASE_BRANCH: 0.29.x
 jobs:
   build-and-release:
     name: Build & Release
@@ -70,15 +70,12 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
           CI: true
-
       - name: Install qemu
         run: sudo apt-get update && sudo apt-get install -y qemu-user-static
-
       - name: Build container image
         run: |
           cd distribution
           podman build --platform=linux/arm64,linux/amd64 --manifest quay.io/hyperfoil/hyperfoil:${{ env.CUR_VER }} -f src/main/docker/Dockerfile .
-
       - name: Create the GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -91,12 +88,10 @@ jobs:
           generate_release_notes: true
           # Additional distribution zip asset
           files: distribution/target/hyperfoil-${{ env.CUR_VER }}.zip
-
       # Push the tagged image
       - name: Push image version ${{ env.CUR_VER }}
         if: env.QUAY_BOT_LOGIN != ''
         run: podman manifest push quay.io/hyperfoil/hyperfoil:${{ env.CUR_VER }}
-
       # Push the latest tag
       - name: Push the latest tag
         if: env.QUAY_BOT_LOGIN != ''

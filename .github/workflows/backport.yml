@@ -2,28 +2,25 @@
 # Simply labeling the PR with `backport` label will automatically
 # create the backporting PR as soon as the original one is merged
 name: Pull Request Backporting using Git Backporting
-
 on:
   pull_request_target:
     types:
       - closed
       - labeled
-
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   NO_SQUASH_OPTION: true
-
 jobs:
   backporting:
     name: "Backporting"
     concurrency:
-        group: backporting-${{ github.head_ref }}
-        cancel-in-progress: true
+      group: backporting-${{ github.head_ref }}
+      cancel-in-progress: true
     # Only react to merged PRs for security reasons.
     # See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target.
     if: >
-      github.event.pull_request.merged
-      && (
+      github.event.pull_request.merged && (
+
         github.event.action == 'closed'
           && (contains(github.event.pull_request.labels.*.name, 'backport')
             || contains(github.event.pull_request.labels.*.name, 'backport-squash'))
@@ -32,19 +29,20 @@ jobs:
           && contains(github.event.label.name, 'backport')
         )
       )
+
     runs-on: ubuntu-latest
     steps:
       - name: Override no-squash option
         if: >
-          (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'backport-squash'))
-          || (github.event.action == 'labeled' && contains(github.event.label.name, 'backport-squash'))
+          (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'backport-squash')) || (github.event.action == 'labeled' && contains(github.event.label.name, 'backport-squash'))
+
         shell: bash
         run: |
           echo "NO_SQUASH_OPTION=false" >> $GITHUB_ENV
       - name: Backporting
         uses: kiegroup/git-backporting@v4
         with:
-          target-branch: 0.27.x
+          target-branch: 0.28.x
           pull-request: ${{ github.event.pull_request.url }}
           auth: ${{ secrets.RH_PERF_BOT_TOKEN }}
           no-squash: ${{ env.NO_SQUASH_OPTION }}
