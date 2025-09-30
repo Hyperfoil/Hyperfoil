@@ -19,8 +19,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 21
-      - name: install yq
-        run: wget https://github.com/mikefarah/yq/releases/download/v4.2.0/yq_linux_amd64 -O ~/yq && chmod +x ~/yq
+      - name: setup yq
+        uses: chrisdickinson/setup-yq@v1
+        with:
+          version: v4.47.1     
       - name: Maven Version
         run: mvn --version
       # Retrieve current version from the root pom
@@ -46,13 +48,13 @@ jobs:
 
       # Update existing workflow branches
       - name: Update main workflow push branches
-        run: ~/yq -i e '.on.push.branches = ["master", "${{ env.STABLE_BRANCH }}"]' .github/workflows/main.yml
+        run: yq -i e '.on.push.branches = ["master", "${{ env.STABLE_BRANCH }}"]' .github/workflows/main.yml
       - name: Update main workflow pull request branches  
-        run: ~/yq -i e '.on.pull_request.branches = ["master", "${{ env.STABLE_BRANCH }}"]' .github/workflows/main.yml
+        run: yq -i e '.on.pull_request.branches = ["master", "${{ env.STABLE_BRANCH }}"]' .github/workflows/main.yml
       - name: Update release branch
-        run: ~/yq -i e '.env.RELEASE_BRANCH = "${{ env.NEXT_STREAM_VERSION }}")' .github/workflows/release.yml
+        run: yq -i e '.env.RELEASE_BRANCH = "${{ env.NEXT_STREAM_VERSION }}")' .github/workflows/release.yml
       - name: Update backport workflow
-        run: ~/yq -i e '.jobs.backporting.steps[1].with.target-branch = "${{ env.STABLE_BRANCH }}"' .github/workflows/backport.yml
+        run: yq -i e '.jobs.backporting.steps[1].with.target-branch = "${{ env.STABLE_BRANCH }}"' .github/workflows/backport.yml
 
       # Update new changes
       - name: Configure git
