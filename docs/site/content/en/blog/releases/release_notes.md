@@ -5,10 +5,27 @@ type: docs
 weight: 1
 ---
 
+## 0.28.0 (2025-10-01)
+
+* Upgraded to JDK 21
+* Implemented multi-arch builds for container images
+* Added run persistence monitoring to track benchmark progress
+* Introduced a setting for SSL handshake timeout
+* Added a useHttpCache option in the benchmark JSON schema
+* Allowed the use of local benchmarks for testing purposes
+* Reduced GC pressure and improved efficiency when parsing HTTP headers
+* Implemented allocation-free date parsing to lower memory usage
+* Optimized Content-Length and Transfer-Encoding header matching
+* Added custom wait logic to avoid CPU spinning and reduce idle CPU usage
+* Stopped using a session if its scheduled delay has already expired
+* Fixed an issue where the JsonParser would fail with fragmented responses
+* The deprecated run-local command has been removed
+* Updated major dependencies, including Vert.x, Infinispan, and the Kubernetes client
+
 ## 0.27.1 (2024-11-20)
 
-* Add run persistence monitoring by @lampajr in #499
-* Embed the report template in the clustering module by @lampajr in #503
+* Add run persistence monitoring
+* Embed the report template in the clustering module
 
 ## 0.27 (2024-10-22)
 
