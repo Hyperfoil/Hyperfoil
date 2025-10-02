@@ -27,12 +27,10 @@ public class CsvWriter {
    private static final Logger log = LogManager.getLogger(CsvWriter.class);
 
    public static void writeCsv(Path dir, StatisticsStore store) throws IOException {
+      WriterUtil.createLocalDir(dir);
       store.data.values().stream().flatMap(m -> m.values().stream()).filter(d -> !d.isCompleted()).findAny()
             .ifPresent(incomplete -> log.error("Phase {} metric {} was not completed!", incomplete.phase, incomplete.metric));
-      File statsDir = dir.toFile();
-      if (!statsDir.exists() && !statsDir.mkdirs()) {
-         throw new IOException("Cannot create directory " + dir);
-      }
+
       Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
       Arrays.sort(sorted,
             Comparator.comparing((Data d) -> d.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
@@ -68,7 +66,8 @@ public class CsvWriter {
          }
       }
       for (Data data : sorted) {
-         String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId;
+         String filePrefix = dir + File.separator + WriterUtil.sanitize(data.phase) + "." + WriterUtil.sanitize(data.metric)
+               + "." + data.stepId;
          writeHistogramAndSeries(filePrefix, data.total, data.series);
       }
       String[] agents = store.data.values().stream()
@@ -76,7 +75,7 @@ public class CsvWriter {
             .flatMap(d -> d.perAgent.keySet().stream())
             .distinct().sorted().toArray(String[]::new);
       for (String agent : agents) {
-         try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
+         try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + WriterUtil.sanitize(agent) + ".csv")) {
             writer.print("Phase,Metric,Start,End,");
             StatisticsSummary.printHeader(writer, StatisticsStore.PERCENTILES);
             String[] extensionHeaders = getHeaders(
@@ -114,7 +113,8 @@ public class CsvWriter {
             }
          }
          for (Data data : sorted) {
-            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId
+            String filePrefix = dir + File.separator + WriterUtil.sanitize(data.phase) + "." + WriterUtil.sanitize(data.metric)
+                  + "." + data.stepId
                   + ".agent." + agent;
             writeHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
          }
@@ -142,7 +142,8 @@ public class CsvWriter {
          }
       }
       for (Map.Entry<String, StatisticsStore.SessionPoolStats> entry : store.sessionPoolStats.entrySet()) {
-         try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(entry.getKey()) + ".sessions.csv")) {
+         try (PrintWriter writer = new PrintWriter(
+               dir + File.separator + WriterUtil.sanitize(entry.getKey()) + ".sessions.csv")) {
             writer.println("Timestamp,Agent,MinSessions,MaxSessions");
             WriterUtil.printInSync(entry.getValue().records, (agent, record) -> {
                writer.print(record.timestamp);
@@ -157,8 +158,8 @@ public class CsvWriter {
       }
       for (var targetEntry : store.connectionPoolStats.entrySet()) {
          for (var typeEntry : targetEntry.getValue().entrySet()) {
-            try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(targetEntry.getKey()) + "."
-                  + sanitize(typeEntry.getKey()) + ".connections.csv")) {
+            try (PrintWriter writer = new PrintWriter(dir + File.separator + WriterUtil.sanitize(targetEntry.getKey()) + "."
+                  + WriterUtil.sanitize(typeEntry.getKey()) + ".connections.csv")) {
                writer.println("Timestamp,Agent,MinConnections,MaxConnections");
                WriterUtil.printInSync(typeEntry.getValue(), (agent, record) -> {
                   writer.print(record.timestamp);
@@ -192,10 +193,6 @@ public class CsvWriter {
             writer.println();
          }
       }
-   }
-
-   private static String sanitize(String phase) {
-      return phase.replaceAll(File.separator, "_");
    }
 
    private static void writeHistogramAndSeries(String filePrefix, StatisticsSnapshot total, List<StatisticsSummary> series)
