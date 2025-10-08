@@ -60,7 +60,25 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void start(SequenceInstance sequence, Statistics statistics) {
-      this.startTimestampMillis = System.currentTimeMillis();
+      start(sequence, statistics, false);
+   }
+
+   public void start(SequenceInstance sequence, Statistics statistics, boolean useSessionStartTime) {
+      if (useSessionStartTime) {
+         long sessionStartTime = session.scheduledStartTimestamp();
+         if (sessionStartTime == -1) {
+            throw new IllegalStateException("Session start time should be set before starting the request.");
+         }
+         startTimestampMillis = sessionStartTime;
+         long delayMs = System.currentTimeMillis() - sessionStartTime;
+         if (delayMs > 0) {
+            log.error("Request took {} ms to be scheduled", delayMs);
+            // TODO would be better to have an additional histogram of the scheduling delays or a delay time
+            System.exit(1);
+         }
+      } else {
+         startTimestampMillis = System.currentTimeMillis();
+      }
       this.startTimestampNanos = System.nanoTime();
       this.sequence = sequence;
       // The reason for using separate sequence reference just for the sake of decrementing

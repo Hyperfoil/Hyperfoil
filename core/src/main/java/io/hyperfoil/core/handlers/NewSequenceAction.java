@@ -23,6 +23,10 @@ public class NewSequenceAction implements Action {
       this.policy = policy;
    }
 
+   public String sequenceName() {
+      return sequence;
+   }
+
    @Override
    public void run(Session session) {
       session.startSequence(sequence, forceSameIndex, policy);
