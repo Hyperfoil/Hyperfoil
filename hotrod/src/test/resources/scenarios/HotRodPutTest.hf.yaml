@@ -1,15 +1,19 @@
 name: hotrod-example
+threads: 1
 hotrod:
-- uri: !concat [ "hotrod://localhost:", !param PORT 11222 ]
-  caches:
-  - !param CACHE my-cache
-usersPerSec: 1
-duration: 5s
-scenario:
-- example:
-  - randomInt: cacheKey <- 1 .. 999
-  - randomUUID: cacheValue
-  - hotrodRequest:
-      put: !param CACHE my-cache
-      key: key-${cacheKey}
-      value: value-${cacheValue}
+  - uri: !concat [ "hotrod://localhost:", !param PORT 11222 ]
+    caches:
+      - !param CACHE my-cache
+phases:
+  - main:
+      constantRate:
+        usersPerSec: 1
+        duration: 5s
+        scenario:
+          - example:
+            - randomInt: cacheKey <- 1 .. 999
+            - randomUUID: cacheValue
+            - hotrodRequest:
+                put: !param CACHE my-cache
+                key: key-${cacheKey}
+                value: value-${cacheValue}
