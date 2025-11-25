@@ -16,7 +16,7 @@ Project website: [https://hyperfoil.io](https://hyperfoil.io).
 
 ## Prerequisites
 
-* Java 17
+* Java 21
 * [Apache Maven 3.8](https://maven.apache.org/)
 
 ## Getting Started
