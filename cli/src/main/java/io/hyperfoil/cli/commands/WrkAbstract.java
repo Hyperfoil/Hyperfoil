@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
@@ -218,8 +219,21 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
                return CommandResult.FAILURE;
             }
             RequestStatisticsResponse total = run.statsTotal();
-            RequestStats testStats = total.statistics.stream().filter(rs -> PhaseType.test.name().equals(rs.phase))
-                  .findFirst().orElseThrow(() -> new IllegalStateException("Error running command: Missing Statistics"));
+            RequestStats testStats = null;
+            List<String> phases = new ArrayList<>();
+            for (RequestStats rs : total.statistics) {
+               if (PhaseType.test.name().equals(rs.phase)) {
+                  testStats = rs;
+                  break;
+               } else {
+                  phases.add(rs.phase);
+               }
+            }
+            if (testStats == null) {
+               invocation.println("Error: Missing Statistics for '" + PhaseType.test.name() + "'. Found only for: "
+                     + String.join(", ", phases));
+               return CommandResult.FAILURE;
+            }
             AbstractHistogram histogram = HistogramConverter
                   .convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
             List<StatisticsSummary> series = run.series(testStats.phase, testStats.stepId, testStats.metric);
