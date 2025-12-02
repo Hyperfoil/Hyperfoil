@@ -262,16 +262,22 @@ class SessionImpl implements Session {
       while (lastRunningSequence >= 0) {
          boolean progressed = false;
          for (int i = 0; i <= lastRunningSequence; ++i) {
+            if (lastProgressedSequence == i) {
+               break;
+            }
+            SequenceInstance sequence = runningSequences[i];
             if (phase.status() == PhaseInstance.Status.TERMINATING) {
                if (trace) {
                   log.trace("#{} Phase {} is terminating", uniqueId, phase.definition().name());
                }
+               // some steps can acquire a resource ( connection ) and release/keep it later. we need to process those
+               // before stoping
+               sequence.progress(this);
+               // the stop is called from other methods while in progress. if you add sequence.progress there,
+               // then you will have a stackoverflow
                stop();
                return;
-            } else if (lastProgressedSequence == i) {
-               break;
             }
-            SequenceInstance sequence = runningSequences[i];
             if (sequence == null) {
                // This may happen when the session.stop() is called
                continue;
