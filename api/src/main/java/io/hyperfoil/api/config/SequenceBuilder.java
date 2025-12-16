@@ -108,7 +108,11 @@ public class SequenceBuilder extends BaseSequenceBuilder<SequenceBuilder> {
       this.nextSequence = nextSequence;
    }
 
-   private static class NextSequenceStep implements Step {
+   public String nextSequence() {
+      return nextSequence;
+   }
+
+   public static class NextSequenceStep implements Step {
       private final String sequence;
 
       NextSequenceStep(String sequence) {
@@ -119,6 +123,10 @@ public class SequenceBuilder extends BaseSequenceBuilder<SequenceBuilder> {
       public boolean invoke(Session s) {
          s.startSequence(sequence, false, Session.ConcurrencyPolicy.FAIL);
          return true;
+      }
+
+      public String sequenceName() {
+         return sequence;
       }
    }
 }
