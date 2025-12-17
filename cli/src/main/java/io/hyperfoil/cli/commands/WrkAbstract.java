@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.HistogramIterationValue;
 import org.aesh.command.Command;
+import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
@@ -64,6 +65,11 @@ import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.impl.Util;
 
 public abstract class WrkAbstract extends BaseStandaloneCommand {
+
+   @Override
+   protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
+      return List.of(Report.class);
+   }
 
    //   @CommandDefinition(name = "wrk", description = "Runs a workload simulation against one endpoint using the same vm")
    public abstract class AbstractWrkCommand implements Command<HyperfoilCommandInvocation> {
@@ -103,13 +109,16 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       @Argument(description = "URL that should be accessed", required = true)
       String url;
 
+      @Option(name = "output", shortName = 'o', description = "Output destination path for the HTML report")
+      private String output;
+
       String path;
       String[][] parsedHeaders;
       boolean started = false;
       boolean initialized = false;
 
       @Override
-      public CommandResult execute(HyperfoilCommandInvocation invocation) {
+      public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
          if (help) {
             invocation.println(invocation.getHelpInfo(getCommandName()));
             return CommandResult.SUCCESS;
@@ -211,6 +220,9 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          boolean result = awaitBenchmarkResult(run, invocation);
 
          if (result) {
+            if (output != null && !output.isBlank()) {
+               invocation.executeSwitchable("report --silent -y --destination " + output);
+            }
             if (!started && !run.get().errors.isEmpty()) {
                // here the benchmark simulation did not start, it failed during initialization
                // print the error that is returned by the controller, e.g., cannot connect
