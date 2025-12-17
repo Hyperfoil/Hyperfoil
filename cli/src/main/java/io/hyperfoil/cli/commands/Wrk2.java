@@ -25,6 +25,7 @@ import org.aesh.command.CommandDefinition;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.SessionLimitPolicy;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 
 public class Wrk2 extends WrkAbstract {
@@ -54,16 +55,10 @@ public class Wrk2 extends WrkAbstract {
 
       @Override
       protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs) {
-         int durationSeconds = (int) Math.ceil(durationMs / 1000);
-         int maxSessions = switch (phaseType) {
-            // given that the duration of this phase is 6s seconds
-            // there's no point to have more than 6 * rate sessions
-            case calibration -> rate * durationSeconds;
-            case test -> rate * 15;
-         };
          return catalog.constantRate(rate)
                .variance(false)
-               .maxSessions(maxSessions);
+               .maxSessions(connections)
+               .sessionLimitPolicy(SessionLimitPolicy.CONTINUE);
       }
 
    }
