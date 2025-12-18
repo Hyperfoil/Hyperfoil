@@ -13,7 +13,8 @@ import org.HdrHistogram.Histogram;
  * Non-thread safe mutable set of values.
  */
 public class StatisticsSnapshot implements Serializable {
-   public int sequenceId = -1;
+   // used to track the current sample id over time
+   public int sampleId = -1;
    public final Histogram histogram = new Histogram(TimeUnit.MINUTES.toNanos(1), 2);
    public int requestCount;
    public int responseCount;
@@ -47,7 +48,7 @@ public class StatisticsSnapshot implements Serializable {
 
    public StatisticsSnapshot clone() {
       StatisticsSnapshot copy = new StatisticsSnapshot();
-      copy.sequenceId = sequenceId;
+      copy.sampleId = sampleId;
       copy.add(this);
       return copy;
    }
@@ -119,7 +120,7 @@ public class StatisticsSnapshot implements Serializable {
    @Override
    public String toString() {
       return "StatisticsSnapshot{" +
-            "sequenceId=" + sequenceId +
+            "sequenceId=" + sampleId +
             ", start=" + histogram.getStartTimeStamp() +
             ", end=" + histogram.getEndTimeStamp() +
             ", requestCount=" + requestCount +

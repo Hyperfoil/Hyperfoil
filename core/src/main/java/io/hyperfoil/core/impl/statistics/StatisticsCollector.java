@@ -43,12 +43,12 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
             String metric = entry.getKey();
             IntObjectMap<StatisticsSnapshot> snapshots = metricMap.computeIfAbsent(metric, k -> new IntObjectHashMap<>());
             entry.getValue().visitSnapshots(snapshot -> {
-               assert snapshot.sequenceId >= 0;
-               StatisticsSnapshot existing = snapshots.get(snapshot.sequenceId);
+               assert snapshot.sampleId >= 0;
+               StatisticsSnapshot existing = snapshots.get(snapshot.sampleId);
                if (existing == null) {
                   existing = new StatisticsSnapshot();
-                  existing.sequenceId = snapshot.sequenceId;
-                  snapshots.put(snapshot.sequenceId, existing);
+                  existing.sampleId = snapshot.sampleId;
+                  snapshots.put(snapshot.sampleId, existing);
                }
                existing.add(snapshot);
             });
