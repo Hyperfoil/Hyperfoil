@@ -5,6 +5,10 @@
         <Console name="STDOUT">
             <PatternLayout pattern="%d{HH:mm:ss,SSS} %-5p (%t) [%c{1.}] %m%throwable{10}%n"/>
         </Console>
+
+        <File name="FILE" fileName="target/log.txt">
+            <PatternLayout pattern="%d{HH:mm:ss,SSS} %-5p (%t) [%c{1.}] %m%throwable{10}%n"/>
+        </File>
     </Appenders>
 
     <Loggers>
@@ -15,7 +19,9 @@
         <Logger name="io.netty" level="INFO"/>
 
         <Root level="INFO">
-            <AppenderRef ref="STDOUT" level="TRACE"/>
+            <AppenderRef ref="STDOUT" level="INFO"/>
+
+            <AppenderRef ref="FILE" level="TRACE"/>
         </Root>
     </Loggers>
 </Configuration>

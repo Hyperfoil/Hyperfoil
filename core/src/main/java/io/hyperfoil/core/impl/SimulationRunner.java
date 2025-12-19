@@ -79,6 +79,7 @@ public class SimulationRunner {
    private CpuWatchdog cpuWatchdog;
    private final GlobalDataImpl[] globalData;
    private final GlobalDataImpl.Collector globalCollector = new GlobalDataImpl.Collector();
+   private boolean enableWatchdog = true;
 
    public SimulationRunner(Benchmark benchmark, String runId, int agentId, Consumer<Throwable> errorHandler) {
       this.eventLoopGroup = EventLoopFactory.INSTANCE.create(benchmark.threads(agentId));
@@ -156,11 +157,13 @@ public class SimulationRunner {
       // hint the GC to tenure sessions
       this.runGC();
 
-      jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
-      jitterWatchdog.setDaemon(true);
+      if (this.enableWatchdog) {
+         jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
+         jitterWatchdog.setDaemon(true);
 
-      cpuWatchdog = new CpuWatchdog(errorHandler, () -> instances.values().stream().anyMatch(p -> !p.definition().isWarmup));
-      cpuWatchdog.start();
+         cpuWatchdog = new CpuWatchdog(errorHandler, () -> instances.values().stream().anyMatch(p -> !p.definition().isWarmup));
+         cpuWatchdog.start();
+      }
 
       log.info("Simulation initialization took {} ms", System.currentTimeMillis() - initSimulationStartTime);
    }
@@ -178,7 +181,9 @@ public class SimulationRunner {
             log.error("One of the HTTP client pools failed to start.");
          }
          handler.handle(result.mapEmpty());
-         jitterWatchdog.start();
+         if (jitterWatchdog != null) {
+            jitterWatchdog.start();
+         }
       });
    }
 
@@ -210,9 +215,13 @@ public class SimulationRunner {
          Throwable error) {
       if (!phase.isWarmup) {
          if (status == PhaseInstance.Status.RUNNING) {
-            cpuWatchdog.notifyPhaseStart(phase.name);
+            if (cpuWatchdog != null) {
+               cpuWatchdog.notifyPhaseStart(phase.name);
+            }
          } else if (status.isFinished()) {
-            cpuWatchdog.notifyPhaseEnd(phase.name);
+            if (cpuWatchdog != null) {
+               cpuWatchdog.notifyPhaseEnd(phase.name);
+            }
          }
       }
       if (status == PhaseInstance.Status.TERMINATED) {
@@ -548,5 +557,9 @@ public class SimulationRunner {
             this.statistics[executorId] = new SessionStatistics();
          }
       }
+   }
+
+   public void setEnableWatchdog(boolean enableWatchdog) {
+      this.enableWatchdog = enableWatchdog;
    }
 }
