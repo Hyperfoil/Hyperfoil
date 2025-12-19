@@ -1,5 +1,6 @@
 package io.hyperfoil.api.session;
 
+import java.util.Collection;
 import java.util.List;
 
 import io.hyperfoil.api.collection.ElasticPool;
@@ -37,6 +38,10 @@ public interface PhaseInstance {
    void setTerminated();
 
    void fail(Throwable error);
+
+   String getName();
+
+   Collection<StatusHistory> getStatusHistory();
 
    Throwable getError();
 
