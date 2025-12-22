@@ -14,6 +14,7 @@ import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -278,7 +279,11 @@ public class SimulationRunner {
       for (PluginRunData plugin : runData) {
          plugin.shutdown();
       }
-      eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
+      try {
+         eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS).get();
+      } catch (InterruptedException | ExecutionException e) {
+         throw new RuntimeException("Shutdown failed", e);
+      }
       for (Session session : sessions) {
          SessionFactory.destroy(session);
       }
