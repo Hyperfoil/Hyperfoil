@@ -1,11 +1,8 @@
 package io.hyperfoil.core.impl;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
@@ -19,7 +16,6 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.StatusHistory;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 public abstract class PhaseInstanceImpl implements PhaseInstance {
@@ -46,8 +42,6 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    private volatile Throwable error;
    private volatile boolean sessionLimitExceeded;
    private Runnable failedSessionAcquisitionAction;
-
-   private final Queue<StatusHistory> statusHistories = new ConcurrentLinkedQueue<>();
 
    public static PhaseInstance newInstance(Phase def, String runId, int agentId) {
       PhaseCtor ctor = constructors.get(def.model.getClass());
@@ -259,11 +253,6 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       return this.def.name;
    }
 
-   @Override
-   public Collection<StatusHistory> getStatusHistory() {
-      return this.statusHistories;
-   }
-
    /**
     * @return {@code true} if the new {@link Session} was started, {@code false} otherwise.
     */
@@ -303,13 +292,6 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    }
 
    protected void changeStatus(Status newStatus) {
-      StatusHistory statusHistory = new StatusHistory();
-      statusHistory.previousStatus = status;
-      statusHistory.currentStatus = newStatus;
-      statusHistory.when = System.currentTimeMillis();
-      statusHistory.threadId = Thread.currentThread().getId();
-      statusHistories.add(statusHistory);
-
       this.status = newStatus;
    }
 
