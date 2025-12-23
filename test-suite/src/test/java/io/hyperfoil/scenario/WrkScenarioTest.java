@@ -1,7 +1,6 @@
 package io.hyperfoil.scenario;
 
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -13,8 +12,6 @@ import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.session.PhaseInstance;
-import io.hyperfoil.api.session.StatusHistory;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.cli.commands.WrkScenario;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -96,21 +93,6 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
       long end = System.currentTimeMillis();
 
       log.info("Test duration: " + TimeUnit.MILLISECONDS.toSeconds(end - start) + "s");
-      for (String phaseName : Arrays.asList("calibration", "test")) {
-         PhaseInstance phase = runner.instances().get(phaseName);
-         log.info("--- phase: " + phase.getName() + " ---");
-         Long previousWhen = null;
-         String message = "";
-         for (StatusHistory history : phase.getStatusHistory()) {
-            if (previousWhen != null) {
-               message = history.getWhenInstant() + " elapsed: " + TimeUnit.MILLISECONDS.toSeconds(history.when - previousWhen)
-                     + "s -> ";
-            }
-            message += history;
-            previousWhen = history.when;
-            log.info(message);
-         }
-      }
 
       Assertions.assertTrue(statisticsConsumer.stats().containsKey("calibration"));
       Assertions.assertTrue(statisticsConsumer.stats().containsKey("test"));
