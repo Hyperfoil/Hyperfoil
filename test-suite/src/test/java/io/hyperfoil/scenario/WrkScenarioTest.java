@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.cli.commands.WrkScenario;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -23,16 +24,24 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
    protected final Logger log = LogManager.getLogger(getClass());
 
+   private int threads = 2;
+   private int connections = 10;
+   private String duration = "20s";
+   private String timeout = "2s";
+   private int rate = 20;
+
    @Override
    protected Handler<HttpServerRequest> getRequestHandler() {
       Router router = Router.router(vertx);
       router.route("/sleep").handler(ctx -> {
-         try {
-            Thread.sleep(500);
-         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-         }
-         ctx.response().end("Hello!");
+         ctx.vertx().setTimer(500, id -> {
+            ctx.response().end("500ms!");
+         });
+      });
+      router.route("/1s").handler(ctx -> {
+         ctx.vertx().setTimer(1000, id -> {
+            ctx.response().end("1s");
+         });
       });
       router.route("/highway").handler(ctx -> {
          ctx.response().end();
@@ -54,16 +63,11 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
       runScenario(url);
    }
 
-   private void runScenario(String url) throws URISyntaxException {
+   private StatisticsSnapshot runScenario(String url) throws URISyntaxException {
       boolean enableHttp2 = false;
-      int connections = 10;
       boolean useHttpCache = false;
-      int threads = 2;
       Map<String, String> agent = null;
-      String duration = "10s";
       String[][] parsedHeaders = null;
-      String timeout = "2s";
-      int rate = 100000;
 
       WrkScenario wrkScenario = new WrkScenario() {
          @Override
@@ -96,5 +100,8 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
       Assertions.assertTrue(statisticsConsumer.stats().containsKey("calibration"));
       Assertions.assertTrue(statisticsConsumer.stats().containsKey("test"));
+
+      StatisticsSnapshot stats = statisticsConsumer.stats().get("test").get("request");
+      return stats;
    }
 }

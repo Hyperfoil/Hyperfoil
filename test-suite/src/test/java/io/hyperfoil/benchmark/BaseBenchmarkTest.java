@@ -60,6 +60,7 @@ public abstract class BaseBenchmarkTest {
          StatisticsSnapshot metricValue = stats.get(metric);
          if (metricValue == null) {
             metricValue = new StatisticsSnapshot();
+            stats.put(metric, metricValue);
          }
          metricValue.add(snapshot);
       }
