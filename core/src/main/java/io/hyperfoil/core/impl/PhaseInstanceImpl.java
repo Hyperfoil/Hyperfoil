@@ -96,7 +96,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    public void start(EventExecutorGroup executorGroup) {
       synchronized (this) {
          assert status == Status.NOT_STARTED : "Status is " + status;
-         status = Status.RUNNING;
+         this.changeStatus(Status.RUNNING);
       }
       recordAbsoluteStartTime();
       log.debug("{} changing status to RUNNING", def.name);
@@ -125,7 +125,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    public void finish() {
       synchronized (this) {
          if (status == Status.RUNNING) {
-            status = Status.FINISHED;
+            this.changeStatus(Status.FINISHED);
             log.debug("{} changing status to FINISHED", def.name);
          } else {
             log.debug("{} already in state {}, not finishing", def.name, status);
@@ -157,7 +157,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    public void terminate() {
       synchronized (this) {
          if (status.ordinal() < Status.TERMINATED.ordinal()) {
-            status = Status.TERMINATING;
+            this.changeStatus(Status.TERMINATING);
          }
       }
       log.debug("{} changing status to TERMINATING", def.name);
@@ -199,7 +199,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    @Override
    public void setTerminated() {
       synchronized (this) {
-         status = Status.TERMINATED;
+         this.changeStatus(Status.TERMINATED);
       }
       log.debug("{} changing status to TERMINATED", def.name);
       phaseChangeHandler.onChange(def, status, false, error);
@@ -243,9 +243,14 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          if (status != Status.TERMINATED) {
             throw new IllegalStateException();
          }
-         status = Status.STATS_COMPLETE;
+         this.changeStatus(Status.STATS_COMPLETE);
       }
       log.debug("{} changing status to STATS_COMPLETE", def.name);
+   }
+
+   @Override
+   public String getName() {
+      return this.def.name;
    }
 
    /**
@@ -284,6 +289,10 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          sessionLimitExceeded = true;
       }
       notifyFinished(null);
+   }
+
+   protected void changeStatus(Status newStatus) {
+      this.status = newStatus;
    }
 
    public static class AtOnce extends PhaseInstanceImpl {
@@ -385,7 +394,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          if (++counter >= model.repeats) {
             synchronized (this) {
                if (status.ordinal() < Status.TERMINATING.ordinal()) {
-                  status = Status.TERMINATING;
+                  changeStatus(Status.TERMINATING);
                   log.debug("{} changing status to TERMINATING", def.name);
                } else {
                   log.warn("{} not terminating because it is already {}", def.name, status);

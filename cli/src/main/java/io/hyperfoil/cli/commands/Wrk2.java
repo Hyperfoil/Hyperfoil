@@ -53,7 +53,7 @@ public class Wrk2 extends WrkAbstract {
       int rate;
 
       @Override
-      protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs) {
+      protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs) {
          int durationSeconds = (int) Math.ceil(durationMs / 1000);
          int maxSessions = switch (phaseType) {
             // given that the duration of this phase is 6s seconds
