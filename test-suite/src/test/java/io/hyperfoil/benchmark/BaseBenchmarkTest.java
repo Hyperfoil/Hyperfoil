@@ -34,7 +34,7 @@ public abstract class BaseBenchmarkTest {
       return req -> req.response().end();
    }
 
-   private void setupHttpServer(VertxTestContext ctx, Handler<HttpServerRequest> handler) {
+   protected void setupHttpServer(VertxTestContext ctx, Handler<HttpServerRequest> handler) {
       httpServer = vertx.createHttpServer().requestHandler(handler).listen(0, "localhost", ctx.succeedingThenComplete());
    }
 

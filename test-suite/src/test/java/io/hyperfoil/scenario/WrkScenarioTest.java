@@ -7,18 +7,21 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.cli.commands.WrkScenario;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Router;
+import io.vertx.junit5.VertxTestContext;
 
 public class WrkScenarioTest extends BaseBenchmarkTest {
 
@@ -26,9 +29,17 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
    private int threads = 2;
    private int connections = 10;
-   private String duration = "20s";
+   private int duration = 20;
    private String timeout = "2s";
-   private int rate = 20;
+   private int rate = 50000;
+
+   @BeforeEach
+   public void before(Vertx vertx, VertxTestContext ctx) {
+      // Create a single-threaded Vertx instance
+      VertxOptions options = new VertxOptions().setEventLoopPoolSize(connections);
+      this.vertx = Vertx.vertx(options);
+      setupHttpServer(ctx, getRequestHandler());
+   }
 
    @Override
    protected Handler<HttpServerRequest> getRequestHandler() {
@@ -51,9 +62,16 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
    @Test
    @Disabled("Issue #626: wrk2 fail with high load")
+   // This test can be flaky if Hyperfoil is in a state where calibration phase is able to release the connections back to the pool
+   // The current configuration with TRACE logs enabled slow down a lot Hyperfoil
    public void wrk2Test() throws URISyntaxException {
-      String url = "localhost:" + httpServer.actualPort() + "/highway";
-      runScenario(url);
+      String url = "localhost:" + httpServer.actualPort() + "/sleep";
+
+      TestStatistics statisticsConsumer = runScenario(url);
+
+      Assertions.assertTrue(statisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(statisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
    }
 
    @Test
@@ -63,7 +81,7 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
       runScenario(url);
    }
 
-   private StatisticsSnapshot runScenario(String url) throws URISyntaxException {
+   private TestStatistics runScenario(String url) throws URISyntaxException {
       boolean enableHttp2 = false;
       boolean useHttpCache = false;
       Map<String, String> agent = null;
@@ -87,21 +105,14 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
       };
 
       BenchmarkBuilder builder = wrkScenario.getBenchmarkBuilder("my-test", url, enableHttp2, connections, useHttpCache,
-            threads, agent, duration, parsedHeaders, timeout);
+            threads, agent, duration + "s", parsedHeaders, timeout);
 
       TestStatistics statisticsConsumer = new TestStatistics();
       LocalSimulationRunner runner = new LocalSimulationRunner(builder.build(), statisticsConsumer, null, null);
-      runner.setEnableWatchdog(false);
       long start = System.currentTimeMillis();
       runner.run();
       long end = System.currentTimeMillis();
-
       log.info("Test duration: " + TimeUnit.MILLISECONDS.toSeconds(end - start) + "s");
-
-      Assertions.assertTrue(statisticsConsumer.stats().containsKey("calibration"));
-      Assertions.assertTrue(statisticsConsumer.stats().containsKey("test"));
-
-      StatisticsSnapshot stats = statisticsConsumer.stats().get("test").get("request");
-      return stats;
+      return statisticsConsumer;
    }
 }

@@ -12,7 +12,7 @@
     </Appenders>
 
     <Loggers>
-        <Logger name="io.hyperfoil" level="INFO"/>
+        <Logger name="io.hyperfoil" level="TRACE"/>
         <Logger name="org.jgroups" level="INFO"/>
         <Logger name="org.infinispan" level="INFO"/>
         <Logger name="io.vertx" level="INFO"/>
