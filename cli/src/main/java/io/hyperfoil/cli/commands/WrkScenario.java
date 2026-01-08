@@ -24,9 +24,8 @@ public abstract class WrkScenario {
    }
 
    public BenchmarkBuilder getBenchmarkBuilder(String name, String url, boolean enableHttp2, int connections,
-         boolean useHttpCache,
-         int threads, Map<String, String> agentParam, String duration, String[][] parsedHeaders, String timeout)
-         throws URISyntaxException {
+         boolean useHttpCache, int threads, Map<String, String> agentParam, String calibrationDuration, String testDuration,
+         String[][] parsedHeaders, String timeout) throws URISyntaxException {
 
       if (!url.startsWith("http://") && !url.startsWith("https://")) {
          url = "http://" + url;
@@ -69,12 +68,12 @@ public abstract class WrkScenario {
 
       String path = getPath(uri);
 
-      addPhase(builder, PhaseType.calibration, "6s", parsedHeaders, timeout, path);
+      addPhase(builder, PhaseType.calibration, calibrationDuration, parsedHeaders, timeout, path);
       // We can start only after calibration has full completed because otherwise some sessions
       // would not have connection available from the beginning.
-      addPhase(builder, PhaseType.test, duration, parsedHeaders, timeout, path)
+      addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
             .startAfterStrict(PhaseType.calibration.name())
-            .maxDuration(Util.parseToMillis(duration));
+            .maxDuration(Util.parseToMillis(testDuration));
       return builder;
    }
 
