@@ -137,7 +137,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          BenchmarkBuilder builder;
          try {
             builder = scenario.getBenchmarkBuilder(getCommandName(), url, enableHttp2, connections, useHttpCache,
-                  threads, agent, duration, parsedHeaders, timeout);
+                  threads, agent, "6s", duration, parsedHeaders, timeout);
          } catch (URISyntaxException e) {
             invocation.println("Failed to parse URL: " + e.getMessage());
             return CommandResult.FAILURE;
@@ -169,7 +169,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
             RequestStats testStats = null;
             List<String> phases = new ArrayList<>();
             for (RequestStats rs : total.statistics) {
-               if (PhaseType.test.name().equals(rs.phase)) {
+               if (WrkScenario.PhaseType.test.name().equals(rs.phase)) {
                   testStats = rs;
                   break;
                } else {
@@ -177,7 +177,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
                }
             }
             if (testStats == null) {
-               invocation.println("Error: Missing Statistics for '" + PhaseType.test.name() + "'. Found only for: "
+               invocation.println("Error: Missing Statistics for '" + WrkScenario.PhaseType.test.name() + "'. Found only for: "
                      + String.join(", ", phases));
                return CommandResult.FAILURE;
             }

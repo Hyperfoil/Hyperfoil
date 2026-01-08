@@ -3,6 +3,7 @@ package io.hyperfoil.scenario;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,9 +30,6 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
    private int threads = 2;
    private int connections = 10;
-   private int duration = 20;
-   private String timeout = "2s";
-   private int rate = 50000;
 
    @BeforeEach
    public void before(Vertx vertx, VertxTestContext ctx) {
@@ -61,13 +59,13 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
    }
 
    @Test
-   @Disabled("Issue #626: wrk2 fail with high load")
+   @Disabled("Issue #626: wrk2 fail with high load - scenario where timeout is 2s")
    // This test can be flaky if Hyperfoil is in a state where calibration phase is able to release the connections back to the pool
    // The current configuration with TRACE logs enabled slow down a lot Hyperfoil
    public void wrk2Test() throws URISyntaxException {
       String url = "localhost:" + httpServer.actualPort() + "/sleep";
 
-      TestStatistics statisticsConsumer = runScenario(url);
+      TestStatistics statisticsConsumer = runWrk2Scenario(6, 20, url, 50000, 2);
 
       Assertions.assertTrue(statisticsConsumer.stats().containsKey("calibration"),
             "Stats must have values for the 'calibration' phase");
@@ -75,19 +73,43 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
    }
 
    @Test
+   public void wrkRequestsMustBeLowerThanWrk2Test() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/sleep";
+
+      TestStatistics wrkStatisticsConsumer = runWrkScenario(6, 20, url, 2);
+      TestStatistics wrk2StatisticsConsumer = runWrk2Scenario(6, 20, url, 20000, 2);
+
+      Assertions.assertTrue(wrkStatisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(wrkStatisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().get("test").get("request").requestCount <= wrkStatisticsConsumer.stats().get("test").get("request").requestCount);
+   }
+
+   @Test
    @Disabled("Issue #638: NPE: Cannot read field session because this.request is null")
    public void wrk2SuperSlowServer() throws URISyntaxException {
       String url = "localhost:" + httpServer.actualPort() + "/sleep";
-      runScenario(url);
+      runWrk2Scenario(6, 20, url, 50000, 2);
    }
 
-   private TestStatistics runScenario(String url) throws URISyntaxException {
-      boolean enableHttp2 = false;
-      boolean useHttpCache = false;
-      Map<String, String> agent = null;
-      String[][] parsedHeaders = null;
+   private TestStatistics runWrkScenario(int calibrationDuration, int testDuration, String url, int timeout)
+         throws URISyntaxException {
+      return runScenario(calibrationDuration, testDuration, url, timeout, () -> new WrkScenario() {
+         @Override
+         protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType,
+               long durationMs) {
+            return catalog.always(connections);
+         }
+      });
+   }
 
-      WrkScenario wrkScenario = new WrkScenario() {
+   private TestStatistics runWrk2Scenario(int calibrationDuration, int testDuration, String url, int rate, int timeout)
+         throws URISyntaxException {
+      return runScenario(calibrationDuration, testDuration, url, timeout, () -> new WrkScenario() {
          @Override
          protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType,
                long durationMs) {
@@ -102,10 +124,21 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
                   .variance(false)
                   .maxSessions(maxSessions);
          }
-      };
+      });
+   }
+
+   private TestStatistics runScenario(int calibrationDuration, int testDuration, String url, int timeout,
+         Supplier<WrkScenario> fn)
+         throws URISyntaxException {
+      boolean enableHttp2 = false;
+      boolean useHttpCache = false;
+      Map<String, String> agent = null;
+      String[][] parsedHeaders = null;
+
+      WrkScenario wrkScenario = fn.get();
 
       BenchmarkBuilder builder = wrkScenario.getBenchmarkBuilder("my-test", url, enableHttp2, connections, useHttpCache,
-            threads, agent, duration + "s", parsedHeaders, timeout);
+            threads, agent, calibrationDuration + "s", testDuration + "s", parsedHeaders, timeout + "s");
 
       TestStatistics statisticsConsumer = new TestStatistics();
       LocalSimulationRunner runner = new LocalSimulationRunner(builder.build(), statisticsConsumer, null, null);
