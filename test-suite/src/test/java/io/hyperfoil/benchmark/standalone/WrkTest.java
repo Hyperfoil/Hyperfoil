@@ -1,12 +1,17 @@
 package io.hyperfoil.benchmark.standalone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Path;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.aesh.command.CommandResult;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.cli.commands.Wrk;
@@ -55,8 +60,11 @@ public class WrkTest extends BaseBenchmarkTest {
    }
 
    @Test
-   public void testWrk2() {
-      Wrk2.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s",
-            "localhost:" + httpServer.actualPort() + "/foo/bar" });
+   public void testWrk2(@TempDir Path tempDir) {
+      Path reportFile = tempDir.resolve(UUID.randomUUID() + ".html");
+      assertFalse(reportFile.toFile().exists());
+      Wrk2.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "--output",
+            reportFile.toString(), "localhost:" + httpServer.actualPort() + "/foo/bar" });
+      assertTrue(reportFile.toFile().exists());
    }
 }
