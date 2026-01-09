@@ -22,7 +22,7 @@ public class JsonWriterTest {
    public void shouldComputePercentileResponseTimeForFailure() throws Exception {
       var benchmark = Benchmark.forTesting();
       StatisticsStore store = new StatisticsStore(benchmark, f -> {
-      });
+      }, false);
       StatisticsSnapshot snapshot = new StatisticsSnapshot();
       var samples = new long[] { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 };
       var histo = snapshot.histogram;

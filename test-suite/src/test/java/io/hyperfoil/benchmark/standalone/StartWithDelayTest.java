@@ -63,7 +63,7 @@ public class StartWithDelayTest extends BaseBenchmarkTest {
 
       StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot, countDown) -> log.debug(
             "Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
-            snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
+            snapshot.sampleId, snapshot.requestCount, snapshot.responseCount);
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null, null);
       runner.run();
 

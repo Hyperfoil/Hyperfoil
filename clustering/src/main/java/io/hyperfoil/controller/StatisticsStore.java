@@ -39,8 +39,9 @@ public class StatisticsStore {
    final Map<String, SessionPoolStats> sessionPoolStats = new HashMap<>();
    final Map<String, Map<String, Map<String, List<ConnectionPoolStats>>>> connectionPoolStats = new HashMap<>();
    final Map<String, Map<String, String>> cpuUsage = new HashMap<>();
+   private final Boolean trackIntervalHistograms;
 
-   public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler) {
+   public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler, Boolean trackIntervalHistograms) {
       this.benchmark = benchmark;
       this.failureHandler = failureHandler;
       this.slaProviders = benchmark.steps()
@@ -51,6 +52,7 @@ public class StatisticsStore {
                }
                return s1;
             }));
+      this.trackIntervalHistograms = trackIntervalHistograms;
    }
 
    public boolean record(String agentName, int phaseId, int stepId, String metric, StatisticsSnapshot stats) {
@@ -70,7 +72,8 @@ public class StatisticsStore {
                : Stream.of(sla).filter(s -> s.window() > 0).collect(
                      Collectors.toMap(Function.identity(), s -> new Window((int) (s.window() / collectionPeriod))));
          SLA[] total = sla == null ? new SLA[0] : Stream.of(sla).filter(s -> s.window() <= 0).toArray(SLA[]::new);
-         map.put(metric, data = new Data(this, phase.name, phase.isWarmup, stepId, metric, rings, total));
+         map.put(metric,
+               data = new Data(this, phase.name, phase.isWarmup, stepId, metric, rings, total, trackIntervalHistograms));
       }
       return data.record(agentName, stats);
    }
