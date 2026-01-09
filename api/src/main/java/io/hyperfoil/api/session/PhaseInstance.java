@@ -38,6 +38,8 @@ public interface PhaseInstance {
 
    void fail(Throwable error);
 
+   String getName();
+
    Throwable getError();
 
    String runId();
