@@ -1,0 +1,19 @@
+name: ordered-sequence
+phases:
+- single:
+    always:
+      users: 1
+      duration: 2
+      scenario:
+        - first:
+          - addToInt:
+              var: counter
+              value: 1
+              orElseSetTo: 43
+          - log: counter@first = ${counter}
+        - second:
+          - addToInt: counter--
+          - log: counter@second = ${counter}
+        - third:
+          - fail:
+              intCondition: counter != 42

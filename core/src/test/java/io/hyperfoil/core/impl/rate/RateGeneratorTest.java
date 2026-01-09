@@ -1,7 +1,8 @@
 package io.hyperfoil.core.impl.rate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Arrays;
 
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.random.JDKRandomGenerator;
@@ -41,6 +42,49 @@ public abstract class RateGeneratorTest {
    @Test
    public void testNoFireTimesOnCreation() {
       assertEquals(0, newUserGenerator().fireTimes());
+   }
+
+   @Test
+   public void testLostFireTimesWithoutDelays() {
+      final int samples = samples();
+      final var userGenerator = newUserGenerator();
+      final var fireTimesCollector = new FireTimesCollector(samples * 2);
+      final long[] fireTimes = new long[samples];
+      fireTimes[0] = userGenerator.lastComputedFireTimeMs();
+      for (int i = 1; i < samples; i++) {
+         int samplesBefore = fireTimesCollector.size();
+         fireTimes[i] = userGenerator.computeNextFireTime(userGenerator.lastComputedFireTimeMs(), fireTimesCollector);
+         assertEquals(samplesBefore + 1, fireTimesCollector.size(), "Sample " + i);
+      }
+      userGenerator.computeNextFireTime(userGenerator.lastComputedFireTimeMs(), fireTimesCollector);
+      assertArrayEquals(fireTimes, Arrays.copyOf(fireTimesCollector.fireTimes(), fireTimes.length));
+      var orderedFireTimes = Arrays.copyOf(fireTimesCollector.fireTimes(), fireTimesCollector.size());
+      var unorderedFireTimes = orderedFireTimes.clone();
+      Arrays.sort(orderedFireTimes);
+      assertArrayEquals(orderedFireTimes, unorderedFireTimes);
+   }
+
+   private static final class FireTimesCollector implements FireTimeListener {
+
+      private final long[] fireTimes;
+      private int index = 0;
+
+      FireTimesCollector(int samples) {
+         fireTimes = new long[samples];
+      }
+
+      @Override
+      public void onFireTime(long fireTimeMs) {
+         fireTimes[index++] = fireTimeMs;
+      }
+
+      public long[] fireTimes() {
+         return fireTimes;
+      }
+
+      public int size() {
+         return index;
+      }
    }
 
    @Test
