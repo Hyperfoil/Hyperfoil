@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -169,6 +170,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Unknown message type: {}", message.body());
             return;
          }
+         CompletableFuture<Void> futureStatsReturn = new CompletableFuture<>();
+         // the last part on the chain
+         futureStatsReturn.whenComplete((stats, throwable) -> {
+            message.reply("OK");
+         });
          StatsMessage statsMessage = (StatsMessage) message.body();
          Run run = runs.get(statsMessage.runId);
          if (run != null) {
@@ -206,7 +212,17 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                         .allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
                      ControllerPhase controllerPhase = run.phases.get(pscm.phase);
                      if (controllerPhase != null) {
-                        tryCompletePhase(run, pscm.phase, controllerPhase);
+                        // when having a timer it cannot return immediately because if the benchmark policy is cancel,
+                        // the status will change and the next phase won't be canceled
+                        CompletableFuture<Void> next = tryCompletePhase(run, pscm.phase, controllerPhase, agent);
+                        next.whenComplete((v, e) -> {
+                           if (e != null) {
+                              log.error("Cannot complete phase {} in run {}", pscm.phase, run.id);
+                              run.errors.add(new Run.Error(agent, e));
+                           }
+                           futureStatsReturn.complete(null);
+                        });
+                        return;
                      } else {
                         log.error("Run {}: Cannot find phase {}!", run.id, pscm.phase);
                      }
@@ -237,7 +253,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          } else {
             log.error("Unknown run {}", statsMessage.runId);
          }
-         message.reply("OK");
+         futureStatsReturn.complete(null);
       });
 
       if (vertx.isClustered()) {
@@ -267,23 +283,34 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       startCountDown.countDown();
    }
 
-   private void tryCompletePhase(Run run, String phase, ControllerPhase controllerPhase) {
+   private CompletableFuture<Void> tryCompletePhase(Run run, String phase, ControllerPhase controllerPhase, AgentInfo agent) {
       long delay = controllerPhase.delayStatsCompletionUntil() == null ? -1
             : controllerPhase.delayStatsCompletionUntil() - System.currentTimeMillis();
-      if (delay <= 0) {
-         log.info("Run {}: completing stats for phase {}", run.id, phase);
+
+      CompletableFuture<Void> future = new CompletableFuture<>();
+
+      // simplify the logic by not calling the function twice when scheduled
+      Handler<Long> action = (ignored) -> {
          run.statisticsStore().completePhase(phase);
          if (!run.statisticsStore().validateSlas()) {
-            log.info("SLA validation failed for {}", phase);
+            log.error("SLA validation failed for {}", phase);
             controllerPhase.setFailed();
             if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
                failNotStartedPhases(run, controllerPhase);
             }
          }
+         future.complete(null);
+      };
+
+      if (delay <= 0) {
+         log.info("Run {}: completing stats for phase {}", run.id, phase);
+         action.handle(null);
       } else {
          log.info("Run {}: all agents completed stats for phase {} but delaying for {} ms", run.id, phase, delay);
-         vertx.setTimer(delay, ignored -> tryCompletePhase(run, phase, controllerPhase));
+         vertx.setTimer(delay, action);
       }
+
+      return future;
    }
 
    private void handleAgentHello(Message<Object> message, AgentHello hello) {
@@ -351,7 +378,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          run.errors.add(new Run.Error(agent, phaseChange.getError()));
       }
       controllerPhase.addGlobalData(phaseChange.globalData());
-      tryProgressStatus(run, phase);
+      tryProgressStatus(run, phase, agent);
       runSimulation(run);
    }
 
@@ -448,7 +475,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       server.stop(stopFuture);
    }
 
-   private void tryProgressStatus(Run run, String phase) {
+   private void tryProgressStatus(Run run, String phase, AgentInfo agent) {
       PhaseInstance.Status minStatus = PhaseInstance.Status.TERMINATED;
       for (AgentInfo a : run.agents) {
          PhaseInstance.Status status = a.phases.get(phase);
