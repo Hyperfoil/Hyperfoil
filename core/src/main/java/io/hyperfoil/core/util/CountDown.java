@@ -56,4 +56,11 @@ public class CountDown implements Handler<AsyncResult<Void>> {
          handler.handle(event);
       }
    }
+
+   @Override
+   public String toString() {
+      return "CountDown{" +
+            "value=" + value +
+            '}';
+   }
 }

@@ -179,10 +179,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                RequestStatsMessage rsm = (RequestStatsMessage) statsMessage;
                String phase = run.phase(rsm.phaseId);
                if (rsm.statistics != null) {
-                  log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests)",
-                        rsm.runId, agentName, rsm.address, phase, rsm.stepId, rsm.metric,
-                        rsm.statistics.sequenceId, rsm.statistics.requestCount);
                   boolean added = run.statisticsStore().record(agentName, rsm.phaseId, rsm.stepId, rsm.metric, rsm.statistics);
+                  if (log.isDebugEnabled()) {
+                     log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests) - added:{}",
+                           rsm.runId, agentName, rsm.address, phase, rsm.stepId, rsm.metric,
+                           rsm.statistics.sequenceId, rsm.statistics.requestCount, added);
+                  }
                   if (!added) {
                      // warning already logged
                      String errorMessage = String.format(
@@ -727,6 +729,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    private void stopSimulation(Run run) {
+      if (log.isDebugEnabled()) {
+         log.debug("Stopping simulation");
+      }
       if (run.terminateTime.future().isComplete()) {
          log.warn("Run {} already completed.", run.id);
          return;
