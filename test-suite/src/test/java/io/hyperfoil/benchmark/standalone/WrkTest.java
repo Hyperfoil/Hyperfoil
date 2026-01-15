@@ -59,4 +59,12 @@ public class WrkTest extends BaseBenchmarkTest {
       Wrk2.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s",
             "localhost:" + httpServer.actualPort() + "/foo/bar" });
    }
+
+   @Test
+   public void testWrk2HighLoad() {
+      Wrk2 cmd = new Wrk2();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "20s", "-R", "20000", "--latency", "--timeout", "1s",
+            "localhost:" + httpServer.actualPort() + "/foo/bar" });
+      assertEquals(CommandResult.FAILURE.getResultValue(), result);
+   }
 }
