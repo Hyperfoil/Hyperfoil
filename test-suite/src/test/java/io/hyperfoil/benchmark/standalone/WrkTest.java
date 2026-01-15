@@ -46,8 +46,10 @@ public class WrkTest extends BaseBenchmarkTest {
 
    @Test
    public void testWrk() {
-      Wrk.main(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
+      Wrk cmd = new Wrk();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
             "localhost:" + httpServer.actualPort() + "/foo/bar" });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
    }
 
    @Test
@@ -55,12 +57,19 @@ public class WrkTest extends BaseBenchmarkTest {
       Wrk cmd = new Wrk();
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
             "nonExistentHost:" + httpServer.actualPort() + "/foo/bar" });
-      ;
       assertEquals(CommandResult.FAILURE.getResultValue(), result);
    }
 
    @Test
-   public void testWrk2(@TempDir Path tempDir) {
+   public void testWrk2() {
+      Wrk2 cmd = new Wrk2();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s",
+            "localhost:" + httpServer.actualPort() + "/foo/bar" });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
+   }
+
+   @Test
+   public void testWrkReportOutput(@TempDir Path tempDir) {
       Path reportFile = tempDir.resolve(UUID.randomUUID() + ".html");
       assertFalse(reportFile.toFile().exists());
       Wrk2.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "--output",
