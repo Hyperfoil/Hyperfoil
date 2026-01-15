@@ -139,6 +139,7 @@ public class AgentVerticle extends AbstractVerticle {
                }, 1);
                if (runner != null) {
                   // TODO: why do we have to visit&send stats here?
+                  log.debug("Sending remaining statistics");
                   runner.visitStatistics(requestStatsSender);
                   requestStatsSender.send(completion);
                   requestStatsSender.sendPhaseComplete(null, completion);
@@ -192,6 +193,7 @@ public class AgentVerticle extends AbstractVerticle {
    private MessageConsumer<Object> listenOnControl() {
       return eb.consumer(Feeds.CONTROL, message -> {
          PhaseControlMessage controlMessage = (PhaseControlMessage) message.body();
+         log.debug("Received command: {}", controlMessage.command());
          switch (controlMessage.command()) {
             case RUN:
                if (controlMessage.globalData() != null) {
@@ -255,12 +257,14 @@ public class AgentVerticle extends AbstractVerticle {
 
       assert context.isEventLoopContext();
       statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
+         log.debug("Collecting statistics");
          runner.visitStatistics(requestStatsSender);
          requestStatsSender.send(statisticsCountDown);
          runner.visitSessionPoolStats(sessionStatsSender);
          sessionStatsSender.send();
          runner.visitConnectionStats(connectionStatsSender);
          connectionStatsSender.send();
+         log.debug("Finished collecting statistics");
       });
 
       runner.openConnections(vertx::executeBlocking, result -> {

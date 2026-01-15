@@ -293,4 +293,12 @@ public class Statistics {
    public interface ObjectUpdater<C extends StatsExtension> {
       void update(C custom, Object value);
    }
+
+   @Override
+   public String toString() {
+      return "Statistics{" +
+            "startTimestamp=" + startTimestamp +
+            ", endTimestamp=" + (endTimestamp == Long.MAX_VALUE ? null : endTimestamp) +
+            '}';
+   }
 }

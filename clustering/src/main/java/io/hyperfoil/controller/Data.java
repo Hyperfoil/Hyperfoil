@@ -51,8 +51,6 @@ final class Data {
 
    boolean record(String agentName, StatisticsSnapshot stats) {
       if (completed) {
-         log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, agentName,
-               stats.requestCount);
          return false;
       }
       total.add(stats);
