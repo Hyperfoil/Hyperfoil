@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
@@ -55,6 +54,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.HistogramConverter;
+import io.hyperfoil.controller.model.Phase;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
@@ -218,20 +218,24 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
                invocation.println("ERROR: " + String.join(", ", run.get().errors));
                return CommandResult.FAILURE;
             }
+            List<Phase> phases = run.get().phases;
+            if (phases == null) {
+               invocation.println("Error: Phases cannot be null");
+               return CommandResult.FAILURE;
+            }
             RequestStatisticsResponse total = run.statsTotal();
-            RequestStats testStats = null;
-            List<String> phases = new ArrayList<>();
-            for (RequestStats rs : total.statistics) {
-               if (PhaseType.test.name().equals(rs.phase)) {
-                  testStats = rs;
-                  break;
-               } else {
-                  phases.add(rs.phase);
+            for (Phase phase : phases) {
+               if (phase.failed) {
+                  invocation.println("Error: Phase '" + phase.name + "' failed:");
+                  return CommandResult.FAILURE;
                }
             }
+
+            RequestStats testStats = total.statistics.stream().filter((rs) -> rs.phase.equals(PhaseType.test.name()))
+                  .findFirst().orElse(null);
             if (testStats == null) {
                invocation.println("Error: Missing Statistics for '" + PhaseType.test.name() + "'. Found only for: "
-                     + String.join(", ", phases));
+                     + String.join(", ", total.statistics.stream().map((rs) -> rs.phase).toList()));
                return CommandResult.FAILURE;
             }
             AbstractHistogram histogram = HistogramConverter
