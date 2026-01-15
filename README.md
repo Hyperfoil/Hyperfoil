@@ -41,6 +41,44 @@ cd distribution/target/distribution/
 
 We publish the image at [quay.io/hyperfoil/hyperfoil](https://quay.io/repository/hyperfoil/hyperfoil?tab=tags).
 
+## Testing
+
+### Running All Tests
+
+To run all tests including clustered benchmark tests:
+
+```bash
+mvn clean package -Pbenchmark
+```
+
+### Clustered Tests SSH Requirements
+
+Some tests (tagged with `@Tag("io.hyperfoil.test.Benchmark")`) require SSH connectivity to localhost for deploying clustered agents.
+
+If these tests fail with errors like:
+- "Connection refused"
+- "No such file or directory" for SSH key
+
+Follow these steps:
+
+1. **Set up SSH server and passwordless authentication**:
+   ```bash
+   # Start SSH daemon (if not running)
+   sudo systemctl start sshd
+   
+   # Generate SSH key if it doesn't exist (will prompt if file exists)
+   ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa
+   
+   # Set up passwordless SSH to localhost
+   ssh-copy-id $(whoami)@localhost
+   ```
+
+2. **Verify the setup** by connecting without password:
+   ```bash
+   ssh $(whoami)@localhost
+   ```
+   You should be able to connect without entering a password.
+
 ## Contributing
 
 Contributions to `Hyperfoil` are managed on [GitHub.com](https://github.com/Hyperfoil/Hyperfoil/)
