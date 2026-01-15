@@ -146,4 +146,12 @@ public final class Phase implements Serializable {
       }
       return dependencies.collect(Collectors.toList());
    }
+
+   @Override
+   public String toString() {
+      return "Phase{" +
+            "name='" + name + '\'' +
+            ", id=" + id +
+            '}';
+   }
 }
