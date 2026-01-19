@@ -190,6 +190,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      String errorMessage = String.format(
                            "Received statistics for %s/%d/%s:%d with %d requests but the statistics are already completed; these statistics won't be reported.",
                            phase, rsm.stepId, rsm.metric, rsm.statistics.sequenceId, rsm.statistics.requestCount);
+                     log.error(errorMessage);
                      run.errors.add(new Run.Error(null, new BenchmarkExecutionException(errorMessage)));
                   }
                }
