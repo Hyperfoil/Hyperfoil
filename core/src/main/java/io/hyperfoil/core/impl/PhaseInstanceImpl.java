@@ -248,6 +248,11 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       log.debug("{} changing status to STATS_COMPLETE", def.name);
    }
 
+   @Override
+   public String getName() {
+      return this.def.name;
+   }
+
    /**
     * @return {@code true} if the new {@link Session} was started, {@code false} otherwise.
     */
