@@ -177,6 +177,53 @@
                     </arguments>
                 </configuration>
             </plugin>
+
+            <!--
+            The CLI jar is located in hyperfoil-clustering due to: https://github.com/Hyperfoil/Hyperfoil/issues/639
+
+            This placement enables testing external projects with Hyperfoil snapshot versions by simply
+            replacing "jbang wrk@hyperfoil" with "java -jar clustering/target/wrk.jar"
+
+            Example workflow: Share a branch → Build locally → Replace the command → Test results
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>wrk</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>wrk</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>io.hyperfoil.cli.commands.Wrk</mainClass>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>wrk2</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>wrk2</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>io.hyperfoil.cli.commands.Wrk2</mainClass>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
