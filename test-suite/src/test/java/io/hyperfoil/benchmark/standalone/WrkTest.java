@@ -72,8 +72,10 @@ public class WrkTest extends BaseBenchmarkTest {
    public void testWrkReportOutput(@TempDir Path tempDir) {
       Path reportFile = tempDir.resolve(UUID.randomUUID() + ".html");
       assertFalse(reportFile.toFile().exists());
-      Wrk2.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "--output",
+      Wrk2 cmd = new Wrk2();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "--output",
             reportFile.toString(), "localhost:" + httpServer.actualPort() + "/foo/bar" });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
       assertTrue(reportFile.toFile().exists());
    }
 }
