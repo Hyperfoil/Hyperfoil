@@ -774,7 +774,7 @@
                                     <goal>jar</goal>
                                 </goals>
                                 <configuration>
-                                    <source>17</source>
+                                    <source>${maven.compiler.source}</source>
                                     <detectJavaApiLink>false</detectJavaApiLink>
                                 </configuration>
                             </execution>
