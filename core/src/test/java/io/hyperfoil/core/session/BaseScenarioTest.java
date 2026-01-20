@@ -54,18 +54,44 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
       return 3;
    }
 
-   public class TestStatistics implements StatisticsCollector.StatisticsConsumer {
-      private final Map<String, StatisticsSnapshot> stats = new HashMap<>();
+   public static class TestStatistics implements StatisticsCollector.StatisticsConsumer {
+      private final Logger log = LogManager.getLogger(getClass());
+
+      private final Map<String, Map<String, StatisticsSnapshot>> phaseStats = new HashMap<>();
 
       @Override
       public void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown) {
-         log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
+         log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase.name, stepId, metric,
                snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
-         stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()).add(snapshot);
+         Map<String, StatisticsSnapshot> stats = phaseStats.get(phase.name);
+         if (stats == null) {
+            stats = new HashMap<>();
+            phaseStats.put(phase.name, stats);
+         }
+         StatisticsSnapshot metricValue = stats.get(metric);
+         if (metricValue == null) {
+            metricValue = new StatisticsSnapshot();
+            stats.put(metric, metricValue);
+         }
+         metricValue.add(snapshot);
       }
 
+      /**
+       * This is for compatibility. Prefer always using the phaseStats method
+       *
+       * @return stats
+       */
+      @Deprecated
       public Map<String, StatisticsSnapshot> stats() {
-         return stats;
+         if (this.phaseStats.isEmpty()) {
+            return Map.of();
+         } else {
+            return this.phaseStats.values().iterator().next();
+         }
+      }
+
+      public Map<String, Map<String, StatisticsSnapshot>> phaseStats() {
+         return phaseStats;
       }
    }
 }
