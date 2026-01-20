@@ -20,12 +20,9 @@
 
 package io.hyperfoil.cli.commands;
 
-import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,9 +30,7 @@ import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.HistogramIterationValue;
@@ -59,9 +54,6 @@ import io.hyperfoil.controller.HistogramConverter;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
-import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.http.config.HttpPluginBuilder;
-import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.impl.Util;
 
@@ -113,7 +105,6 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       @Option(name = "output", shortName = 'o', description = "Output destination path for the HTML report")
       private String output;
 
-      String path;
       String[][] parsedHeaders;
       boolean started = false;
       boolean initialized = false;
@@ -127,26 +118,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          if (script != null) {
             invocation.println("Scripting is not supported at this moment.");
          }
-         if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            url = "http://" + url;
-         }
-         URI uri;
-         try {
-            uri = new URI(url);
-         } catch (URISyntaxException e) {
-            invocation.println("Failed to parse URL: " + e.getMessage());
-            return CommandResult.FAILURE;
-         }
-         path = uri.getPath();
-         if (path == null || path.isEmpty()) {
-            path = "/";
-         }
-         if (uri.getQuery() != null) {
-            path = path + "?" + uri.getQuery();
-         }
-         if (uri.getFragment() != null) {
-            path = path + "#" + uri.getFragment();
-         }
+
          if (headers != null) {
             parsedHeaders = new String[headers.size()][];
             for (int i = 0; i < headers.size(); i++) {
@@ -164,46 +136,21 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
             parsedHeaders = null;
          }
 
-         Protocol protocol = Protocol.fromScheme(uri.getScheme());
          // @formatter:off
-         BenchmarkBuilder builder = BenchmarkBuilder.builder()
-               .name(getCommandName())
-               .addPlugin(HttpPluginBuilder::new)
-                  .ergonomics()
-                     .repeatCookies(false)
-                     .userAgentFromSession(false)
-                  .endErgonomics()
-                  .http()
-                     .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
-                     .allowHttp2(enableHttp2)
-                     .sharedConnections(connections)
-                     .useHttpCache(useHttpCache)
-                  .endHttp()
-               .endPlugin()
-               .threads(this.threads);
-         // @formatter:on
-         if (agent != null) {
-            for (Map.Entry<String, String> agent : agent.entrySet()) {
-               Map<String, String> properties = Stream.of(agent.getValue().split(","))
-                     .map(property -> {
-                        String[] pair = property.split("=", 2);
-                        if (pair.length != 2) {
-                           throw new IllegalArgumentException("Cannot parse " + property
-                                 + " as a property: Agent should be formatted as -AagentName=key1=value1,key2=value2...");
-                        }
-                        return pair;
-                     })
-                     .collect(Collectors.toMap(keyValue -> keyValue[0], keyValue -> keyValue[1]));
-               builder.addAgent(agent.getKey(), null, properties);
+         WrkScenario scenario = new WrkScenario() {
+            @Override protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs) {
+               return AbstractWrkCommand.this.phaseConfig(catalog, phaseType, durationMs);
             }
-         }
+         };
 
-         addPhase(builder, PhaseType.calibration, "6s");
-         // We can start only after calibration has full completed because otherwise some sessions
-         // would not have connection available from the beginning.
-         addPhase(builder, PhaseType.test, duration)
-               .startAfterStrict(PhaseType.calibration.name())
-               .maxDuration(Util.parseToMillis(duration));
+         BenchmarkBuilder builder;
+         try {
+            builder = scenario.getBenchmarkBuilder(getCommandName(), url, enableHttp2, connections, useHttpCache,
+                  threads, agent, "6s", duration, parsedHeaders, timeout);
+         } catch (URISyntaxException e) {
+            invocation.println("Failed to parse URL: " + e.getMessage());
+            return CommandResult.FAILURE;
+         }
 
          RestClient client = invocation.context().client();
          if (client == null) {
@@ -234,7 +181,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
             RequestStats testStats = null;
             List<String> phases = new ArrayList<>();
             for (RequestStats rs : total.statistics) {
-               if (PhaseType.test.name().equals(rs.phase)) {
+               if (WrkScenario.PhaseType.test.name().equals(rs.phase)) {
                   testStats = rs;
                   break;
                } else {
@@ -242,7 +189,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
                }
             }
             if (testStats == null) {
-               invocation.println("Error: Missing Statistics for '" + PhaseType.test.name() + "'. Found only for: "
+               invocation.println("Error: Missing Statistics for '" + WrkScenario.PhaseType.test.name() + "'. Found only for: "
                      + String.join(", ", phases));
                return CommandResult.FAILURE;
             }
@@ -287,49 +234,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          return true;
       }
 
-      protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs);
-
-      public enum PhaseType {
-         calibration,
-         test
-      }
-
-      private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, PhaseType phaseType, String durationStr) {
-         // prevent capturing WrkCommand in closure
-         String[][] parsedHeaders = this.parsedHeaders;
-         long duration = Util.parseToMillis(durationStr);
-         // @formatter:off
-         var scenarioBuilder = phaseConfig(benchmarkBuilder.addPhase(phaseType.name()), phaseType, duration)
-                 .duration(duration)
-                 .maxDuration(duration + Util.parseToMillis(timeout))
-                 .scenario();
-         // even with pipelining or HTTP 2 multiplexing
-         // each session lifecycle requires to fully complete (with response)
-         // before being reused, hence the number of requests which can use is just 1
-         scenarioBuilder.maxRequests(1);
-         // same reasoning here: given that the default concurrency of sequence is 0 for initialSequences
-         // and there's a single sequence too, there's no point to have more than 1 per session
-         scenarioBuilder.maxSequences(1);
-         return scenarioBuilder
-                  .initialSequence("request")
-                     .step(SC).httpRequest(HttpMethod.GET)
-                        .path(path)
-                        .headerAppender((session, request) -> {
-                           if (parsedHeaders != null) {
-                              for (String[] header : parsedHeaders) {
-                                 request.putHeader(header[0], header[1]);
-                              }
-                           }
-                        })
-                        .timeout(timeout)
-                        .handler()
-                           .rawBytes(new TransferSizeRecorder("transfer"))
-                        .endHandler()
-                     .endStep()
-                  .endSequence()
-               .endScenario();
-         // @formatter:on
-      }
+      protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs);
 
       private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series,
             CommandInvocation invocation) {

@@ -32,7 +32,8 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
             // We won't issue the warning for invalid requests because these are likely not in flight anymore
             // and we are stopping the session exactly due to the invalid request.
             if (!request.isCompleted() && request.isValid()) {
-               log.warn("#{} Session completed with requests in-flight!", session.uniqueId());
+               log.warn("#Phase {}/{} with session {} completed with requests in-flight!",
+                     session.phase().getName(), session.phase().status(), session.uniqueId());
                break;
             }
          }
