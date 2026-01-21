@@ -19,7 +19,6 @@ import io.netty.util.collection.IntObjectMap;
 
 public class StatisticsCollector implements Consumer<SessionStatistics> {
    private static final Logger log = LogManager.getLogger(StatisticsCollector.class);
-   private static final boolean trace = log.isTraceEnabled();
 
    protected final Phase[] phases;
    protected IntObjectMap<Map<String, IntObjectMap<StatisticsSnapshot>>> aggregated = new IntObjectHashMap<>();
@@ -31,7 +30,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
    @Override
    public void accept(SessionStatistics statistics) {
       if (log.isDebugEnabled()) {
-         log.debug("Received statistic statistics for {}", statistics);
+         log.debug("{}: Received statistics", statistics);
       }
       for (int i = 0; i < statistics.size(); ++i) {
          int phaseAndStepId = (statistics.phase(i).id() << 16) + statistics.step(i);
@@ -40,7 +39,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
          if (metricMap == null) {
             metricMap = new HashMap<>();
             if (log.isDebugEnabled()) {
-               log.debug("Aggregated metric statistics for phaseAndStepId={}", phaseAndStepId);
+               log.debug("{}: Aggregated metric statistics for phaseAndStepId={}", statistics, phaseAndStepId);
             }
             aggregated.put(phaseAndStepId, metricMap);
          }
@@ -55,6 +54,11 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
                   existing = new StatisticsSnapshot();
                   existing.sequenceId = snapshot.sequenceId;
                   snapshots.put(snapshot.sequenceId, existing);
+               }
+
+               if (log.isDebugEnabled()) {
+                  log.debug("{}: Received statistic with {} requests and {} responses", statistics, snapshot.requestCount,
+                        snapshot.responseCount);
                }
                existing.add(snapshot);
             });

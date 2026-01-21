@@ -133,11 +133,6 @@ public class SessionStatistics {
 
    @Override
    public String toString() {
-      return "SessionStatistics{" +
-            "phases=" + Arrays.toString(phases) +
-            ", stepIds=" + Arrays.toString(stepIds) +
-            ", maps=" + Arrays.toString(maps) +
-            ", size=" + size +
-            '}';
+      return "SessionStatistics{phases=" + Arrays.toString(phases) + '}';
    }
 }
