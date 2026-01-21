@@ -20,6 +20,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 
 @Tag("io.hyperfoil.test.Benchmark")
+// If you need to debug use "-Dio.hyperfoil.controller.log.level=debug" VM option
 public class WrkTest extends BaseBenchmarkTest {
    protected long unservedDelay = 2000;
    protected double servedRatio = 0.9;
