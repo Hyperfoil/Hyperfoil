@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -18,10 +19,71 @@ import io.hyperfoil.cli.commands.WrkScenario;
 import io.hyperfoil.cli.commands.WrkScenarioPhaseConfig;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.session.BaseScenarioTest;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.Router;
 
 public class WrkScenarioTest extends BaseBenchmarkTest {
 
-   protected final Logger log = LogManager.getLogger(getClass());
+   private final Logger log = LogManager.getLogger(getClass());
+
+   @Override
+   protected Handler<HttpServerRequest> getRequestHandler() {
+      Router router = Router.router(vertx);
+      router.route("/sleep").handler(ctx -> {
+         ctx.vertx().setTimer(500, id -> {
+            ctx.response().end("500ms!");
+         });
+      });
+      router.route("/1s").handler(ctx -> {
+         ctx.vertx().setTimer(1000, id -> {
+            ctx.response().end("1s");
+         });
+      });
+      router.route("/highway").handler(ctx -> {
+         ctx.response().end();
+      });
+      return router;
+   }
+
+   @Test
+   @Disabled("Issue #626: wrk2 fail with high load - scenario where timeout is 2s")
+   // This test can be flaky if Hyperfoil is in a state where calibration phase is able to release the connections back to the pool
+   // The current configuration with TRACE logs enabled slow down a lot Hyperfoil
+   public void wrk2Test() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/sleep";
+
+      BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 20, url, 50000, 2, 10, 2);
+
+      Assertions.assertTrue(statisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(statisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+   }
+
+   @Test
+   public void wrkRequestsMustBeLowerThanWrk2Test() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/sleep";
+
+      BaseScenarioTest.TestStatistics wrkStatisticsConsumer = runWrkScenario(6, 20, url, 2, 10, 2);
+      BaseScenarioTest.TestStatistics wrk2StatisticsConsumer = runWrk2Scenario(6, 20, url, 20000, 2, 10, 2);
+
+      Assertions.assertTrue(wrkStatisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(wrkStatisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().get("test").get("request").requestCount <= wrkStatisticsConsumer
+            .stats().get("test").get("request").requestCount);
+   }
+
+   @Test
+   @Disabled("Issue #638: NPE: Cannot read field session because this.request is null")
+   public void wrk2SuperSlowServer() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/sleep";
+      runWrk2Scenario(6, 20, url, 50000, 2, 10, 2);
+   }
 
    @Test
    public void testWrk() throws URISyntaxException {
