@@ -14,6 +14,7 @@ import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
+import io.hyperfoil.cli.commands.WrkAbstract;
 import io.hyperfoil.cli.commands.WrkScenario;
 import io.hyperfoil.cli.commands.WrkScenarioPhaseConfig;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -30,7 +31,6 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrkScenario(6, 5, url, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
-      Assertions.assertTrue(phaseStats.containsKey("calibration"), "Stats must have values for the 'calibration' phase");
       Assertions.assertTrue(phaseStats.containsKey("test"), "Stats must have values for the 'test' phase");
    }
 
@@ -41,8 +41,6 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrkScenario(6, 5, url, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
-      Assertions.assertFalse(phaseStats.containsKey("calibration"),
-            "Stats must not have values for the 'calibration' phase because the host is invalid");
       Assertions.assertFalse(phaseStats.containsKey("test"),
             "Stats must not have values for the 'test' phase because the host is invalid");
    }
@@ -66,7 +64,7 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
                long durationMs) {
             return WrkScenarioPhaseConfig.wrkPhaseConfig(catalog, connections);
          }
-      });
+      }, WrkAbstract.WrkVersion.V1);
    }
 
    private BaseScenarioTest.TestStatistics runWrk2Scenario(int calibrationDuration, int testDuration, String url,
@@ -77,7 +75,7 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
                long durationMs) {
             return WrkScenarioPhaseConfig.wrk2PhaseConfig(catalog, phaseType, durationMs, rate);
          }
-      });
+      }, WrkAbstract.WrkVersion.V2);
    }
 
    /**
@@ -85,7 +83,7 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
     * @param timeout value should be in second
     */
    private BaseScenarioTest.TestStatistics runScenario(int calibrationDuration, int testDuration, String url, int timeout,
-         int connections, int threads, Supplier<WrkScenario> fn) throws URISyntaxException {
+         int connections, int threads, Supplier<WrkScenario> fn, WrkAbstract.WrkVersion wrkVersion) throws URISyntaxException {
       boolean enableHttp2 = false;
       boolean useHttpCache = false;
       Map<String, String> agent = null;
@@ -93,8 +91,16 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
 
       WrkScenario wrkScenario = fn.get();
 
-      BenchmarkBuilder builder = wrkScenario.getBenchmarkBuilder("my-test", url, enableHttp2, connections, useHttpCache,
-            threads, agent, calibrationDuration + "s", testDuration + "s", parsedHeaders, timeout + "s");
+      BenchmarkBuilder builder;
+      if (WrkAbstract.WrkVersion.V1.equals(wrkVersion)) {
+         builder = wrkScenario.getWrkBenchmark("my-test", url, enableHttp2, connections, useHttpCache,
+               threads, agent, testDuration + "s", parsedHeaders, timeout + "s");
+      } else if (WrkAbstract.WrkVersion.V2.equals(wrkVersion)) {
+         builder = wrkScenario.getWrk2Benchmark("my-test", url, enableHttp2, connections, useHttpCache,
+               threads, agent, calibrationDuration + "s", testDuration + "s", parsedHeaders, timeout + "s");
+      } else {
+         throw new IllegalArgumentException("Unknown WrkVersion: " + wrkVersion);
+      }
 
       BaseScenarioTest.TestStatistics statisticsConsumer = new BaseScenarioTest.TestStatistics();
       LocalSimulationRunner runner = new LocalSimulationRunner(builder.build(), statisticsConsumer, null, null);

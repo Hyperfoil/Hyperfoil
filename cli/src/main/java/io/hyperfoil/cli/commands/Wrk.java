@@ -52,5 +52,10 @@ public class Wrk extends WrkAbstract {
          // there's no need of sessions != connections
          return WrkScenarioPhaseConfig.wrkPhaseConfig(catalog, connections);
       }
+
+      @Override
+      protected WrkVersion getWrkVersion() {
+         return WrkVersion.V1;
+      }
    }
 }

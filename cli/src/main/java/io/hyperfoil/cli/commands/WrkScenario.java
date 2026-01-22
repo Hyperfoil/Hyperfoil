@@ -23,16 +23,40 @@ public abstract class WrkScenario {
       test
    }
 
-   public BenchmarkBuilder getBenchmarkBuilder(String name, String url, boolean enableHttp2, int connections,
+   public BenchmarkBuilder getWrkBenchmark(String name, String url, boolean enableHttp2, int connections,
+         boolean useHttpCache, int threads, Map<String, String> agentParam,
+         String testDuration, String[][] parsedHeaders, String timeout)
+         throws URISyntaxException {
+      URI uri = this.getUri(url);
+      BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
+            agentParam);
+      String path = getPath(uri);
+      addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+            .maxDuration(Util.parseToMillis(testDuration));
+
+      return builder;
+   }
+
+   public BenchmarkBuilder getWrk2Benchmark(String name, String url, boolean enableHttp2, int connections,
          boolean useHttpCache, int threads, Map<String, String> agentParam,
          String calibrationDuration, String testDuration, String[][] parsedHeaders, String timeout)
          throws URISyntaxException {
 
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-         url = "http://" + url;
-      }
+      URI uri = this.getUri(url);
+      BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
+            agentParam);
+      String path = getPath(uri);
+      addPhase(builder, PhaseType.calibration, calibrationDuration, parsedHeaders, timeout, path);
+      // We can start only after calibration has full completed because otherwise some sessions
+      // would not have connection available from the beginning.
+      addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+            .startAfterStrict(PhaseType.calibration.name())
+            .maxDuration(Util.parseToMillis(testDuration));
+      return builder;
+   }
 
-      URI uri = new URI(url);
+   private BenchmarkBuilder getBenchmarkBuilder(String name, URI uri, boolean enableHttp2, int connections,
+         boolean useHttpCache, int threads, Map<String, String> agentParam) {
 
       Protocol protocol = Protocol.fromScheme(uri.getScheme());
       // @formatter:off
@@ -68,14 +92,6 @@ public abstract class WrkScenario {
          }
       }
 
-      String path = getPath(uri);
-
-      addPhase(builder, PhaseType.calibration, calibrationDuration, parsedHeaders, timeout, path);
-      // We can start only after calibration has full completed because otherwise some sessions
-      // would not have connection available from the beginning.
-      addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
-            .startAfterStrict(PhaseType.calibration.name())
-            .maxDuration(Util.parseToMillis(testDuration));
       return builder;
    }
 
@@ -115,6 +131,16 @@ public abstract class WrkScenario {
                .endSequence()
             .endScenario();
       // @formatter:on
+   }
+
+   private URI getUri(String url) throws URISyntaxException {
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+         url = "http://" + url;
+      }
+
+      URI uri = new URI(url);
+
+      return uri;
    }
 
    private String getPath(URI uri) {
