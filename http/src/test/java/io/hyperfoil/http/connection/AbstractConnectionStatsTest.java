@@ -75,7 +75,7 @@ public abstract class AbstractConnectionStatsTest extends BaseHttpScenarioTest {
       assertThat(connectionPool.inFlight.current()).isEqualTo(0);
       assertThat(connectionPool.blockedSessions.current()).isEqualTo(0);
 
-      StatisticsSnapshot snapshot = requestStats.stats().get("test");
+      StatisticsSnapshot snapshot = requestStats.firstPhaseStats().get("test");
       assertThat(snapshot.requestCount).isEqualTo(1);
       assertThat(snapshot.responseCount).isEqualTo(response ? 1 : 0);
       assertThat(snapshot.connectionErrors).isEqualTo(response ? 0 : 1);
@@ -105,7 +105,7 @@ public abstract class AbstractConnectionStatsTest extends BaseHttpScenarioTest {
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmarkBuilder.build(), requestStats, null, connectionStats);
       runner.run();
 
-      StatisticsSnapshot snapshot = requestStats.stats().get("test");
+      StatisticsSnapshot snapshot = requestStats.firstPhaseStats().get("test");
       HttpStats http = HttpStats.get(snapshot);
       assertThat(snapshot.requestCount).isGreaterThan(100);
       // When connection cancels requests from other sessions these are recorded as resets

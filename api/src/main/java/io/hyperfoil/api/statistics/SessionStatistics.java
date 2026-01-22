@@ -133,6 +133,11 @@ public class SessionStatistics {
 
    @Override
    public String toString() {
-      return "SessionStatistics{phases=" + Arrays.toString(phases) + '}';
+      // null add noise to the log
+      Phase[] newPhase = new Phase[size];
+      for (int i = 0; i < size; ++i) {
+         newPhase[i] = phases[i];
+      }
+      return "SessionStatistics{phases=" + Arrays.toString(newPhase) + '}';
    }
 }

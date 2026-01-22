@@ -29,8 +29,8 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
 
    @Override
    public void accept(SessionStatistics statistics) {
-      if (log.isDebugEnabled()) {
-         log.debug("{}: Received statistics", statistics);
+      if (log.isTraceEnabled()) {
+         log.trace("Received statistics for: {}", statistics);
       }
       for (int i = 0; i < statistics.size(); ++i) {
          int phaseAndStepId = (statistics.phase(i).id() << 16) + statistics.step(i);
@@ -39,7 +39,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
          if (metricMap == null) {
             metricMap = new HashMap<>();
             if (log.isDebugEnabled()) {
-               log.debug("{}: Aggregated metric statistics for phaseAndStepId={}", statistics, phaseAndStepId);
+               log.debug("Aggregated metric statistics for phaseAndStepId={} with values={}", phaseAndStepId, metricMap);
             }
             aggregated.put(phaseAndStepId, metricMap);
          }
