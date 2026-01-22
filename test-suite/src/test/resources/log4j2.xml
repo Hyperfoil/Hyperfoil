@@ -12,14 +12,14 @@
     </Appenders>
 
     <Loggers>
-        <Logger name="io.hyperfoil" level="TRACE"/>
+        <Logger name="io.hyperfoil" level="DEBUG"/>
         <Logger name="org.jgroups" level="TRACE"/>
         <Logger name="org.infinispan" level="INFO"/>
         <Logger name="io.vertx" level="INFO"/>
         <Logger name="io.netty" level="INFO"/>
 
         <Root level="INFO">
-            <AppenderRef ref="STDOUT" level="INFO"/>
+            <AppenderRef ref="STDOUT" level="DEBUG"/>
 
             <AppenderRef ref="FILE" level="TRACE"/>
         </Root>

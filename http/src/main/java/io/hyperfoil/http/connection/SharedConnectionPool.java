@@ -96,8 +96,8 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
                   usedConnections.incrementUsed();
                }
                connection.onAcquire();
-               if (log.isDebugEnabled()) {
-                  log.debug("acquireNow: acquired {} to {}, inFlight={} (after), connection.inFlight={}",
+               if (log.isTraceEnabled()) {
+                  log.trace("acquireNow: acquired {} to {}, inFlight={} (after), connection.inFlight={}",
                         connection, authority, inFlight.current(), connection.inFlight());
                }
                return connection;
@@ -116,8 +116,8 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
 
    @Override
    public void acquire(boolean exclusiveConnection, ConnectionConsumer consumer) {
-      if (log.isDebugEnabled()) {
-         log.debug("acquire: {} exclusiveConnection={}, waiting={}, available={}, inFlight={}",
+      if (log.isTraceEnabled()) {
+         log.trace("acquire: {} exclusiveConnection={}, waiting={}, available={}, inFlight={}",
                authority, exclusiveConnection, waiting.size(), available.size(), inFlight.current());
       }
       HttpConnection connection = acquireNow(exclusiveConnection);
@@ -155,9 +155,9 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
       if (trace) {
          log.trace("Release {} (became available={} after request={})", connection, becameAvailable, afterRequest);
       }
-      if (log.isDebugEnabled()) {
+      if (log.isTraceEnabled()) {
          boolean alreadyInAvailable = available.contains(connection);
-         log.debug(
+         log.trace(
                "release: {} becameAvailable={}, afterRequest={}, connection.inFlight={}, inFlight={} (before), available={}, alreadyInAvailable={}",
                connection, becameAvailable, afterRequest, connection.inFlight(), inFlight.current(), available.size(),
                alreadyInAvailable);
@@ -231,8 +231,8 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
       if (trace) {
          log.trace("Pulse to {} ({} waiting)", authority, waiting.size());
       }
-      if (log.isDebugEnabled()) {
-         log.debug("pulse: {} shouldPulse={}, waiting={}, available={}, inFlight={}",
+      if (log.isTraceEnabled()) {
+         log.trace("pulse: {} shouldPulse={}, waiting={}, available={}, inFlight={}",
                authority, shouldPulse, waiting.size(), available.size(), inFlight.current());
       }
       // session terminated, there is nothing that we can do
@@ -387,8 +387,10 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
          // stop trying to create new connections and the sessions would be stuck.
          failures = 0;
          available.add(conn);
-         log.debug("Created {} to {} ({}+{}=?{}:{}/{})", conn, authority,
-               created, connecting, connections.size(), available.size() - availableClosed, sizeConfig.max());
+         if (log.isTraceEnabled()) {
+            log.trace("Created {} to {} ({}+{}=?{}:{}/{})", conn, authority,
+                  created, connecting, connections.size(), available.size() - availableClosed, sizeConfig.max());
+         }
 
          incrementTypeStats(conn);
 
@@ -467,8 +469,8 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
          executor().execute(this::onSessionTryTerminate);
          return;
       }
-      if (log.isDebugEnabled()) {
-         log.debug("onSessionTryTerminate: {} inFlight={}, available={}, waiting={}",
+      if (log.isTraceEnabled()) {
+         log.trace("onSessionTryTerminate: {} inFlight={}, available={}, waiting={}",
                authority, inFlight.current(), available.size(), waiting.size());
       }
       this.shouldPulse = false;

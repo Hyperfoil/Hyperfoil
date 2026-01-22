@@ -212,8 +212,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          // Note: the pool might be already released if the completion handler
          // invoked another request which was served from cache.
          boolean becameAvailable = inFlight() == pipeliningLimit - 1 && !isClosed();
-         if (log.isDebugEnabled()) {
-            log.debug("releasePoolAndPulse: {} inFlight={}, becameAvailable={}", this, inFlight(), becameAvailable);
+         if (log.isTraceEnabled()) {
+            log.trace("releasePoolAndPulse: {} inFlight={}, becameAvailable={}", this, inFlight(), becameAvailable);
          }
          pool.release(this, becameAvailable, true);
          pool.pulse();
