@@ -136,6 +136,16 @@ public class Statistics {
       }
    }
 
+   public void incrementInFlight(long timestamp) {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         StatisticsSnapshot active = active(timestamp);
+         active.inFlightRequests++;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
    public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, LongUpdater<C> updater,
          long value) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();

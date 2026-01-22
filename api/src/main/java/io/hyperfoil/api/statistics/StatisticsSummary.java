@@ -22,6 +22,7 @@ public class StatisticsSummary {
    public final int internalErrors;
    public final long blockedTime;
    public final SortedMap<String, StatsExtension> extensions;
+   public final int inFlightRequests;
 
    @JsonCreator
    public StatisticsSummary(@JsonProperty("startTime") long startTime,
@@ -38,6 +39,7 @@ public class StatisticsSummary {
          @JsonProperty("requestTimeouts") int requestTimeouts,
          @JsonProperty("internalErrors") int internalErrors,
          @JsonProperty("blockedTime") long blockedTime,
+         @JsonProperty("inFlightRequests") int inFlightRequests,
          @JsonProperty("extensions") SortedMap<String, StatsExtension> extensions) {
       this.startTime = startTime;
       this.endTime = endTime;
@@ -53,6 +55,7 @@ public class StatisticsSummary {
       this.requestTimeouts = requestTimeouts;
       this.internalErrors = internalErrors;
       this.blockedTime = blockedTime;
+      this.inFlightRequests = inFlightRequests;
       this.extensions = extensions;
    }
 
@@ -63,7 +66,7 @@ public class StatisticsSummary {
          writer.print(p);
          writer.print(',');
       }
-      writer.print("Max,ConnectionErrors,RequestTimeouts,InternalErrors,Invalid,BlockedTime");
+      writer.print("Max,ConnectionErrors,RequestTimeouts,InternalErrors,Invalid,BlockedTime,InFlightRequests");
    }
 
    public void printTo(PrintWriter writer, String[] extensionHeaders) {
@@ -92,6 +95,8 @@ public class StatisticsSummary {
       writer.print(invalid);
       writer.print(',');
       writer.print(blockedTime);
+      writer.print(',');
+      writer.print(inFlightRequests);
       for (String header : extensionHeaders) {
          writer.print(',');
          int index = header.indexOf('.');
