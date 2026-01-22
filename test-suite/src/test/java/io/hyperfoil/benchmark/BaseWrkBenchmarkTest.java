@@ -1,6 +1,7 @@
 package io.hyperfoil.benchmark;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
@@ -14,9 +15,22 @@ public abstract class BaseWrkBenchmarkTest extends BaseBenchmarkTest {
    private final long unservedDelay = 100;
    private final double servedRatio = 0.9;
 
+   protected AtomicInteger localStatsReceivedRequests = new AtomicInteger();
+   protected AtomicInteger localStatsReceivedResponses = new AtomicInteger();
+
    @Override
    protected final Handler<HttpServerRequest> getRequestHandler() {
       Router router = Router.router(vertx);
+
+      // global interceptor
+      router.route().handler(ctx -> {
+         localStatsReceivedRequests.getAndIncrement();
+         // callback
+         ctx.response().bodyEndHandler(v -> localStatsReceivedResponses.getAndIncrement());
+         // forward
+         ctx.next();
+      });
+
       router.route("/10s").handler(ctx -> {
          ctx.vertx().setTimer(10_000, id -> {
             ctx.response().end("10s");
