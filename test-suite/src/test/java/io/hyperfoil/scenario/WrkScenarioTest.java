@@ -50,7 +50,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
    @Test
    public void testWrk2() throws URISyntaxException {
 
-      String url = "localhost:" + httpServer.actualPort() + "/highway";
+      String url = "localhost:" + httpServer.actualPort() + "/foo/bar";
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 5, url, 20, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();

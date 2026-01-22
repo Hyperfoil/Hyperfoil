@@ -56,5 +56,10 @@ public class Wrk2 extends WrkAbstract {
       protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs) {
          return WrkScenarioPhaseConfig.wrk2PhaseConfig(catalog, phaseType, durationMs, rate);
       }
+
+      @Override
+      protected WrkVersion getWrkVersion() {
+         return WrkVersion.V2;
+      }
    }
 }
