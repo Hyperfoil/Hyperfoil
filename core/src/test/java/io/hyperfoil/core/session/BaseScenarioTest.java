@@ -29,7 +29,7 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
       TestStatistics statisticsConsumer = new TestStatistics();
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null, null);
       runner.run();
-      return statisticsConsumer.stats();
+      return statisticsConsumer.firstPhaseStats();
    }
 
    @BeforeEach
@@ -76,13 +76,7 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
          metricValue.add(snapshot);
       }
 
-      /**
-       * This is for compatibility. Prefer always using the phaseStats method
-       *
-       * @return stats
-       */
-      @Deprecated
-      public Map<String, StatisticsSnapshot> stats() {
+      public Map<String, StatisticsSnapshot> firstPhaseStats() {
          if (this.phaseStats.isEmpty()) {
             return Map.of();
          } else {

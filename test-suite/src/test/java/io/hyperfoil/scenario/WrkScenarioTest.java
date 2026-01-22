@@ -31,7 +31,27 @@ import io.hyperfoil.http.steps.HttpStepCatalog;
 
 public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
-   protected final Logger log = LogManager.getLogger(getClass());
+   private final Logger log = LogManager.getLogger(getClass());
+
+   @Test
+   public void wrk2TestWithBigTimeout() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/500ms";
+
+      BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 20, url, 50000, 2, 10, 1);
+
+      Assertions.assertTrue(statisticsConsumer.phaseStats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(statisticsConsumer.phaseStats().containsKey("test"), "Stats must have values for the 'test' phase");
+
+      int totalRequests = statisticsConsumer.phaseStats().get("calibration").get("request").requestCount
+            + statisticsConsumer.phaseStats().get("test").get("request").requestCount;
+      int totalResponses = statisticsConsumer.phaseStats().get("calibration").get("request").responseCount
+            + statisticsConsumer.phaseStats().get("test").get("request").responseCount;
+
+      Assertions.assertEquals(localStatsReceivedRequests.get(), totalRequests);
+      // because of high rate and slow response on the server it is ok track less responses
+      Assertions.assertTrue(totalResponses <= localStatsReceivedResponses.get());
+   }
 
    @Test
    public void wrk2SuperSlowServer() throws URISyntaxException {
