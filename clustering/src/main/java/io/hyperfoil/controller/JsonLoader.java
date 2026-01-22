@@ -159,12 +159,13 @@ public class JsonLoader {
          int requestTimeouts = object.getInteger("requestTimeouts");
          int internalErrors = object.getInteger("internalErrors");
          long blockedTime = object.getLong("blockedTime");
+         int inFlightRequests = object.getInteger("inFlightRequests");
 
          SortedMap<String, StatsExtension> extensions = Collections.emptySortedMap(); // TODO
          SortedMap<Double, Long> percentiles = toMap(object.getJsonObject("percentileResponseTime"));
          series.add(new StatisticsSummary(startTime, endTime, minResponseTime, meanResponseTime, stdDevResponseTime,
                maxResponseTime, percentiles, requestCount, responseCount, invalid, connectionErrors, requestTimeouts,
-               internalErrors, blockedTime, extensions));
+               internalErrors, blockedTime, inFlightRequests, extensions));
       }
    }
 

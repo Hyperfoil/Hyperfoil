@@ -23,7 +23,7 @@ public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
       if (buf.readableBytes() > responseBytes) {
          ByteBuf slice = buf.readRetainedSlice(responseBytes);
          onRawData(request, slice, true);
-         onCompletion(request);
+         onCompletion(request, buf);
          onData(ctx, slice);
          responseBytes = 0;
          return true;
@@ -34,7 +34,7 @@ public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
          }
          responseBytes -= buf.readableBytes();
          if (isLastPart && request != null) {
-            onCompletion(request);
+            onCompletion(request, buf);
          }
          onData(ctx, buf);
          return false;
@@ -76,6 +76,6 @@ public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
    protected void onBodyPart(ByteBuf buf, int startOffset, int length, boolean isLastPart) {
    }
 
-   protected void onCompletion(HttpRequest request) {
+   protected void onCompletion(HttpRequest request, ByteBuf buf) {
    }
 }

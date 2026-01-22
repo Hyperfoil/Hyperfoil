@@ -1,5 +1,7 @@
 package io.hyperfoil.http.connection;
 
+import java.nio.charset.StandardCharsets;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -535,7 +537,11 @@ public class Http1xResponseHandler extends BaseResponseHandler {
    }
 
    @Override
-   protected void onCompletion(HttpRequest request) {
+   protected void onCompletion(HttpRequest request, ByteBuf buf) {
+      if (log.isTraceEnabled()) {
+         String text = buf.toString(StandardCharsets.UTF_8);
+         log.trace("Received response on {}: {}", connection, text);
+      }
       boolean removed = false;
       // When previous handlers throw an error the request is already completed
       if (!request.isCompleted()) {

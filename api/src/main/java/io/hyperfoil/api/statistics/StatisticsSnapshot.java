@@ -22,6 +22,7 @@ public class StatisticsSnapshot implements Serializable {
    public int requestTimeouts;
    public int internalErrors;
    public long blockedTime;
+   public int inFlightRequests;
    public final Map<String, StatsExtension> extensions = new HashMap<>();
 
    public boolean isEmpty() {
@@ -38,6 +39,7 @@ public class StatisticsSnapshot implements Serializable {
       requestTimeouts = 0;
       internalErrors = 0;
       blockedTime = 0;
+      inFlightRequests = 0;
       for (StatsExtension value : extensions.values()) {
          if (value != null) {
             value.reset();
@@ -61,6 +63,7 @@ public class StatisticsSnapshot implements Serializable {
       requestTimeouts += other.requestTimeouts;
       internalErrors += other.internalErrors;
       blockedTime += other.blockedTime;
+      inFlightRequests += other.inFlightRequests;
       for (String key : other.extensions.keySet()) {
          StatsExtension their = other.extensions.get(key);
          StatsExtension my = extensions.get(key);
@@ -83,6 +86,7 @@ public class StatisticsSnapshot implements Serializable {
       requestTimeouts -= other.requestTimeouts;
       internalErrors -= other.internalErrors;
       blockedTime -= other.blockedTime;
+      inFlightRequests -= other.inFlightRequests;
       for (String key : other.extensions.keySet()) {
          StatsExtension their = other.extensions.get(key);
          StatsExtension my = extensions.get(key);
@@ -104,7 +108,8 @@ public class StatisticsSnapshot implements Serializable {
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), (long) histogram.getStdDeviation(), histogram.getMaxValue(),
             percentilesMap, requestCount, responseCount,
-            invalid, connectionErrors, requestTimeouts, internalErrors, blockedTime, new TreeMap<>(extensions));
+            invalid, connectionErrors, requestTimeouts, internalErrors, blockedTime, inFlightRequests,
+            new TreeMap<>(extensions));
    }
 
    public TreeMap<Double, Long> getPercentiles(double[] percentiles) {
@@ -129,7 +134,7 @@ public class StatisticsSnapshot implements Serializable {
             ", requestTimeouts=" + requestTimeouts +
             ", internalErrors=" + internalErrors +
             ", blockedTime=" + blockedTime +
+            ", inFlightRequests=" + inFlightRequests +
             ", extensions=" + extensions + '}';
    }
-
 }
