@@ -35,19 +35,20 @@ public abstract class WrkScenario {
       URI uri = new URI(url);
 
       Protocol protocol = Protocol.fromScheme(uri.getScheme());
+      // @formatter:off
       BenchmarkBuilder builder = BenchmarkBuilder.builder()
             .name(name)
             .addPlugin(HttpPluginBuilder::new)
-            .ergonomics()
-            .repeatCookies(false)
-            .userAgentFromSession(false)
-            .endErgonomics()
-            .http()
-            .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
-            .allowHttp2(enableHttp2)
-            .sharedConnections(connections)
-            .useHttpCache(useHttpCache)
-            .endHttp()
+               .ergonomics()
+                  .repeatCookies(false)
+                  .userAgentFromSession(false)
+               .endErgonomics()
+               .http()
+                  .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
+                  .allowHttp2(enableHttp2)
+                  .sharedConnections(connections)
+                  .useHttpCache(useHttpCache)
+               .endHttp()
             .endPlugin()
             .threads(threads);
       // @formatter:on
@@ -85,9 +86,9 @@ public abstract class WrkScenario {
       long duration = Util.parseToMillis(durationStr);
       // @formatter:off
       var scenarioBuilder = phaseConfig(benchmarkBuilder.addPhase(phaseType.name()), phaseType, duration)
-            .duration(duration)
-            .maxDuration(duration + Util.parseToMillis(timeout))
-            .scenario();
+              .duration(duration)
+              .maxDuration(duration + Util.parseToMillis(timeout))
+              .scenario();
       // even with pipelining or HTTP 2 multiplexing
       // each session lifecycle requires to fully complete (with response)
       // before being reused, hence the number of requests which can use is just 1
@@ -96,22 +97,22 @@ public abstract class WrkScenario {
       // and there's a single sequence too, there's no point to have more than 1 per session
       scenarioBuilder.maxSequences(1);
       return scenarioBuilder
-            .initialSequence("request")
-            .step(SC).httpRequest(HttpMethod.GET)
-            .path(path)
-            .headerAppender((session, request) -> {
-               if (parsedHeaders != null) {
-                  for (String[] header : parsedHeaders) {
-                     request.putHeader(header[0], header[1]);
-                  }
-               }
-            })
-            .timeout(timeout)
-            .handler()
-            .rawBytes(new TransferSizeRecorder("transfer"))
-            .endHandler()
-            .endStep()
-            .endSequence()
+               .initialSequence("request")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .path(path)
+                     .headerAppender((session, request) -> {
+                        if (parsedHeaders != null) {
+                           for (String[] header : parsedHeaders) {
+                              request.putHeader(header[0], header[1]);
+                           }
+                        }
+                     })
+                     .timeout(timeout)
+                     .handler()
+                        .rawBytes(new TransferSizeRecorder("transfer"))
+                     .endHandler()
+                  .endStep()
+               .endSequence()
             .endScenario();
       // @formatter:on
    }
