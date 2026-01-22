@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -21,7 +22,46 @@ import io.hyperfoil.core.session.BaseScenarioTest;
 
 public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
-   protected final Logger log = LogManager.getLogger(getClass());
+   private final Logger log = LogManager.getLogger(getClass());
+
+   @Test
+   @Disabled("Issue #626: wrk2 fail with high load - scenario where timeout is 2s")
+   // This test can be flaky if Hyperfoil is in a state where calibration phase is able to release the connections back to the pool
+   // The current configuration with TRACE logs enabled slow down a lot Hyperfoil
+   public void wrk2Test() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/500ms";
+
+      BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 20, url, 50000, 2, 10, 2);
+
+      Assertions.assertTrue(statisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(statisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+   }
+
+   @Test
+   @Disabled("Issue #638: NPE: Cannot read field session because this.request is null")
+   public void wrk2SuperSlowServer() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/500ms";
+      runWrk2Scenario(6, 20, url, 50000, 2, 10, 2);
+   }
+
+   @Test
+   public void wrkRequestsMustBeLowerThanWrk2Test() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/500ms";
+
+      BaseScenarioTest.TestStatistics wrkStatisticsConsumer = runWrkScenario(6, 20, url, 2, 10, 2);
+      BaseScenarioTest.TestStatistics wrk2StatisticsConsumer = runWrk2Scenario(6, 20, url, 20000, 2, 10, 2);
+
+      Assertions.assertTrue(wrkStatisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(wrkStatisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().containsKey("calibration"),
+            "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().containsKey("test"), "Stats must have values for the 'test' phase");
+
+      Assertions.assertTrue(wrk2StatisticsConsumer.stats().get("test").requestCount <= wrkStatisticsConsumer
+            .stats().get("test").requestCount);
+   }
 
    @Test
    public void testWrk() throws URISyntaxException {
