@@ -1,7 +1,6 @@
 package io.hyperfoil.core.impl;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,6 +23,7 @@ public class LocalSimulationRunner extends SimulationRunner {
    private final Lock statusLock = new ReentrantLock();
    private final Condition statusCondition = statusLock.newCondition();
    private final StatisticsCollector statisticsCollector;
+   // Tasks are guaranteed to execute sequentially, and no more than one task will be active at any given time
    private final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
    private long startTime;
 
@@ -46,19 +46,9 @@ public class LocalSimulationRunner extends SimulationRunner {
          throw new BenchmarkDefinitionException("No phases/scenarios have been defined");
       }
 
-      CountDownLatch latch = new CountDownLatch(1);
       init();
-      openConnections(callable -> {
-         try {
-            callable.call();
-         } catch (Exception e) {
-            return Future.failedFuture(e);
-         }
-         return Future.succeededFuture();
-      },
-            result -> latch.countDown());
       try {
-         latch.await();
+         waitOpenConnection();
          statsExecutor.scheduleAtFixedRate(this::collectStats, 0, benchmark.statisticsCollectionPeriod(),
                TimeUnit.MILLISECONDS);
          // Exec is blocking and therefore must not run on the event-loop thread
@@ -71,7 +61,17 @@ public class LocalSimulationRunner extends SimulationRunner {
       } catch (InterruptedException e) {
          throw new RuntimeException(e);
       } finally {
+         // previously submitted tasks are executed, but no new tasks will be accepted
          statsExecutor.shutdown();
+         try {
+            boolean finished = statsExecutor.awaitTermination(benchmark.statisticsCollectionPeriod() * 10,
+                  TimeUnit.MILLISECONDS);
+            assert finished : "The tests must have all statistics collected to avoid any kind of problem";
+         } catch (InterruptedException e) {
+            throw new RuntimeException(
+                  "Interrupted while waiting for statistics executor to terminate. Statistics collection may be incomplete.",
+                  e);
+         }
          shutdown();
       }
    }
@@ -130,12 +130,11 @@ public class LocalSimulationRunner extends SimulationRunner {
    }
 
    @Override
-   protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded,
-         Throwable error) {
-      return super.phaseChanged(phase, status, sessionLimitExceeded, error).thenRun(() -> {
+   protected Runnable onPhaseChanged(Phase phase, PhaseInstance.Status status) {
+      return () -> {
          if (status == PhaseInstance.Status.TERMINATED) {
             publishStats(phase);
-            instances.get(phase.name).setStatsComplete();
+            instances.get(phase.name()).setStatsComplete();
          }
          statusLock.lock();
          try {
@@ -143,7 +142,7 @@ public class LocalSimulationRunner extends SimulationRunner {
          } finally {
             statusLock.unlock();
          }
-      });
+      };
    }
 
    private synchronized void publishStats(Phase phase) {
@@ -182,5 +181,19 @@ public class LocalSimulationRunner extends SimulationRunner {
     */
    public Map<String, PhaseInstance> instances() {
       return instances;
+   }
+
+   private void waitOpenConnection() throws InterruptedException {
+      CountDownLatch latch = new CountDownLatch(1);
+      openConnections(callable -> {
+         try {
+            callable.call();
+         } catch (Exception e) {
+            return Future.failedFuture(e);
+         }
+         return Future.succeededFuture();
+      },
+            result -> latch.countDown());
+      latch.await();
    }
 }
