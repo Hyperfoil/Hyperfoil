@@ -24,16 +24,25 @@ public abstract class WrkScenario {
    }
 
    public BenchmarkBuilder getWrkBenchmark(String name, String url, boolean enableHttp2, int connections,
-         boolean useHttpCache, int threads, Map<String, String> agentParam,
-         String testDuration, String[][] parsedHeaders, String timeout)
+         boolean useHttpCache, int threads, Map<String, String> agentParam, String calibrationDuration, String testDuration,
+         String[][] parsedHeaders, String timeout)
          throws URISyntaxException {
       URI uri = this.getUri(url);
       BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
             agentParam);
       String path = getPath(uri);
-      addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
-            .maxDuration(Util.parseToMillis(testDuration));
 
+      if ("0s".equals(calibrationDuration)) {
+         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+               .maxDuration(Util.parseToMillis(testDuration));
+      } else {
+         addPhase(builder, PhaseType.calibration, calibrationDuration, parsedHeaders, timeout, path);
+         // We can start only after calibration has full completed because otherwise some sessions
+         // would not have connection available from the beginning.
+         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+               .startAfterStrict(PhaseType.calibration.name())
+               .maxDuration(Util.parseToMillis(testDuration));
+      }
       return builder;
    }
 

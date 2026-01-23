@@ -58,6 +58,18 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       Assertions.assertTrue(phaseStats.containsKey("test"), "Stats must have values for the 'test' phase");
    }
 
+   @Test
+   public void testWrkCalibrationDuration() throws URISyntaxException {
+
+      String url = "localhost:" + httpServer.actualPort() + "/foo/bar";
+
+      BaseScenarioTest.TestStatistics statisticsConsumer = runWrkScenario(0, 5, url, 1, 10, 2);
+      Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
+      Assertions.assertFalse(phaseStats.containsKey("calibration"),
+            "Stats must not have values for the 'calibration' phase because calibration duration is 0");
+      Assertions.assertTrue(phaseStats.containsKey("test"), "Stats must have values for the 'test' phase");
+   }
+
    private BaseScenarioTest.TestStatistics runWrkScenario(int calibrationDuration, int testDuration, String url,
          int timeout, int connections, int threads) throws URISyntaxException {
       return runScenario(calibrationDuration, testDuration, url, timeout, connections, threads, () -> new WrkScenario() {
