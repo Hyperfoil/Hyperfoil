@@ -80,6 +80,9 @@ public class SimulationRunner {
    private final GlobalDataImpl[] globalData;
    private final GlobalDataImpl.Collector globalCollector = new GlobalDataImpl.Collector();
 
+   private final Runnable noAction = () -> {
+   };
+
    public SimulationRunner(Benchmark benchmark, String runId, int agentId, Consumer<Throwable> errorHandler) {
       this.eventLoopGroup = EventLoopFactory.INSTANCE.create(benchmark.threads(agentId));
       this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast)
@@ -208,6 +211,7 @@ public class SimulationRunner {
 
    protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded,
          Throwable error) {
+      CompletableFuture<Void> phaseChangedFuture;
       if (!phase.isWarmup) {
          if (status == PhaseInstance.Status.RUNNING) {
             cpuWatchdog.notifyPhaseStart(phase.name);
@@ -216,12 +220,18 @@ public class SimulationRunner {
          }
       }
       if (status == PhaseInstance.Status.TERMINATED) {
-         return completePhase(phase).whenComplete((nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded,
-               error != null ? error : e, globalCollector.extract()));
+         phaseChangedFuture = completePhase(phase)
+               .whenComplete((nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded,
+                     error != null ? error : e, globalCollector.extract()));
       } else {
          notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error, null);
-         return Util.COMPLETED_VOID_FUTURE;
+         phaseChangedFuture = Util.COMPLETED_VOID_FUTURE;
       }
+      return phaseChangedFuture.thenRun(onPhaseChanged(phase, status));
+   }
+
+   protected Runnable onPhaseChanged(Phase phase, PhaseInstance.Status status) {
+      return noAction;
    }
 
    private CompletableFuture<Void> completePhase(Phase phase) {
