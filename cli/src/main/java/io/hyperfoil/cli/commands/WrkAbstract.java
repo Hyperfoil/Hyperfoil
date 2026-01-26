@@ -110,8 +110,8 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       @Option(name = "output", shortName = 'o', description = "Output destination path for the HTML report")
       private String output;
 
-      @Option(name = "calibration-duration", description = "Duration of the calibration phase, e.g. 2s, 2m, 2h", defaultValue = "6s")
-      String calibrationDuration;
+      @Option(name = "warmup-duration", description = "Duration of the warm up phase, e.g. 2s, 2m, 2h", defaultValue = "6s")
+      String warmupDuration;
 
       String[][] parsedHeaders;
       boolean started = false;
@@ -155,10 +155,10 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          try {
             if (WrkVersion.V1.equals(this.getWrkVersion())) {
                builder = scenario.getWrkBenchmark(getCommandName(), url, enableHttp2, connections, useHttpCache,
-                     threads, agent, calibrationDuration, duration, parsedHeaders, timeout);
+                     threads, agent, warmupDuration, duration, parsedHeaders, timeout);
             } else if (WrkVersion.V2.equals(this.getWrkVersion())) {
                builder = scenario.getWrk2Benchmark(getCommandName(), url, enableHttp2, connections, useHttpCache,
-                     threads, agent, calibrationDuration, duration, parsedHeaders, timeout);
+                     threads, agent, warmupDuration, duration, parsedHeaders, timeout);
             } else {
                throw new IllegalArgumentException("Unknown WrkVersion: " + this.getWrkVersion());
             }

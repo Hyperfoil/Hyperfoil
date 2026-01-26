@@ -24,7 +24,7 @@ public abstract class WrkScenario {
    }
 
    public BenchmarkBuilder getWrkBenchmark(String name, String url, boolean enableHttp2, int connections,
-         boolean useHttpCache, int threads, Map<String, String> agentParam, String calibrationDuration, String testDuration,
+         boolean useHttpCache, int threads, Map<String, String> agentParam, String warmupDuration, String testDuration,
          String[][] parsedHeaders, String timeout)
          throws URISyntaxException {
       URI uri = this.getUri(url);
@@ -32,11 +32,11 @@ public abstract class WrkScenario {
             agentParam);
       String path = getPath(uri);
 
-      if ("0s".equals(calibrationDuration)) {
+      if ("0s".equals(warmupDuration)) {
          addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
                .maxDuration(Util.parseToMillis(testDuration));
       } else {
-         addPhase(builder, PhaseType.calibration, calibrationDuration, parsedHeaders, timeout, path);
+         addPhase(builder, PhaseType.calibration, warmupDuration, parsedHeaders, timeout, path);
          // We can start only after calibration has full completed because otherwise some sessions
          // would not have connection available from the beginning.
          addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
@@ -48,14 +48,14 @@ public abstract class WrkScenario {
 
    public BenchmarkBuilder getWrk2Benchmark(String name, String url, boolean enableHttp2, int connections,
          boolean useHttpCache, int threads, Map<String, String> agentParam,
-         String calibrationDuration, String testDuration, String[][] parsedHeaders, String timeout)
+         String warmupDuration, String testDuration, String[][] parsedHeaders, String timeout)
          throws URISyntaxException {
 
       URI uri = this.getUri(url);
       BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
             agentParam);
       String path = getPath(uri);
-      addPhase(builder, PhaseType.calibration, calibrationDuration, parsedHeaders, timeout, path);
+      addPhase(builder, PhaseType.calibration, warmupDuration, parsedHeaders, timeout, path);
       // We can start only after calibration has full completed because otherwise some sessions
       // would not have connection available from the beginning.
       addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
