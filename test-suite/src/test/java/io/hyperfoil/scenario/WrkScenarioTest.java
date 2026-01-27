@@ -13,20 +13,20 @@ import org.junit.jupiter.api.Test;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.benchmark.BaseBenchmarkTest;
+import io.hyperfoil.benchmark.BaseWrkBenchmarkTest;
 import io.hyperfoil.cli.commands.WrkScenario;
 import io.hyperfoil.cli.commands.WrkScenarioPhaseConfig;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.session.BaseScenarioTest;
 
-public class WrkScenarioTest extends BaseBenchmarkTest {
+public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
    protected final Logger log = LogManager.getLogger(getClass());
 
    @Test
    public void testWrk() throws URISyntaxException {
 
-      String url = "localhost:" + httpServer.actualPort() + "/foo/bar";
+      String url = "localhost:" + httpServer.actualPort() + "/highway";
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrkScenario(6, 5, url, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
@@ -37,7 +37,7 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
    @Test
    public void testFailFastWrk() throws URISyntaxException {
 
-      String url = "nonExistentHost:" + httpServer.actualPort() + "/foo/bar";
+      String url = "nonExistentHost:" + httpServer.actualPort() + "/highway";
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrkScenario(6, 5, url, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
@@ -50,7 +50,7 @@ public class WrkScenarioTest extends BaseBenchmarkTest {
    @Test
    public void testWrk2() throws URISyntaxException {
 
-      String url = "localhost:" + httpServer.actualPort() + "/foo/bar";
+      String url = "localhost:" + httpServer.actualPort() + "/highway";
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 5, url, 20, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();

@@ -13,6 +13,7 @@ import org.aesh.command.CommandNotFoundException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.CommandRuntime;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
+import org.aesh.command.registry.CommandRegistry;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -54,7 +55,10 @@ public abstract class BaseStandaloneCommand {
             registry.command(command);
          }
 
-         runtime.commandRegistry(registry.create());
+         CommandRegistry<HyperfoilCommandInvocation> commandRegistry = registry.create();
+         runtime.commandRegistry(commandRegistry);
+         handleRegistry(commandRegistry);
+
          cr = runtime.build();
          try {
             // start the local in-vm controller server
@@ -84,5 +88,10 @@ public abstract class BaseStandaloneCommand {
       }
 
       return result == null ? CommandResult.FAILURE.getResultValue() : result.getResultValue();
+   }
+
+   // TODO: Refactor classes to improve testability
+   public void handleRegistry(CommandRegistry<HyperfoilCommandInvocation> commandRegistry) throws CommandNotFoundException {
+
    }
 }
