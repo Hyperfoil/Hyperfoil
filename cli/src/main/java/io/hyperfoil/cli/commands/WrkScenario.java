@@ -23,7 +23,7 @@ public abstract class WrkScenario {
       test
    }
 
-   public BenchmarkBuilder getWrkBenchmark(String name, String url, boolean enableHttp2, int connections,
+   public BenchmarkBuilder getBenchmark(String name, String url, boolean enableHttp2, int connections,
          boolean useHttpCache, int threads, Map<String, String> agentParam, String warmupDuration, String testDuration,
          String[][] parsedHeaders, String timeout)
          throws URISyntaxException {
@@ -31,8 +31,7 @@ public abstract class WrkScenario {
       BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
             agentParam);
       String path = getPath(uri);
-
-      if ("0s".equals(warmupDuration)) {
+      if (Util.parseToMillis(warmupDuration) == 0) {
          addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
                .maxDuration(Util.parseToMillis(testDuration));
       } else {
@@ -43,24 +42,6 @@ public abstract class WrkScenario {
                .startAfterStrict(PhaseType.calibration.name())
                .maxDuration(Util.parseToMillis(testDuration));
       }
-      return builder;
-   }
-
-   public BenchmarkBuilder getWrk2Benchmark(String name, String url, boolean enableHttp2, int connections,
-         boolean useHttpCache, int threads, Map<String, String> agentParam,
-         String warmupDuration, String testDuration, String[][] parsedHeaders, String timeout)
-         throws URISyntaxException {
-
-      URI uri = this.getUri(url);
-      BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
-            agentParam);
-      String path = getPath(uri);
-      addPhase(builder, PhaseType.calibration, warmupDuration, parsedHeaders, timeout, path);
-      // We can start only after calibration has full completed because otherwise some sessions
-      // would not have connection available from the beginning.
-      addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
-            .startAfterStrict(PhaseType.calibration.name())
-            .maxDuration(Util.parseToMillis(testDuration));
       return builder;
    }
 
