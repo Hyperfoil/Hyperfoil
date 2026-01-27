@@ -59,7 +59,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
    }
 
    @Test
-   public void testWrkCalibrationDuration() throws URISyntaxException {
+   public void testWrkWarmupDuration() throws URISyntaxException {
 
       String url = "localhost:" + httpServer.actualPort() + "/foo/bar";
 
@@ -70,9 +70,9 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       Assertions.assertTrue(phaseStats.containsKey("test"), "Stats must have values for the 'test' phase");
    }
 
-   private BaseScenarioTest.TestStatistics runWrkScenario(int calibrationDuration, int testDuration, String url,
+   private BaseScenarioTest.TestStatistics runWrkScenario(int warmupDuration, int testDuration, String url,
          int timeout, int connections, int threads) throws URISyntaxException {
-      return runScenario(calibrationDuration, testDuration, url, timeout, connections, threads, () -> new WrkScenario() {
+      return runScenario(warmupDuration, testDuration, url, timeout, connections, threads, () -> new WrkScenario() {
          @Override
          protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType,
                long durationMs) {
@@ -81,9 +81,9 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       });
    }
 
-   private BaseScenarioTest.TestStatistics runWrk2Scenario(int calibrationDuration, int testDuration, String url,
+   private BaseScenarioTest.TestStatistics runWrk2Scenario(int warmupDuration, int testDuration, String url,
          int rate, int timeout, int connections, int threads) throws URISyntaxException {
-      return runScenario(calibrationDuration, testDuration, url, timeout, connections, threads, () -> new WrkScenario() {
+      return runScenario(warmupDuration, testDuration, url, timeout, connections, threads, () -> new WrkScenario() {
          @Override
          protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType,
                long durationMs) {
@@ -96,7 +96,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
     *
     * @param timeout value should be in second
     */
-   private BaseScenarioTest.TestStatistics runScenario(int calibrationDuration, int testDuration, String url, int timeout,
+   private BaseScenarioTest.TestStatistics runScenario(int warmupDuration, int testDuration, String url, int timeout,
          int connections, int threads, Supplier<WrkScenario> fn) throws URISyntaxException {
       boolean enableHttp2 = false;
       boolean useHttpCache = false;
@@ -106,7 +106,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       WrkScenario wrkScenario = fn.get();
 
       BenchmarkBuilder builder = wrkScenario.getBenchmarkBuilder("my-test", url, enableHttp2, connections, useHttpCache,
-            threads, agent, calibrationDuration + "s", testDuration + "s", parsedHeaders, timeout + "s");
+            threads, agent, warmupDuration + "s", testDuration + "s", parsedHeaders, timeout + "s");
 
       BaseScenarioTest.TestStatistics statisticsConsumer = new BaseScenarioTest.TestStatistics();
       LocalSimulationRunner runner = new LocalSimulationRunner(builder.build(), statisticsConsumer, null, null);
