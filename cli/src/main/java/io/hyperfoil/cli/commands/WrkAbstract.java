@@ -59,11 +59,6 @@ import io.hyperfoil.impl.Util;
 
 public abstract class WrkAbstract extends BaseStandaloneCommand {
 
-   public enum WrkVersion {
-      V1,
-      V2;
-   }
-
    @Override
    protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
       return List.of(Report.class);
@@ -153,16 +148,8 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
          BenchmarkBuilder builder;
          try {
-            if (WrkVersion.V1.equals(this.getWrkVersion())) {
-               builder = scenario.getWrkBenchmark(getCommandName(), url, enableHttp2, connections, useHttpCache,
-                     threads, agent, warmupDuration, duration, parsedHeaders, timeout);
-            } else if (WrkVersion.V2.equals(this.getWrkVersion())) {
-               builder = scenario.getWrk2Benchmark(getCommandName(), url, enableHttp2, connections, useHttpCache,
-                     threads, agent, warmupDuration, duration, parsedHeaders, timeout);
-            } else {
-               throw new IllegalArgumentException("Unknown WrkVersion: " + this.getWrkVersion());
-            }
-
+            builder = scenario.getBenchmark(getCommandName(), url, enableHttp2, connections, useHttpCache,
+                  threads, agent, warmupDuration, duration, parsedHeaders, timeout);
          } catch (URISyntaxException e) {
             invocation.println("Failed to parse URL: " + e.getMessage());
             return CommandResult.FAILURE;
@@ -251,8 +238,6 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       }
 
       protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs);
-
-      protected abstract WrkVersion getWrkVersion();
 
       private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series,
             CommandInvocation invocation) {
