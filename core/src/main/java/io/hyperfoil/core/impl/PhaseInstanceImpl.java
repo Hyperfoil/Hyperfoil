@@ -256,7 +256,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    /**
     * @return {@code true} if the new {@link Session} was started, {@code false} otherwise.
     */
-   protected boolean startNewSession() {
+   protected boolean startNewSession(long startTimeMs) {
       int numActive = activeSessions.incrementAndGet();
       if (numActive < 0) {
          // finished
@@ -277,7 +277,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          noSessionsAvailable();
          return false;
       }
-      session.start(this);
+      session.start(startTimeMs, this);
       return true;
    }
 
@@ -312,7 +312,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
          for (int i = 0; i < users; ++i) {
-            startNewSession();
+            startNewSession(-1);
          }
       }
 
@@ -345,7 +345,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
          for (int i = 0; i < users; ++i) {
-            startNewSession();
+            startNewSession(-1);
          }
       }
 
@@ -361,7 +361,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          if (status.isFinished() || session == null) {
             super.notifyFinished(session);
          } else {
-            session.start(this);
+            session.start(-1, this);
          }
       }
    }
@@ -376,7 +376,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       @Override
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
-         startNewSession();
+         startNewSession(-1);
       }
 
       @Override
@@ -398,7 +398,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
             }
             super.notifyFinished(session);
          } else {
-            session.start(this);
+            session.start(-1, this);
          }
       }
    }
