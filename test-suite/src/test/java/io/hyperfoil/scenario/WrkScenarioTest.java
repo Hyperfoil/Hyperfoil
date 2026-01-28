@@ -50,7 +50,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
    @Test
    public void testWrk2() throws URISyntaxException {
 
-      String url = "localhost:" + httpServer.actualPort() + "/foo/bar";
+      String url = "localhost:" + httpServer.actualPort() + "/highway";
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 5, url, 20, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
@@ -61,7 +61,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
    @Test
    public void testWrkWarmupDuration() throws URISyntaxException {
 
-      String url = "localhost:" + httpServer.actualPort() + "/foo/bar";
+      String url = "localhost:" + httpServer.actualPort() + "/highway";
 
       BaseScenarioTest.TestStatistics statisticsConsumer = runWrkScenario(0, 5, url, 1, 10, 2);
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
@@ -105,7 +105,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
       WrkScenario wrkScenario = fn.get();
 
-      BenchmarkBuilder builder = wrkScenario.getBenchmarkBuilder("my-test", url, enableHttp2, connections, useHttpCache,
+      BenchmarkBuilder builder = wrkScenario.getBenchmark("my-test", url, enableHttp2, connections, useHttpCache,
             threads, agent, warmupDuration + "s", testDuration + "s", parsedHeaders, timeout + "s");
 
       BaseScenarioTest.TestStatistics statisticsConsumer = new BaseScenarioTest.TestStatistics();
