@@ -105,6 +105,9 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       @Option(name = "output", shortName = 'o', description = "Output destination path for the HTML report")
       private String output;
 
+      @Option(name = "warmup-duration", description = "Duration of the warm up phase, e.g. 2s, 2m, 2h", defaultValue = "6s")
+      String warmupDuration;
+
       String[][] parsedHeaders;
       boolean started = false;
       boolean initialized = false;
@@ -145,8 +148,8 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
          BenchmarkBuilder builder;
          try {
-            builder = scenario.getBenchmarkBuilder(getCommandName(), url, enableHttp2, connections, useHttpCache,
-                  threads, agent, "6s", duration, parsedHeaders, timeout);
+            builder = scenario.getBenchmark(getCommandName(), url, enableHttp2, connections, useHttpCache,
+                  threads, agent, warmupDuration, duration, parsedHeaders, timeout);
          } catch (URISyntaxException e) {
             invocation.println("Failed to parse URL: " + e.getMessage());
             return CommandResult.FAILURE;
