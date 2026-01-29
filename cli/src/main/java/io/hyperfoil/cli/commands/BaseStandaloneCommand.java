@@ -13,6 +13,7 @@ import org.aesh.command.CommandNotFoundException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.CommandRuntime;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
+import org.aesh.command.registry.CommandRegistry;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -27,6 +28,8 @@ public abstract class BaseStandaloneCommand {
          handler.setLevel(Level.SEVERE);
       }
    }
+
+   private CommandRegistry<HyperfoilCommandInvocation> commandRegistry;
 
    protected abstract Class<? extends Command<HyperfoilCommandInvocation>> getCommand();
 
@@ -54,7 +57,9 @@ public abstract class BaseStandaloneCommand {
             registry.command(command);
          }
 
-         runtime.commandRegistry(registry.create());
+         commandRegistry = registry.create();
+         runtime.commandRegistry(commandRegistry);
+
          cr = runtime.build();
          try {
             // start the local in-vm controller server
@@ -84,5 +89,14 @@ public abstract class BaseStandaloneCommand {
       }
 
       return result == null ? CommandResult.FAILURE.getResultValue() : result.getResultValue();
+   }
+
+   /**
+    * Due to the nature of instances being created in runtime the only way to retrieve is by using the commandRegistry
+    *
+    * @return
+    */
+   public CommandRegistry<HyperfoilCommandInvocation> getCommandRegistry() {
+      return commandRegistry;
    }
 }
