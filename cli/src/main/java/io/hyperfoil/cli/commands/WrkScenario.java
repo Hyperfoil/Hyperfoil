@@ -23,31 +23,46 @@ public abstract class WrkScenario {
       test
    }
 
-   public BenchmarkBuilder getBenchmarkBuilder(String name, String url, boolean enableHttp2, int connections,
-         boolean useHttpCache, int threads, Map<String, String> agentParam,
-         String calibrationDuration, String testDuration, String[][] parsedHeaders, String timeout)
+   public BenchmarkBuilder getBenchmark(String name, String url, boolean enableHttp2, int connections,
+         boolean useHttpCache, int threads, Map<String, String> agentParam, String warmupDuration, String testDuration,
+         String[][] parsedHeaders, String timeout)
          throws URISyntaxException {
-
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-         url = "http://" + url;
+      URI uri = this.getUri(url);
+      BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
+            agentParam);
+      String path = getPath(uri);
+      if (Util.parseToMillis(warmupDuration) == 0) {
+         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+               .maxDuration(Util.parseToMillis(testDuration));
+      } else {
+         addPhase(builder, PhaseType.calibration, warmupDuration, parsedHeaders, timeout, path);
+         // We can start only after calibration has full completed because otherwise some sessions
+         // would not have connection available from the beginning.
+         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+               .startAfterStrict(PhaseType.calibration.name())
+               .maxDuration(Util.parseToMillis(testDuration));
       }
+      return builder;
+   }
 
-      URI uri = new URI(url);
+   private BenchmarkBuilder getBenchmarkBuilder(String name, URI uri, boolean enableHttp2, int connections,
+         boolean useHttpCache, int threads, Map<String, String> agentParam) {
 
       Protocol protocol = Protocol.fromScheme(uri.getScheme());
+      // @formatter:off
       BenchmarkBuilder builder = BenchmarkBuilder.builder()
             .name(name)
             .addPlugin(HttpPluginBuilder::new)
-            .ergonomics()
-            .repeatCookies(false)
-            .userAgentFromSession(false)
-            .endErgonomics()
-            .http()
-            .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
-            .allowHttp2(enableHttp2)
-            .sharedConnections(connections)
-            .useHttpCache(useHttpCache)
-            .endHttp()
+               .ergonomics()
+                  .repeatCookies(false)
+                  .userAgentFromSession(false)
+               .endErgonomics()
+               .http()
+                  .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
+                  .allowHttp2(enableHttp2)
+                  .sharedConnections(connections)
+                  .useHttpCache(useHttpCache)
+               .endHttp()
             .endPlugin()
             .threads(threads);
       // @formatter:on
@@ -67,14 +82,6 @@ public abstract class WrkScenario {
          }
       }
 
-      String path = getPath(uri);
-
-      addPhase(builder, PhaseType.calibration, calibrationDuration, parsedHeaders, timeout, path);
-      // We can start only after calibration has full completed because otherwise some sessions
-      // would not have connection available from the beginning.
-      addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
-            .startAfterStrict(PhaseType.calibration.name())
-            .maxDuration(Util.parseToMillis(testDuration));
       return builder;
    }
 
@@ -85,9 +92,9 @@ public abstract class WrkScenario {
       long duration = Util.parseToMillis(durationStr);
       // @formatter:off
       var scenarioBuilder = phaseConfig(benchmarkBuilder.addPhase(phaseType.name()), phaseType, duration)
-            .duration(duration)
-            .maxDuration(duration + Util.parseToMillis(timeout))
-            .scenario();
+              .duration(duration)
+              .maxDuration(duration + Util.parseToMillis(timeout))
+              .scenario();
       // even with pipelining or HTTP 2 multiplexing
       // each session lifecycle requires to fully complete (with response)
       // before being reused, hence the number of requests which can use is just 1
@@ -96,24 +103,34 @@ public abstract class WrkScenario {
       // and there's a single sequence too, there's no point to have more than 1 per session
       scenarioBuilder.maxSequences(1);
       return scenarioBuilder
-            .initialSequence("request")
-            .step(SC).httpRequest(HttpMethod.GET)
-            .path(path)
-            .headerAppender((session, request) -> {
-               if (parsedHeaders != null) {
-                  for (String[] header : parsedHeaders) {
-                     request.putHeader(header[0], header[1]);
-                  }
-               }
-            })
-            .timeout(timeout)
-            .handler()
-            .rawBytes(new TransferSizeRecorder("transfer"))
-            .endHandler()
-            .endStep()
-            .endSequence()
+               .initialSequence("request")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .path(path)
+                     .headerAppender((session, request) -> {
+                        if (parsedHeaders != null) {
+                           for (String[] header : parsedHeaders) {
+                              request.putHeader(header[0], header[1]);
+                           }
+                        }
+                     })
+                     .timeout(timeout)
+                     .handler()
+                        .rawBytes(new TransferSizeRecorder("transfer"))
+                     .endHandler()
+                  .endStep()
+               .endSequence()
             .endScenario();
       // @formatter:on
+   }
+
+   private URI getUri(String url) throws URISyntaxException {
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+         url = "http://" + url;
+      }
+
+      URI uri = new URI(url);
+
+      return uri;
    }
 
    private String getPath(URI uri) {
