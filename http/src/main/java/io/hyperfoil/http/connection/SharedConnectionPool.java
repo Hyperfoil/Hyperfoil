@@ -73,7 +73,9 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          for (;;) {
             HttpConnection connection = available.pollFirst();
             if (connection == null) {
-               log.debug("No connection to {} available, currently used {}", authority, usedConnections.current());
+               if (log.isTraceEnabled()) {
+                  log.trace("No connection to {} available, currently used {}", authority, usedConnections.current());
+               }
                return null;
             } else if (!connection.isClosed()) {
                if (exclusiveConnection && connection.inFlight() > 0) {
@@ -262,12 +264,12 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    private void handleNewConnection(HttpConnection conn, Throwable err) {
       // at this moment we're in unknown thread
       if (err != null) {
-         // Accessing created & failures is unreliable - we need to access those in eventloop thread.
-         // For logging, though, we won't care.
-         log.warn(new FormattedMessage("Cannot create connection to {} (created: {}, failures: {})", authority, created,
-               failures + 1), err);
          // scheduling task when the executor is shut down causes errors
          if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
+            // Accessing created & failures is unreliable - we need to access those in eventloop thread.
+            // For logging, though, we won't care.
+            log.warn(new FormattedMessage("Cannot create connection to {} (created: {}, failures: {})", authority, created,
+                  failures + 1), err);
             eventLoop.execute(onConnectFailure);
          }
       } else {
