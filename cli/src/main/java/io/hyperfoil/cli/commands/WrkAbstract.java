@@ -112,6 +112,8 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       boolean started = false;
       boolean initialized = false;
 
+      WrkCommandResult wrkCommandResult;
+
       @Override
       public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
          if (help) {
@@ -170,6 +172,9 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
          boolean result = awaitBenchmarkResult(run, invocation);
 
+         RequestStatisticsResponse total = run.statsTotal();
+         wrkCommandResult = new WrkCommandResult(run, total);
+
          if (result) {
             if (output != null && !output.isBlank()) {
                invocation.executeSwitchable("report --silent -y --destination " + output);
@@ -180,7 +185,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
                invocation.println("ERROR: " + String.join(", ", run.get().errors));
                return CommandResult.FAILURE;
             }
-            RequestStatisticsResponse total = run.statsTotal();
+
             RequestStats testStats = null;
             List<String> phases = new ArrayList<>();
             for (RequestStats rs : total.statistics) {
@@ -204,6 +209,10 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          } else {
             return CommandResult.FAILURE;
          }
+      }
+
+      public WrkCommandResult getWrkCommandResult() {
+         return wrkCommandResult;
       }
 
       private boolean awaitBenchmarkResult(Client.RunRef run, HyperfoilCommandInvocation invocation) {
@@ -314,4 +323,21 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
    }
 
+   public static class WrkCommandResult {
+      Client.RunRef run;
+      RequestStatisticsResponse requestStatisticsResponse;
+
+      public WrkCommandResult(Client.RunRef run, RequestStatisticsResponse requestStatisticsResponse) {
+         this.run = run;
+         this.requestStatisticsResponse = requestStatisticsResponse;
+      }
+
+      public Client.RunRef getRun() {
+         return run;
+      }
+
+      public RequestStatisticsResponse getRequestStatisticsResponse() {
+         return requestStatisticsResponse;
+      }
+   }
 }
