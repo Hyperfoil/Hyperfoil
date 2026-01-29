@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
@@ -51,6 +50,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.HistogramConverter;
+import io.hyperfoil.controller.model.Phase;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
@@ -186,21 +186,43 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
                return CommandResult.FAILURE;
             }
 
-            RequestStats testStats = null;
-            List<String> phases = new ArrayList<>();
-            for (RequestStats rs : total.statistics) {
-               if (WrkScenario.PhaseType.test.name().equals(rs.phase)) {
-                  testStats = rs;
-                  break;
-               } else {
-                  phases.add(rs.phase);
-               }
-            }
-            if (testStats == null) {
-               invocation.println("Error: Missing Statistics for '" + WrkScenario.PhaseType.test.name() + "'. Found only for: "
-                     + String.join(", ", phases));
+            List<Phase> phases = run.get().phases;
+            if (phases == null) {
+               invocation.println("Error: Phases cannot be null");
                return CommandResult.FAILURE;
             }
+
+            for (Phase phase : phases) {
+               if (phase.failed) {
+                  invocation.println("----");
+                  invocation.println("Error: Phase '" + phase.name + "' failed:");
+                  for (RequestStats request : total.statistics) {
+                     if (request.phase.equals(phase.name)) {
+                        for (String failedSLA : request.failedSLAs) {
+                           invocation.println("\t- " + failedSLA);
+                        }
+
+                        invocation.println("\t\tError Summary Report:");
+                        invocation.println("\t\t  • Requests           : " + request.summary.requestCount);
+                        invocation.println("\t\t  • Responses          : " + request.summary.responseCount);
+                        invocation.println("\t\t  • Connection Errors  : " + request.summary.connectionErrors);
+                        invocation.println("\t\t  • Internal Errors    : " + request.summary.internalErrors);
+                        invocation.println("\t\t  • Timeouts           : " + request.summary.requestTimeouts);
+                        invocation.println("\t\t  • Blocked Time       : " + request.summary.blockedTime);
+                     }
+                  }
+                  invocation.println("----");
+                  return CommandResult.FAILURE;
+               }
+            }
+            RequestStats testStats = total.statistics.stream().filter((rs) -> rs.phase.equals(WrkScenario.PhaseType.test.name()))
+                  .findFirst().orElse(null);
+            if (testStats == null) {
+               invocation.println("Error: Missing Statistics for '" + WrkScenario.PhaseType.test.name() + "'. Found only for: "
+                     + String.join(", ", total.statistics.stream().map((rs) -> rs.phase).toList()));
+               return CommandResult.FAILURE;
+            }
+
             AbstractHistogram histogram = HistogramConverter
                   .convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
             List<StatisticsSummary> series = run.series(testStats.phase, testStats.stepId, testStats.metric);
