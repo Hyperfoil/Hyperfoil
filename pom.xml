@@ -100,7 +100,7 @@
         <version.sonatype.central>0.10.0</version.sonatype.central>
         <version.maven.source>3.3.1</version.maven.source>
         <version.maven.javadoc>3.11.2</version.maven.javadoc>
-        <version.maven.gpg>3.2.5</version.maven.gpg>
+        <version.maven.gpg>3.2.8</version.maven.gpg>
         <version.maven-core>3.9.11</version.maven-core>
         <version.maven-plugin-annotations>3.15.1</version.maven-plugin-annotations>
         <version.maven-surefire-plugin>3.5.4</version.maven-surefire-plugin>
