@@ -24,6 +24,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -108,6 +113,9 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       @Option(name = "warmup-duration", description = "Duration of the warm up phase, e.g. 2s, 2m, 2h", defaultValue = "6s")
       String warmupDuration;
 
+      @Option(name = "latency-per-bucket", description = "Print detailed latency statistics per bucket", hasValue = false)
+      boolean latencyPerBucket;
+
       String[][] parsedHeaders;
       boolean started = false;
       boolean initialized = false;
@@ -173,6 +181,11 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          boolean result = awaitBenchmarkResult(run, invocation);
 
          RequestStatisticsResponse total = run.statsTotal();
+
+         if (latencyPerBucket) {
+            printLatencyPerBucket(run, total, invocation);
+         }
+
          wrkCommandResult = new WrkCommandResult(run, total);
 
          if (result) {
@@ -224,8 +237,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
                initialized = true;
             } else if ("RUNNING".equals(recent.status) && !started) {
                // here the benchmark simulation started, so we can print wrk/wrk2 messages
-               invocation.println("Running " + duration + " test @ " + url);
-               invocation.println("  " + threads + " threads and " + connections + " connections");
+               invocation.println("Test started. Wait for the report.");
                started = true;
                // if started, it is also initialized
                // this ensure initialized is set to true if for some reason we did not catch the "INITIALIZING" status
@@ -250,6 +262,8 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
       private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series,
             CommandInvocation invocation) {
+         invocation.println("Running " + duration + " test @ " + url);
+         invocation.println("  " + threads + " threads and " + connections + " connections");
          TransferSizeRecorder.Stats transferStats = (TransferSizeRecorder.Stats) stats.extensions.get("transfer");
          HttpStats httpStats = HttpStats.get(stats);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
@@ -321,6 +335,24 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          return 100d * sum / stats.requestCount;
       }
 
+      private void printLatencyPerBucket(Client.RunRef run, RequestStatisticsResponse total, CommandInvocation invocation) {
+         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss:SSS");
+         for (RequestStats rs : total.statistics) {
+            List<StatisticsSummary> innerSeries = run.series(rs.phase, rs.stepId, rs.metric);
+            for (StatisticsSummary s : innerSeries) {
+               Instant startTime = Instant.ofEpochMilli(s.startTime);
+               ZonedDateTime zonedStartTime = startTime.atZone(ZoneId.systemDefault());
+               Instant endTime = Instant.ofEpochMilli(s.endTime);
+               ZonedDateTime zonedEndTime = endTime.atZone(ZoneId.systemDefault());
+               invocation.println(zonedStartTime.format(formatter) + " / " + zonedEndTime.format(formatter) + " -> " + rs.phase + "/" + rs.stepId + "/" + rs.metric + " -> " + s.requestCount + "/" + s.responseCount);
+               List<Double> sortedPercentiles = new ArrayList<>(s.percentileResponseTime.keySet());
+               for (double p : sortedPercentiles) {
+                  invocation.println("\t" + String.format("%.2f", p) + " = " + Duration.ofNanos(s.percentileResponseTime.get(p)).toMillis() + "ms" );
+               }
+            }
+         }
+         invocation.println("----------------------------------------------------------");
+      }
    }
 
    public static class WrkCommandResult {
