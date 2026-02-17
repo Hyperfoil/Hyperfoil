@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.random.JDKRandomGenerator;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public abstract class RateGeneratorTest {
@@ -44,7 +43,6 @@ public abstract class RateGeneratorTest {
    }
 
    @Test
-   @Disabled("This test fail due to lastComputedFireTimeNs() uses Math.ceil() and can skew the results")
    public void testFireTimesDistributionWithoutSkew() {
       final int samples = samples();
       final var fireTimeSamples = new double[samples];

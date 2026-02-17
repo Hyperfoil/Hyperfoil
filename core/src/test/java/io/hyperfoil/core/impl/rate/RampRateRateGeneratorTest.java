@@ -41,19 +41,19 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
 
    @Override
    void assertSamplesWithoutSkew(final double[] samples, final long totalUsers) {
-      // compute inter-arrival times
-      final double[] interArrivalTimes = computeInterArrivalTimes(samples);
-      // compute fire times on intervals
-      final double[] fireTimesOnIntervals = new double[interArrivalTimes.length];
-      double elapsedTime = 0;
-      for (int i = 0; i < interArrivalTimes.length; i++) {
-         final double rpNs = computeRateAtTime(1.0 / 1_000_000_000.0, 10.0 / 1_000_000_000.0, 10_000_000_000L, elapsedTime);
-         fireTimesOnIntervals[i] = interArrivalTimes[i] * rpNs;
-         elapsedTime += interArrivalTimes[i];
-      }
-      // we expect each of them to be 1.0
-      for (final var fireTime : fireTimesOnIntervals) {
-         assertEquals(1.0, fireTime, 0.0);
+      // For a linearly changing rate, the number of events in [t1, t2] is the integral of rate(t) over that interval.
+      // For a linear function, ∫[t1,t2] rate(t) dt = rate_at_midpoint * (t2 - t1).
+      final double initialRatePerNs = 1.0 / 1_000_000_000.0;
+      final double targetRatePerNs = 10.0 / 1_000_000_000.0;
+      final long durationNs = 10_000_000_000L;
+      for (int i = 0; i < samples.length - 1; i++) {
+         final double t1 = samples[i];
+         final double t2 = samples[i + 1];
+         final double midpoint = (t1 + t2) / 2;
+         final double rateAtMidpoint = computeRateAtTime(initialRatePerNs, targetRatePerNs, durationNs, midpoint);
+         final double integral = (t2 - t1) * rateAtMidpoint;
+         // each interval should contain exactly one fire event (integral of rate over interval = 1)
+         assertEquals(1.0, integral, 1e-6, "interval " + i);
       }
    }
 }
