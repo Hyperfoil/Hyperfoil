@@ -32,13 +32,13 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
    private final int maxSessions;
    private final AtomicLong throttledUsers = new AtomicLong(0);
    private final RateGenerator rateGenerator;
-   private final long relativeFirstFireTime;
+   private final long relativeFirstFireTimeNs;
 
    OpenModelPhase(RateGenerator rateGenerator, Phase def, String runId, int agentId) {
       super(def, runId, agentId);
       this.rateGenerator = rateGenerator;
       this.maxSessions = Math.max(1, def.benchmark().slice(((Model.OpenModel) def.model).maxSessions, agentId));
-      this.relativeFirstFireTime = rateGenerator.lastComputedFireTimeMs();
+      this.relativeFirstFireTimeNs = rateGenerator.lastComputedFireTimeNs();
    }
 
    @Override
@@ -51,10 +51,10 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
 
    @Override
    protected void proceedOnStarted(final EventExecutorGroup executorGroup) {
-      long elapsedMs = System.currentTimeMillis() - absoluteStartTime;
-      long remainingMsToFirstFireTime = relativeFirstFireTime - elapsedMs;
-      if (remainingMsToFirstFireTime > 0) {
-         executorGroup.schedule(() -> proceed(executorGroup), remainingMsToFirstFireTime, TimeUnit.MILLISECONDS);
+      long elapsedNs = System.nanoTime() - nanoTimeStart;
+      long remainingNsToFirstFireTime = relativeFirstFireTimeNs - elapsedNs;
+      if (remainingNsToFirstFireTime > 0) {
+         executorGroup.schedule(() -> proceed(executorGroup), remainingNsToFirstFireTime, TimeUnit.NANOSECONDS);
       } else {
          proceed(executorGroup);
       }
@@ -65,26 +65,26 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
       if (status.isFinished()) {
          return;
       }
-      long realFireTimeMs = System.currentTimeMillis();
-      long elapsedTimeMs = realFireTimeMs - absoluteStartTime;
+      long realFireTimeNs = System.nanoTime();
+      long elapsedTimeNs = realFireTimeNs - nanoTimeStart;
       // the time should flow forward: we can have some better check here for NTP and maybe rise a warning
-      assert elapsedTimeMs >= rateGenerator.lastComputedFireTimeMs();
-      long expectedNextFireTimeMs = rateGenerator.computeNextFireTime(elapsedTimeMs, this);
+      assert elapsedTimeNs >= rateGenerator.lastComputedFireTimeNs();
+      long expectedNextFireTimeNs = rateGenerator.computeNextFireTime(elapsedTimeNs, this);
       // we need to make sure that the scheduling decisions are made based on the current time
-      long rateGenerationDelayMs = System.currentTimeMillis() - realFireTimeMs;
-      assert rateGenerationDelayMs >= 0;
+      long rateGenerationDelayNs = System.nanoTime() - realFireTimeNs;
+      assert rateGenerationDelayNs >= 0;
       // given that both computeNextFireTime and onFireTimes can take some time, we need to adjust the fire time
-      long scheduledFireDelayMs = Math.max(0, (expectedNextFireTimeMs - elapsedTimeMs) - rateGenerationDelayMs);
+      long scheduledFireDelayNs = Math.max(0, (expectedNextFireTimeNs - elapsedTimeNs) - rateGenerationDelayNs);
       if (trace) {
-         log.trace("{}: {} after start, {} started ({} throttled), next user in {} ms, scheduling decisions took {} ms",
-               def.name, elapsedTimeMs,
-               rateGenerator.fireTimes(), throttledUsers, scheduledFireDelayMs, rateGenerationDelayMs);
+         log.trace("{}: {} ns after start, {} started ({} throttled), next user in {} ns, scheduling decisions took {} ns",
+               def.name, elapsedTimeNs,
+               rateGenerator.fireTimes(), throttledUsers, scheduledFireDelayNs, rateGenerationDelayNs);
       }
-      if (scheduledFireDelayMs <= 0) {
+      if (scheduledFireDelayNs <= 0) {
          // we're so late that there's no point in bothering the executor with timers
          executorGroup.execute(() -> proceed(executorGroup));
       } else {
-         executorGroup.schedule(() -> proceed(executorGroup), scheduledFireDelayMs, TimeUnit.MILLISECONDS);
+         executorGroup.schedule(() -> proceed(executorGroup), scheduledFireDelayNs, TimeUnit.NANOSECONDS);
       }
    }
 

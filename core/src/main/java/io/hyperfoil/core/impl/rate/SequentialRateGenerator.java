@@ -2,19 +2,19 @@ package io.hyperfoil.core.impl.rate;
 
 abstract class SequentialRateGenerator extends BaseRateGenerator {
 
-   protected abstract double nextFireTimeMs(double elapsedTimeMs);
+   protected abstract double nextFireTimeNs(double elapsedTimeNs);
 
    @Override
-   public final long computeNextFireTime(final long elapsedTimeMs, FireTimeListener listener) {
-      long fireTimesToMillis = 0;
-      double nextFireTimeMs = fireTimeMs;
-      while (elapsedTimeMs >= nextFireTimeMs) {
+   public final long computeNextFireTime(final long elapsedTimeNs, FireTimeListener listener) {
+      long fireTimesCount = 0;
+      double nextFireTimeNs = fireTimeNs;
+      while (elapsedTimeNs >= nextFireTimeNs) {
          listener.onFireTime();
-         fireTimesToMillis++;
-         nextFireTimeMs = nextFireTimeMs(nextFireTimeMs);
+         fireTimesCount++;
+         nextFireTimeNs = nextFireTimeNs(nextFireTimeNs);
       }
-      fireTimeMs = nextFireTimeMs;
-      this.fireTimes += fireTimesToMillis;
-      return (long) Math.ceil(nextFireTimeMs);
+      fireTimeNs = nextFireTimeNs;
+      this.fireTimes += fireTimesCount;
+      return (long) Math.ceil(nextFireTimeNs);
    }
 }

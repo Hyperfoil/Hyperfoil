@@ -7,20 +7,20 @@ package io.hyperfoil.core.impl.rate;
  * The rate function is a linear function of time, defined as:
  *
  * <pre>{@code
- * rate(t) = initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (elapsedTimeMs / durationMs)
+ * rate(t) = initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (elapsedTimeNs / durationNs)
  * }</pre>
  *
  * To find the required number of events at time t, we need to integrate the rate function from 0 to t:
  *
  * <pre>{@code
- * requiredFireTimes(t) = ∫[0 to t] (initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (t / durationMs)) dt
+ * requiredFireTimes(t) = ∫[0 to t] (initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (t / durationNs)) dt
  * }</pre>
  *
  * Which simplifies to:
  *
  * <pre>{@code
  * requiredFireTimes(t) = (initialFireTimesPerSec * t)
- *       + ((targetFireTimesPerSec - initialFireTimesPerSec) * t ^ 2) / (2 * durationMs)
+ *       + ((targetFireTimesPerSec - initialFireTimesPerSec) * t ^ 2) / (2 * durationNs)
  * }</pre>
  *
  * Given the elapsed time {@code t} we can use the above formula to compute the required number of events.<br>
@@ -30,7 +30,7 @@ package io.hyperfoil.core.impl.rate;
  * <p>
  * Let:
  * <ul>
- * <li>{@code a = (targetFireTimesPerSec - initialFireTimesPerSec) / (2 * durationMs)}</li>
+ * <li>{@code a = (targetFireTimesPerSec - initialFireTimesPerSec) / (2 * durationNs)}</li>
  * <li>{@code b = initialFireTimesPerSec}</li>
  * <li>{@code c = -requiredFireTimes(t)}</li>
  * </ul>
@@ -41,18 +41,18 @@ final class RampRateGenerator extends FunctionalRateGenerator {
    private final double bCoef;
    private final double progress;
 
-   RampRateGenerator(final double initialFireTimesPerSec, final double targetFireTimesPerSec, final long durationMs) {
-      bCoef = initialFireTimesPerSec / 1000;
-      progress = (targetFireTimesPerSec - initialFireTimesPerSec) / (durationMs * 1000);
+   RampRateGenerator(final double initialFireTimesPerSec, final double targetFireTimesPerSec, final long durationNs) {
+      bCoef = initialFireTimesPerSec / 1_000_000_000.0;
+      progress = (targetFireTimesPerSec - initialFireTimesPerSec) / ((double) durationNs * 1_000_000_000.0);
    }
 
    @Override
-   protected long computeFireTimes(final long elapsedTimeMs) {
-      return (long) ((progress * elapsedTimeMs / 2 + bCoef) * elapsedTimeMs);
+   protected long computeFireTimes(final long elapsedTimeNs) {
+      return (long) ((progress * elapsedTimeNs / 2 + bCoef) * elapsedTimeNs);
    }
 
    @Override
-   protected double computeFireTimeMs(final long targetFireTimes) {
+   protected double computeFireTimeNs(final long targetFireTimes) {
       // root of quadratic equation
       return Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 2 * progress * targetFireTimes)) / progress);
    }

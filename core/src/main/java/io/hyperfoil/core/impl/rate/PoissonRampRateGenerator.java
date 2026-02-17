@@ -11,7 +11,7 @@ import java.util.Random;
  * Such function is defined as:<br>
  * {@code T = -log(rand) / rate(t)}<br>
  * The rate function <code>rate(t)</code> is a linear function of time, defined as:<br>
- * <code>rate(t) = initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (elapsedTimeMs / durationMs)</code><br>
+ * <code>rate(t) = initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (elapsedTimeNs / durationNs)</code><br>
  * To compute the time interval {@code T} until the next event, we need to solve the integral equation that accounts for the
  * non-homogeneous Poisson process with a time-varying rate function.<br>
  * The process can be broken down as follows:
@@ -25,15 +25,15 @@ import java.util.Random;
  * This information can be obtained as the area of the rate(t) function from 0 to T, which is the mentioned integral.<br>
  * <br>
  * The integral equation is:
- * {@code ∫[0 to T] (initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (t / durationMs)) dt = -log(rand)}
+ * {@code ∫[0 to T] (initialFireTimesPerSec + (targetFireTimesPerSec - initialFireTimesPerSec) * (t / durationNs)) dt = -log(rand)}
  * </li>
  * <li>The left-hand side of the equation is:
  * <br>
- * {@code (initialFireTimesPerSec * T) + ((targetFireTimesPerSec - initialFireTimesPerSec) * T^2) / (2 * durationMs)}
+ * {@code (initialFireTimesPerSec * T) + ((targetFireTimesPerSec - initialFireTimesPerSec) * T^2) / (2 * durationNs)}
  * </li>
  * <li>Set this equal to {@code -log(rand)} and solve for {@code T}:
  * <br>
- * {@code initialFireTimesPerSec * T + ((targetFireTimesPerSec - initialFireTimesPerSec) * T^2) / (2 * durationMs) = -log(rand)}
+ * {@code initialFireTimesPerSec * T + ((targetFireTimesPerSec - initialFireTimesPerSec) * T^2) / (2 * durationNs) = -log(rand)}
  * </li>
  * <li>This is a quadratic equation of the form:
  * <br>
@@ -41,7 +41,7 @@ import java.util.Random;
  * <br>
  * where:
  * <ul>
- * <li>{@code a = (targetFireTimesPerSec - initialFireTimesPerSec) / (2 * durationMs)}</li>
+ * <li>{@code a = (targetFireTimesPerSec - initialFireTimesPerSec) / (2 * durationNs)}</li>
  * <li>{@code b = initialFireTimesPerSec}</li>
  * <li>{@code c = -log(rand)}</li>
  * </ul>
@@ -52,7 +52,7 @@ import java.util.Random;
  * </li>
  * <li>Since time intervals cannot be negative, choose the positive root:
  * <br>
- * {@code T = (-initialFireTimesPerSec + sqrt(initialFireTimesPerSec^2 - 4 * (targetFireTimesPerSec - initialFireTimesPerSec) * (-log(rand) / (2 * durationMs)))) / ((targetFireTimesPerSec - initialFireTimesPerSec) / durationMs)}
+ * {@code T = (-initialFireTimesPerSec + sqrt(initialFireTimesPerSec^2 - 4 * (targetFireTimesPerSec - initialFireTimesPerSec) * (-log(rand) / (2 * durationNs)))) / ((targetFireTimesPerSec - initialFireTimesPerSec) / durationNs)}
  * </li>
  * <li>Simplify the expression to get the value of {@code T}.
  * <br>
@@ -68,19 +68,19 @@ final class PoissonRampRateGenerator extends SequentialRateGenerator {
    private final double aCoef;
 
    PoissonRampRateGenerator(final Random random, final double initialFireTimesPerSec, final double targetFireTimesPerSec,
-         final long durationMs) {
+         final long durationNs) {
       this.initialFireTimesPerSec = initialFireTimesPerSec;
-      this.duration = durationMs;
+      this.duration = durationNs;
       this.aCoef = (targetFireTimesPerSec - initialFireTimesPerSec);
       this.random = random;
-      fireTimeMs = nextFireTimeMs(0);
+      fireTimeNs = nextFireTimeNs(0);
    }
 
    @Override
-   protected double nextFireTimeMs(final double elapsedTimeMs) {
+   protected double nextFireTimeNs(final double elapsedTimeNs) {
       // we're solving quadratic equation coming from t = (duration * -log(rand))/(((t + now) * (target - initial)) + initial * duration)
-      final double bCoef = elapsedTimeMs * aCoef + initialFireTimesPerSec * duration;
-      final double cCoef = duration * 1000 * Math.log(random.nextDouble());
-      return elapsedTimeMs + (-bCoef + Math.sqrt(bCoef * bCoef - 4 * aCoef * cCoef)) / (2 * aCoef);
+      final double bCoef = elapsedTimeNs * aCoef + initialFireTimesPerSec * duration;
+      final double cCoef = (double) duration * 1_000_000_000.0 * Math.log(random.nextDouble());
+      return elapsedTimeNs + (-bCoef + Math.sqrt(bCoef * bCoef - 4 * aCoef * cCoef)) / (2 * aCoef);
    }
 }

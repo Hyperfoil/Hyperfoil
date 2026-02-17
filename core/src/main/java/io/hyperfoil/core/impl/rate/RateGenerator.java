@@ -4,9 +4,9 @@ import java.util.Random;
 
 public interface RateGenerator {
 
-   long computeNextFireTime(long elapsedMillis, FireTimeListener listener);
+   long computeNextFireTime(long elapsedNanos, FireTimeListener listener);
 
-   long lastComputedFireTimeMs();
+   long lastComputedFireTimeNs();
 
    long fireTimes();
 
@@ -14,11 +14,11 @@ public interface RateGenerator {
       return new ConstantRateGenerator(fireTimesPerSec);
    }
 
-   static RateGenerator rampRate(double initialFireTimesPerSec, double targetFireTimesPerSec, long durationMs) {
+   static RateGenerator rampRate(double initialFireTimesPerSec, double targetFireTimesPerSec, long durationNs) {
       if (Math.abs(targetFireTimesPerSec - initialFireTimesPerSec) < 0.000001) {
          return constantRate(initialFireTimesPerSec);
       }
-      return new RampRateGenerator(initialFireTimesPerSec, targetFireTimesPerSec, durationMs);
+      return new RampRateGenerator(initialFireTimesPerSec, targetFireTimesPerSec, durationNs);
    }
 
    static RateGenerator poissonConstantRate(Random random, double usersPerSec) {
@@ -30,14 +30,14 @@ public interface RateGenerator {
    }
 
    static RateGenerator poissonRampRate(Random random, double initialFireTimesPerSec, double targetFireTimesPerSec,
-         long durationMs) {
+         long durationNs) {
       if (Math.abs(targetFireTimesPerSec - initialFireTimesPerSec) < 0.000001) {
          return poissonConstantRate(random, initialFireTimesPerSec);
       }
-      return new PoissonRampRateGenerator(random, initialFireTimesPerSec, targetFireTimesPerSec, durationMs);
+      return new PoissonRampRateGenerator(random, initialFireTimesPerSec, targetFireTimesPerSec, durationNs);
    }
 
-   static RateGenerator poissonRampRate(double initialFireTimesPerSec, double targetFireTimesPerSec, long durationMs) {
-      return poissonRampRate(new Random(), initialFireTimesPerSec, targetFireTimesPerSec, durationMs);
+   static RateGenerator poissonRampRate(double initialFireTimesPerSec, double targetFireTimesPerSec, long durationNs) {
+      return poissonRampRate(new Random(), initialFireTimesPerSec, targetFireTimesPerSec, durationNs);
    }
 }

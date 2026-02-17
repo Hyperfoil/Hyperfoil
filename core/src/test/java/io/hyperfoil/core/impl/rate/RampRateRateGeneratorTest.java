@@ -20,14 +20,14 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
 
    @Override
    RateGenerator newUserGenerator() {
-      return RateGenerator.rampRate(1, 10, 10_000);
+      return RateGenerator.rampRate(1, 10, 10_000_000_000L);
    }
 
    @Test
    public void divisionByZeroTest() {
-      final var generator = RateGenerator.rampRate(10, 10, 10_000);
+      final var generator = RateGenerator.rampRate(10, 10, 10_000_000_000L);
       final var missingFireTimeCounter = new FireTimesCounter();
-      generator.computeNextFireTime(9999, missingFireTimeCounter);
+      generator.computeNextFireTime(9_999_000_000L, missingFireTimeCounter);
       assertEquals(100, missingFireTimeCounter.fireTimes);
    }
 
@@ -35,7 +35,7 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
    public void slowStartTest() {
       final var generator = newUserGenerator();
       final var missingFireTimeCounter = new FireTimesCounter();
-      generator.computeNextFireTime(9999, missingFireTimeCounter);
+      generator.computeNextFireTime(9_999_000_000L, missingFireTimeCounter);
       assertEquals(samples(), missingFireTimeCounter.fireTimes);
    }
 
@@ -47,8 +47,8 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
       final double[] fireTimesOnIntervals = new double[interArrivalTimes.length];
       double elapsedTime = 0;
       for (int i = 0; i < interArrivalTimes.length; i++) {
-         final double rpMs = computeRateAtTime(1.0 / 1000, 10.0 / 1000, 10_000, elapsedTime);
-         fireTimesOnIntervals[i] = interArrivalTimes[i] * rpMs;
+         final double rpNs = computeRateAtTime(1.0 / 1_000_000_000.0, 10.0 / 1_000_000_000.0, 10_000_000_000L, elapsedTime);
+         fireTimesOnIntervals[i] = interArrivalTimes[i] * rpNs;
          elapsedTime += interArrivalTimes[i];
       }
       // we expect each of them to be 1.0

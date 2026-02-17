@@ -2,11 +2,11 @@ package io.hyperfoil.core.impl.rate;
 
 public abstract class BaseRateGenerator implements RateGenerator {
 
-   protected double fireTimeMs;
+   protected double fireTimeNs;
    protected long fireTimes;
 
    public BaseRateGenerator() {
-      fireTimeMs = 0;
+      fireTimeNs = 0;
    }
 
    @Override
@@ -15,7 +15,7 @@ public abstract class BaseRateGenerator implements RateGenerator {
    }
 
    @Override
-   public long lastComputedFireTimeMs() {
-      return (long) Math.ceil(fireTimeMs);
+   public long lastComputedFireTimeNs() {
+      return (long) Math.ceil(fireTimeNs);
    }
 }
