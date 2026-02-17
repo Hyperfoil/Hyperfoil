@@ -1,21 +1,21 @@
 package io.hyperfoil.core.impl.rate;
 
 public abstract class FunctionalRateGenerator extends BaseRateGenerator {
-   protected abstract long computeFireTimes(long elapsedTimeMs);
+   protected abstract long computeFireTimes(long elapsedTimeNs);
 
-   protected abstract double computeFireTimeMs(long targetFireTimes);
+   protected abstract double computeFireTimeNs(long targetFireTimes);
 
    @Override
-   public long computeNextFireTime(final long elapsedTimeMs, FireTimeListener listener) {
-      if (elapsedTimeMs < fireTimeMs) {
-         return (long) Math.ceil(fireTimeMs);
+   public long computeNextFireTime(final long elapsedTimeNs, FireTimeListener listener) {
+      if (elapsedTimeNs < fireTimeNs) {
+         return (long) Math.ceil(fireTimeNs);
       }
-      final long fireTimes = computeFireTimes(elapsedTimeMs) + 1;
-      final double nextFireTimeMs = computeFireTimeMs(fireTimes);
-      fireTimeMs = nextFireTimeMs;
+      final long fireTimes = computeFireTimes(elapsedTimeNs) + 1;
+      final double nextFireTimeNs = computeFireTimeNs(fireTimes);
+      fireTimeNs = nextFireTimeNs;
       long missingFireTimes = fireTimes - this.fireTimes;
       this.fireTimes = fireTimes;
       listener.onFireTimes(missingFireTimes);
-      return (long) Math.ceil(nextFireTimeMs);
+      return (long) Math.ceil(nextFireTimeNs);
    }
 }

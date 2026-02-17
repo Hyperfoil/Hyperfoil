@@ -22,7 +22,7 @@ public class PoissonConstantRateGeneratorTest extends RateGeneratorTest {
       // Perform K-S test
       final double[] interArrivalTimes = computeInterArrivalTimes(samples);
       // it is important to use the same SEED here!
-      kolmogorovSmirnovTestVsExpDistr(interArrivalTimes, SEED, 1.0);
+      kolmogorovSmirnovTestVsExpDistr(interArrivalTimes, SEED, 1_000_000.0);
    }
 
 }

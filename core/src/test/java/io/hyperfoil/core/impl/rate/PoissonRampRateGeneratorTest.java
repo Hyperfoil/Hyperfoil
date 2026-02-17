@@ -18,7 +18,7 @@ public class PoissonRampRateGeneratorTest extends RateGeneratorTest {
 
    @Override
    RateGenerator newUserGenerator() {
-      return RateGenerator.poissonRampRate(new Random(SEED), 1, 10, 10000);
+      return RateGenerator.poissonRampRate(new Random(SEED), 1, 10, 10_000_000_000L);
    }
 
    @Override
@@ -27,8 +27,8 @@ public class PoissonRampRateGeneratorTest extends RateGeneratorTest {
       final double[] fireTimesOnIntervals = new double[interArrivalTimes.length];
       double elapsedTime = 0;
       for (int i = 0; i < interArrivalTimes.length; i++) {
-         final double rpMs = computeRateAtTime(0.001, 0.01, 10000, elapsedTime);
-         fireTimesOnIntervals[i] = interArrivalTimes[i] * rpMs;
+         final double rpNs = computeRateAtTime(1.0 / 1_000_000_000.0, 10.0 / 1_000_000_000.0, 10_000_000_000L, elapsedTime);
+         fireTimesOnIntervals[i] = interArrivalTimes[i] * rpNs;
          elapsedTime += interArrivalTimes[i];
       }
       // fireTimesOnIntervals should follow an exponential distribution with lambda = 1

@@ -9,13 +9,13 @@ final class ConstantRateGenerator extends FunctionalRateGenerator {
    }
 
    @Override
-   protected long computeFireTimes(final long elapsedTimeMs) {
-      return (long) (elapsedTimeMs * fireTimesPerSec / 1000);
+   protected long computeFireTimes(final long elapsedTimeNs) {
+      return (long) (elapsedTimeNs * fireTimesPerSec / 1_000_000_000.0);
    }
 
    @Override
-   protected double computeFireTimeMs(final long targetFireTimes) {
-      return 1000 * targetFireTimes / fireTimesPerSec;
+   protected double computeFireTimeNs(final long targetFireTimes) {
+      return 1_000_000_000.0 * targetFireTimes / fireTimesPerSec;
    }
 
 }

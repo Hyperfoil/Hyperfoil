@@ -44,7 +44,7 @@ public abstract class RateGeneratorTest {
    }
 
    @Test
-   @Disabled("This test fail due to lastComputedFireTimeMs() uses Math.ceil() and can skew the results")
+   @Disabled("This test fail due to lastComputedFireTimeNs() uses Math.ceil() and can skew the results")
    public void testFireTimesDistributionWithoutSkew() {
       final int samples = samples();
       final var fireTimeSamples = new double[samples];
@@ -53,12 +53,12 @@ public abstract class RateGeneratorTest {
       for (int i = 0; i < samples; i++) {
          final long fireTimesBefore = userGenerator.fireTimes();
          fireTimesCounter.fireTimes = 0;
-         final var nextFireTimeMs = userGenerator.computeNextFireTime(userGenerator.lastComputedFireTimeMs(), fireTimesCounter);
+         final var nextFireTimeNs = userGenerator.computeNextFireTime(userGenerator.lastComputedFireTimeNs(), fireTimesCounter);
          final long fireTimesAfter = userGenerator.fireTimes();
          assertEquals(1, fireTimesCounter.fireTimes);
          assertEquals(1, fireTimesAfter - fireTimesBefore);
-         assertEquals(nextFireTimeMs, userGenerator.lastComputedFireTimeMs(), 0.0);
-         fireTimeSamples[i] = nextFireTimeMs;
+         assertEquals(nextFireTimeNs, userGenerator.lastComputedFireTimeNs(), 0.0);
+         fireTimeSamples[i] = nextFireTimeNs;
       }
       assertEquals(samples(), userGenerator.fireTimes());
       assertSamplesWithoutSkew(fireTimeSamples, userGenerator.fireTimes());

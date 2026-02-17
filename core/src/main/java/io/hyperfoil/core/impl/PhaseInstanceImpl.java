@@ -37,6 +37,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    protected volatile Status status = Status.NOT_STARTED;
    // in milliseconds
    protected long absoluteStartTime;
+   protected long nanoTimeStart;
    protected String absoluteStartTimeString;
    protected AtomicInteger activeSessions = new AtomicInteger(0);
    private volatile Throwable error;
@@ -118,6 +119,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
     */
    protected void recordAbsoluteStartTime() {
       absoluteStartTime = System.currentTimeMillis();
+      nanoTimeStart = System.nanoTime();
       absoluteStartTimeString = String.valueOf(absoluteStartTime);
    }
 

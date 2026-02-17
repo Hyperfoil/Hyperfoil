@@ -61,13 +61,13 @@ final class PoissonConstantRateGenerator extends SequentialRateGenerator {
    PoissonConstantRateGenerator(final Random random, final double fireTimesPerSec) {
       this.random = random;
       this.fireTimesPerSec = fireTimesPerSec;
-      this.fireTimeMs = nextFireTimeMs(0);
+      this.fireTimeNs = nextFireTimeNs(0);
    }
 
    @Override
-   protected double nextFireTimeMs(final double elapsedTimeMs) {
+   protected double nextFireTimeNs(final double elapsedTimeNs) {
       // the Math.max(1e-20, random.nextDouble()) is to prevent the logarithm to be negative infinity, because
       // the random number can approach to 0 and the logarithm of 0 is negative infinity
-      return elapsedTimeMs + 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / fireTimesPerSec;
+      return elapsedTimeNs + 1_000_000_000.0 * -Math.log(Math.max(1e-20, random.nextDouble())) / fireTimesPerSec;
    }
 }
