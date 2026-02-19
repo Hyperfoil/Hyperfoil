@@ -6,7 +6,7 @@ tags: [guides, benchmark, ergonomics]
 weight: 8
 ---
 
-This section hosts only single property at this moment:
+Ergonomics properties control automatic behaviors applied to HTTP requests:
 
 | Property             | Default | Description |
 | -------------------- | ------- | ----------- |
@@ -15,3 +15,4 @@ This section hosts only single property at this moment:
 | autoRangeCheck       | true    | Mark 4xx and 5xx responses as invalid. You can also turn this off in each step. |
 | stopOnInvalid        | true    | When the session receives an invalid response it does not execute any further steps, cancelling all requests and stopping immediately. |
 | followRedirect       | NEVER   | Default value for [httpRequest.handler.followRedirect](/docs/reference/steps/step_httpRequest#handler).
+| compensateInternalLatency | false | Use session's scheduled start time as request start timestamp in open model phases, compensating for internal event loop delays. |
