@@ -23,22 +23,19 @@ public class CpuWatchdog implements Runnable {
    private static final Path PROC_STAT = Path.of("/proc/stat");
    private static final double IDLE_THRESHOLD = Double
          .parseDouble(Properties.get(Properties.CPU_WATCHDOG_IDLE_THRESHOLD, "0.2"));
-   // On most architectures the tick is defined as 1/100 of second (10 ms)
-   // where the value of 100 can be obtained using sysconf(_SC_CLK_TCK)
-   private static final long TICK_NANOS = Properties.getLong("io.hyperfoil.clock.tick.nanos", 10_000_000);
 
    private final Consumer<Throwable> errorHandler;
    private final Thread thread;
    private final BooleanSupplier warmupTest;
    private final int nCpu;
    private final long[] idleTime;
+   private final long[] totalTime;
    private volatile boolean running = true;
-   private long lastTimestamp;
-   private long now;
    private final Map<String, PhaseRecord> phaseStart = new HashMap<>();
    private final Map<String, String> phaseUsage = new HashMap<>();
    private final ProcStatReader statReader;
    private final long cpuWatchDocPeriod;
+
    public CpuWatchdog(Consumer<Throwable> errorHandler, BooleanSupplier warmupTest) {
       this(errorHandler, warmupTest, () -> Files.readAllLines(PROC_STAT));
    }
@@ -55,6 +52,7 @@ public class CpuWatchdog implements Runnable {
          thread = null;
          nCpu = 0;
          idleTime = null;
+         totalTime = null;
          return;
       }
       thread = new Thread(this, "cpu-watchdog");
@@ -66,6 +64,7 @@ public class CpuWatchdog implements Runnable {
          nCpu = 0;
       }
       idleTime = new long[nCpu];
+      totalTime = new long[nCpu];
    }
 
    public void run() {
@@ -73,8 +72,7 @@ public class CpuWatchdog implements Runnable {
          log.error("Illegal number of CPUs");
          return;
       }
-      lastTimestamp = System.nanoTime();
-      now = lastTimestamp;
+
       while (running) {
          if (!readProcStat(this::processCpuLine)) {
             log.info("CPU watchdog is terminating.");
@@ -86,8 +84,6 @@ public class CpuWatchdog implements Runnable {
             log.error("CPU watchdog thread interrupted, terminating.", e);
             return;
          }
-         lastTimestamp = now;
-         now = System.nanoTime();
       }
    }
 
@@ -96,7 +92,7 @@ public class CpuWatchdog implements Runnable {
          for (String line : this.statReader.readLines()) {
             if (!line.startsWith("cpu"))
                continue;
-            String[] parts = line.split(" ");
+            String[] parts = line.split("\\s+");
             // ignore overall stats
             if ("cpu".equals(parts[0]))
                continue;
@@ -117,12 +113,25 @@ public class CpuWatchdog implements Runnable {
    }
 
    private void processCpuLine(String[] parts) {
-      int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
+      // Remove "cpu" prefix to parse the index
+      String cpuStr = parts[0].substring(3);
+      int cpuIndex = Integer.parseInt(cpuStr);
+
       long idle = Long.parseLong(parts[4]);
+      long total = 0;
+      for (int i = 1; i < parts.length; i++) {
+         total += Long.parseLong(parts[i]);
+      }
 
       long prevIdle = idleTime[cpuIndex];
-      if (prevIdle != 0 && prevIdle != Long.MAX_VALUE && lastTimestamp != now) {
-         double idleRatio = (double) (TICK_NANOS * (idle - prevIdle)) / (now - lastTimestamp);
+      long prevTotal = totalTime[cpuIndex];
+
+      if (prevTotal != 0 && total > prevTotal) {
+         long idleDelta = idle - prevIdle;
+         long totalDelta = total - prevTotal;
+
+         double idleRatio = (double) idleDelta / totalDelta;
+
          if (idleRatio < IDLE_THRESHOLD) {
             String message = String.format("%s | CPU %d was used for %.0f%% which is more than the threshold of %.0f%%",
                   new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), cpuIndex, 100 * (1 - idleRatio),
@@ -130,13 +139,16 @@ public class CpuWatchdog implements Runnable {
             log.warn(message);
             if (warmupTest.getAsBoolean()) {
                errorHandler.accept(new BenchmarkExecutionException(message));
-               idle = Long.MAX_VALUE;
+               // Prevent rapid-fire logging/exceptions
+               idleTime[cpuIndex] = 0;
+               totalTime[cpuIndex] = 0;
+               return;
             }
          }
       }
-      if (prevIdle != Long.MAX_VALUE) {
-         idleTime[cpuIndex] = idle;
-      }
+
+      idleTime[cpuIndex] = idle;
+      totalTime[cpuIndex] = total;
    }
 
    public void start() {
@@ -152,10 +164,17 @@ public class CpuWatchdog implements Runnable {
    public synchronized void notifyPhaseStart(String name) {
       if (nCpu <= 0)
          return;
-      PhaseRecord record = new PhaseRecord(System.nanoTime(), new long[nCpu]);
+      PhaseRecord record = new PhaseRecord(new long[nCpu], new long[nCpu]);
       if (readProcStat(parts -> {
-         int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
+         String cpuStr = parts[0].substring(3);
+         int cpuIndex = Integer.parseInt(cpuStr);
          record.cpuIdle[cpuIndex] = Long.parseLong(parts[4]);
+
+         long total = 0;
+         for (int i = 1; i < parts.length; i++) {
+            total += Long.parseLong(parts[i]);
+         }
+         record.cpuTotal[cpuIndex] = total;
       })) {
          phaseStart.putIfAbsent(name, record);
       }
@@ -169,19 +188,34 @@ public class CpuWatchdog implements Runnable {
       if (start == null || phaseUsage.containsKey(name)) {
          return;
       }
-      long now = System.nanoTime();
-      SumMin acc = new SumMin();
+
+      SumMin accIdle = new SumMin();
+      SumMin accTotal = new SumMin();
+
       if (readProcStat(parts -> {
-         int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
+         String cpuStr = parts[0].substring(3);
+         int cpuIndex = Integer.parseInt(cpuStr);
+
          long idle = Long.parseLong(parts[4]);
-         long diff = idle - start.cpuIdle[cpuIndex];
-         acc.sum += diff;
-         acc.min = Math.min(acc.min, diff);
+         long idleDiff = idle - start.cpuIdle[cpuIndex];
+         accIdle.sum += idleDiff;
+         accIdle.min = Math.min(accIdle.min, idleDiff);
+
+         long total = 0;
+         for (int i = 1; i < parts.length; i++) {
+            total += Long.parseLong(parts[i]);
+         }
+         long totalDiff = total - start.cpuTotal[cpuIndex];
+         accTotal.sum += totalDiff;
+         accTotal.min = Math.min(accTotal.min, totalDiff); // Note: For ratio logic, you might want to pair these rather than mix independent mins.
       })) {
-         double idleCores = (double) (TICK_NANOS * acc.sum) / (now - start.timestamp);
-         double minIdleRatio = (double) (TICK_NANOS * acc.min) / (now - start.timestamp);
+         double overallIdleRatio = (double) accIdle.sum / accTotal.sum;
+         double minIdleRatio = (double) accIdle.min / (accTotal.sum / nCpu); // Approximation for max core usage
+
+         double idleCores = overallIdleRatio * nCpu;
+
          phaseUsage.put(name, String.format("%.1f%% (%.1f/%d cores), 1 core max %.1f%%",
-               100 - 100 * idleCores / nCpu, nCpu - idleCores, nCpu, 100 - 100 * minIdleRatio));
+               100 * (1 - overallIdleRatio), nCpu - idleCores, nCpu, 100 * (1 - minIdleRatio)));
       }
    }
 
@@ -195,12 +229,12 @@ public class CpuWatchdog implements Runnable {
    }
 
    private static class PhaseRecord {
-      final long timestamp;
       final long[] cpuIdle;
+      final long[] cpuTotal;
 
-      private PhaseRecord(long timestamp, long[] cpuIdle) {
-         this.timestamp = timestamp;
+      private PhaseRecord(long[] cpuIdle, long[] cpuTotal) {
          this.cpuIdle = cpuIdle;
+         this.cpuTotal = cpuTotal;
       }
    }
 }

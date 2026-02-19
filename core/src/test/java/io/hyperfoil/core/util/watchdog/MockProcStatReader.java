@@ -1,31 +1,33 @@
 package io.hyperfoil.core.util.watchdog;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MockProcStatReader implements ProcStatReader {
 
-   private List<String> statRead1 = List.of(
-         // CPU has 100 idle ticks
-         "cpu  0 0 0 100 0 0 0 0 0 0",
-         "cpu0 0 0 0 100 0 0 0 0 0 0");
-   private List<String> statRead2 = List.of(
-         // called after io.hyperfoil.cpu.watchdog.period
-         // after io.hyperfoil.cpu.watchdog.period we have 110 idle ticks
-         "cpu  0 0 0 110 0 0 0 0 0 0",
-         "cpu0 0 0 0 110 0 0 0 0 0 0");
+   private final List<List<String>> fileStates;
+   private int index = 0;
 
-   private int count = 0;
+   @SafeVarargs
+   public MockProcStatReader(List<String>... fileStates) {
+      this.fileStates = new ArrayList<>();
+      // there is a read on the constructor for nCpu
+      this.fileStates.add(List.of(
+            "cpu  0 0 0 0 0 0 0 0 0 0",
+            "cpu0 0 0 0 0 0 0 0 0 0 0"));
+      for (List<String> fileState : fileStates) {
+         // if you need to test more, change the line above
+         if (fileState.size() != 2) {
+            throw new IllegalArgumentException("Mock currently only supports 1 CPU core.");
+         }
+      }
+      this.fileStates.addAll(List.of(fileStates));
+   }
 
    @Override
-   public List<String> readLines() throws IOException {
-      count++;
-      // 1st read: constructor
-      // 2nd read: first loop iteration
-      // 3rd read: after sleeping 1000ms
-      if (count < 3) {
-         return statRead1;
-      }
-      return statRead2;
+   public List<String> readLines() {
+      List<String> currentState = fileStates.get(index);
+      index++;
+      return currentState;
    }
 }
