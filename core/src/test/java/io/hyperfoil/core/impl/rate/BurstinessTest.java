@@ -12,8 +12,8 @@ public class BurstinessTest {
    @CsvSource({
          "500, 1", // Every 2ms, fires 1 event.
          "1000, 1", // Every 1ms, fires 1 event.
-         "2000, 2", // Every 1ms, realizes it missed 2 events, fires 2 at once!
-         "10000, 10" // Every 1ms, realizes it missed 10 events, fires 10 at once!
+         "2000, 1", // Every 0.5ms, fires 1 event
+         "10000, 1" // Every 0.1ms, fires 1 event
    })
    public void testMillisecondMicroBursting(double rate, int expectedMaxEventsPerBucket) {
       final RateGenerator generator = RateGenerator.constantRate(rate);
