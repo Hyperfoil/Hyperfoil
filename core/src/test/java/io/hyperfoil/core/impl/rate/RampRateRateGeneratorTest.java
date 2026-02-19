@@ -28,7 +28,7 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
       final var generator = RateGenerator.rampRate(10, 10, 10_000_000_000L);
       final var missingFireTimeCounter = new FireTimesCounter();
       generator.computeNextFireTime(9_999_000_000L, missingFireTimeCounter);
-      assertEquals(100, missingFireTimeCounter.fireTimes);
+      assertEquals(99, missingFireTimeCounter.fireTimes);
    }
 
    @Test
@@ -36,7 +36,7 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
       final var generator = newUserGenerator();
       final var missingFireTimeCounter = new FireTimesCounter();
       generator.computeNextFireTime(9_999_000_000L, missingFireTimeCounter);
-      assertEquals(samples(), missingFireTimeCounter.fireTimes);
+      assertEquals(samples() - 1, missingFireTimeCounter.fireTimes);
    }
 
    @Override
