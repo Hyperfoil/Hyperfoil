@@ -10,10 +10,12 @@ import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.Protocol;
+import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.hyperfoil.impl.Util;
 
 public abstract class WrkScenario {
@@ -25,20 +27,27 @@ public abstract class WrkScenario {
 
    public BenchmarkBuilder getBenchmark(String name, String url, boolean enableHttp2, int connections,
          boolean useHttpCache, int threads, Map<String, String> agentParam, String warmupDuration, String testDuration,
-         String[][] parsedHeaders, String timeout)
+         String[][] parsedHeaders, String timeout) throws URISyntaxException {
+      return this.getBenchmark(name, url, enableHttp2, connections, useHttpCache, threads, agentParam, warmupDuration,
+            testDuration, parsedHeaders, timeout, null);
+   }
+
+   public BenchmarkBuilder getBenchmark(String name, String url, boolean enableHttp2, int connections,
+         boolean useHttpCache, int threads, Map<String, String> agentParam, String warmupDuration, String testDuration,
+         String[][] parsedHeaders, String timeout, RawBytesHandler otherHandler)
          throws URISyntaxException {
       URI uri = this.getUri(url);
       BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
             agentParam);
       String path = getPath(uri);
       if (Util.parseToMillis(warmupDuration) == 0) {
-         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path, otherHandler)
                .maxDuration(Util.parseToMillis(testDuration));
       } else {
-         addPhase(builder, PhaseType.calibration, warmupDuration, parsedHeaders, timeout, path);
+         addPhase(builder, PhaseType.calibration, warmupDuration, parsedHeaders, timeout, path, otherHandler);
          // We can start only after calibration has full completed because otherwise some sessions
          // would not have connection available from the beginning.
-         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path)
+         addPhase(builder, PhaseType.test, testDuration, parsedHeaders, timeout, path, otherHandler)
                .startAfterStrict(PhaseType.calibration.name())
                .maxDuration(Util.parseToMillis(testDuration));
       }
@@ -53,16 +62,16 @@ public abstract class WrkScenario {
       BenchmarkBuilder builder = BenchmarkBuilder.builder()
             .name(name)
             .addPlugin(HttpPluginBuilder::new)
-               .ergonomics()
-                  .repeatCookies(false)
-                  .userAgentFromSession(false)
-               .endErgonomics()
-               .http()
-                  .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
-                  .allowHttp2(enableHttp2)
-                  .sharedConnections(connections)
-                  .useHttpCache(useHttpCache)
-               .endHttp()
+            .ergonomics()
+            .repeatCookies(false)
+            .userAgentFromSession(false)
+            .endErgonomics()
+            .http()
+            .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
+            .allowHttp2(enableHttp2)
+            .sharedConnections(connections)
+            .useHttpCache(useHttpCache)
+            .endHttp()
             .endPlugin()
             .threads(threads);
       // @formatter:on
@@ -88,13 +97,13 @@ public abstract class WrkScenario {
    protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs);
 
    private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, PhaseType phaseType, String durationStr,
-         String[][] parsedHeaders, String timeout, String path) {
+         String[][] parsedHeaders, String timeout, String path, RawBytesHandler otherHandler) {
       long duration = Util.parseToMillis(durationStr);
       // @formatter:off
       var scenarioBuilder = phaseConfig(benchmarkBuilder.addPhase(phaseType.name()), phaseType, duration)
-              .duration(duration)
-              .maxDuration(duration + Util.parseToMillis(timeout))
-              .scenario();
+            .duration(duration)
+            .maxDuration(duration + Util.parseToMillis(timeout))
+            .scenario();
       // even with pipelining or HTTP 2 multiplexing
       // each session lifecycle requires to fully complete (with response)
       // before being reused, hence the number of requests which can use is just 1
@@ -102,24 +111,30 @@ public abstract class WrkScenario {
       // same reasoning here: given that the default concurrency of sequence is 0 for initialSequences
       // and there's a single sequence too, there's no point to have more than 1 per session
       scenarioBuilder.maxSequences(1);
-      return scenarioBuilder
-               .initialSequence("request")
-                  .step(SC).httpRequest(HttpMethod.GET)
-                     .path(path)
-                     .headerAppender((session, request) -> {
-                        if (parsedHeaders != null) {
-                           for (String[] header : parsedHeaders) {
-                              request.putHeader(header[0], header[1]);
-                           }
-                        }
-                     })
-                     .timeout(timeout)
-                     .handler()
-                        .rawBytes(new TransferSizeRecorder("transfer"))
-                     .endHandler()
-                  .endStep()
-               .endSequence()
+
+      HttpResponseHandlersImpl.Builder baseScenarioBuilder = scenarioBuilder
+            .initialSequence("request")
+            .step(SC).httpRequest(HttpMethod.GET)
+            .path(path)
+            .headerAppender((session, request) -> {
+               if (parsedHeaders != null) {
+                  for (String[] header : parsedHeaders) {
+                     request.putHeader(header[0], header[1]);
+                  }
+               }
+            })
+            .timeout(timeout)
+            .handler();
+      if (otherHandler != null) {
+         baseScenarioBuilder.rawBytes(otherHandler);
+      }
+      PhaseBuilder<?> phaseBuilder = baseScenarioBuilder
+            .rawBytes(new TransferSizeRecorder("transfer"))
+            .endHandler()
+            .endStep()
+            .endSequence()
             .endScenario();
+      return phaseBuilder;
       // @formatter:on
    }
 
