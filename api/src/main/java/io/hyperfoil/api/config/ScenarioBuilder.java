@@ -113,6 +113,21 @@ public class ScenarioBuilder {
       return this;
    }
 
+   public boolean hasOpenModelPhase() {
+      return phaseBuilder instanceof PhaseBuilder.OpenModel<?>;
+   }
+
+   public boolean isRootSequence(BaseSequenceBuilder<?> sequence) {
+      if (!(sequence instanceof SequenceBuilder seq)) {
+         // this includes all impl of BaseSequenceBuilder that are not SequenceBuilder e.g. loop, etc
+         return false;
+      }
+      if (!sequences.contains(seq)) {
+         throw new IllegalStateException("Sequence " + sequence.name() + " is not part of the scenario!");
+      }
+      return initialSequences.contains(sequence);
+   }
+
    public void prepareBuild() {
       new ArrayList<>(sequences).forEach(SequenceBuilder::prepareBuild);
    }

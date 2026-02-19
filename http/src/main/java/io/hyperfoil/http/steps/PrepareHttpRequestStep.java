@@ -29,6 +29,7 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
    final SerializableFunction<Session, String> pathGenerator;
    final MetricSelector metricSelector;
    final HttpResponseHandlersImpl handler;
+   final boolean useSessionStartTime;
 
    public PrepareHttpRequestStep(int stepId, HttpRequestContext.Key contextKey,
          SerializableFunction<Session, HttpMethod> method,
@@ -36,7 +37,8 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
          SerializableFunction<Session, String> authority,
          SerializableFunction<Session, String> pathGenerator,
          MetricSelector metricSelector,
-         HttpResponseHandlersImpl handler) {
+         HttpResponseHandlersImpl handler,
+         boolean useSessionStartTime) {
       super(stepId);
       this.contextKey = contextKey;
       this.method = method;
@@ -45,6 +47,7 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
       this.pathGenerator = pathGenerator;
       this.metricSelector = metricSelector;
       this.handler = handler;
+      this.useSessionStartTime = useSessionStartTime;
    }
 
    @Override
@@ -85,7 +88,7 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
          String metric = destinations.hasSingleDestination() ? metricSelector.apply(null, request.path)
                : metricSelector.apply(request.authority, request.path);
          Statistics statistics = session.statistics(id(), metric);
-         request.start(connectionPool, handler, session.currentSequence(), statistics);
+         request.start(connectionPool, handler, session.currentSequence(), statistics, useSessionStartTime);
          connectionPool.acquire(false, context);
       } catch (Throwable t) {
          // If any error happens we still need to release the request

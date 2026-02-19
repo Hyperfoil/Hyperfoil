@@ -240,6 +240,10 @@
         "followRedirect": {
           "description": "Automatically fire requests when the server responds with redirection. Default is NEVER.",
           "enum" : [ "NEVER", "LOCATION_ONLY", "HTML_ONLY", "ALWAYS" ]
+        },
+        "compensateInternalLatency": {
+          "description": "Use session's scheduled start time as request start timestamp in open model phases. Default is false.",
+          "type": "boolean"
         }
       }
     },

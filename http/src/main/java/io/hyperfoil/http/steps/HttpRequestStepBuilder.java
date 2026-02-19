@@ -88,6 +88,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    private SLABuilder.ListBuilder<HttpRequestStepBuilder> sla = null;
    private CompensationBuilder compensation;
    private CompressionBuilder compression = new CompressionBuilder(this);
+   private boolean useSessionStartTime = false;
 
    /**
     * HTTP method used for the request.
@@ -546,6 +547,11 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       Locator locator = Locator.current();
 
       HttpErgonomics ergonomics = locator.benchmark().plugin(HttpPluginBuilder.class).ergonomics();
+      if (ergonomics.compensateInternalLatency()) {
+         this.useSessionStartTime = locator.scenario().hasOpenModelPhase()
+               && locator.scenario().isRootSequence(locator.sequence())
+               && locator.sequence().indexOf(this) == 0;
+      }
       if (ergonomics.repeatCookies()) {
          headerAppender(new CookieAppender());
       }
@@ -646,7 +652,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
       HttpRequestContext.Key contextKey = new HttpRequestContext.Key();
       PrepareHttpRequestStep prepare = new PrepareHttpRequestStep(stepId, contextKey, method.build(), endpoint, authority,
-            pathGenerator, metricSelector, handler.build());
+            pathGenerator, metricSelector, handler.build(), useSessionStartTime);
       SendHttpRequestStep step = new SendHttpRequestStep(stepId, contextKey, bodyGenerator, headerAppenders, injectHostHeader,
             timeout, sla);
       return Arrays.asList(prepare, step);

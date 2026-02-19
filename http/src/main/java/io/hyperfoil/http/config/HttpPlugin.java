@@ -38,6 +38,8 @@ public class HttpPlugin implements Plugin {
       parser.register("stopOnInvalid", HttpPluginBuilder.class, new PropertyParser.Boolean<>(HttpErgonomics::stopOnInvalid));
       parser.register("followRedirect", HttpPluginBuilder.class,
             new PropertyParser.Enum<>(FollowRedirect.values(), HttpErgonomics::followRedirect));
+      parser.register("compensateInternalLatency", HttpPluginBuilder.class,
+            new PropertyParser.Boolean<>(HttpErgonomics::compensateInternalLatency));
    }
 
    @Override

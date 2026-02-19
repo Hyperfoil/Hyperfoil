@@ -19,7 +19,7 @@ import io.netty.util.concurrent.EventExecutorGroup;
  * <li>starting a {@link Session} doesn't mean immediate execution, but scheduling a deferred start in the
  * {@link Session#executor()}</li>
  * <li>given that {@link Session}s are pooled, being throttled means that no available instances are found by
- * {@link #onFireTimes(long)}</li>
+ * {@link #onFireTimes(long[], long)}</li>
  * <li>when a {@link Session} finishes, {@link #notifyFinished(Session)} can immediately restart it if there are
  * throttled users, preventing it to be pooled</li>
  * </ul>
@@ -89,8 +89,10 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
    }
 
    @Override
-   public void onFireTime() {
-      if (!startNewSession()) {
+   public void onFireTime(long fireTimeNs) {
+      long absoluteStartTimeMs = absoluteStartTime + TimeUnit.NANOSECONDS.toMillis(fireTimeNs);
+      long absoluteStartNanoTime = nanoTimeStart + fireTimeNs;
+      if (!startNewSession(absoluteStartTimeMs, absoluteStartNanoTime)) {
          throttledUsers.incrementAndGet();
       }
    }
@@ -104,7 +106,7 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
                // TODO: it would be nice to compensate response times
                // in these invocations for the fact that we're applying
                // SUT feedback, but that would be imprecise anyway.
-               session.start(this);
+               session.start(-1, -1, this);
                // this prevents the session to be pooled
                return;
             } else {
