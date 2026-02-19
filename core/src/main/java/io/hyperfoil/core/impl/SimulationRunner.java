@@ -43,7 +43,7 @@ import io.hyperfoil.core.session.AgentDataImpl;
 import io.hyperfoil.core.session.GlobalDataImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.session.ThreadDataImpl;
-import io.hyperfoil.core.util.CpuWatchdog;
+import io.hyperfoil.core.util.watchdog.CpuWatchdog;
 import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
 import io.netty.channel.EventLoop;

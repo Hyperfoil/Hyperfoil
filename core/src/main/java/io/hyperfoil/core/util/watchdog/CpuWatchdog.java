@@ -1,4 +1,4 @@
-package io.hyperfoil.core.util;
+package io.hyperfoil.core.util.watchdog;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,7 +21,6 @@ import io.hyperfoil.internal.Properties;
 public class CpuWatchdog implements Runnable {
    private static final Logger log = LogManager.getLogger(CpuWatchdog.class);
    private static final Path PROC_STAT = Path.of("/proc/stat");
-   private static final long PERIOD = Properties.getLong(Properties.CPU_WATCHDOG_PERIOD, 5000);
    private static final double IDLE_THRESHOLD = Double
          .parseDouble(Properties.get(Properties.CPU_WATCHDOG_IDLE_THRESHOLD, "0.2"));
    // On most architectures the tick is defined as 1/100 of second (10 ms)
@@ -38,10 +37,17 @@ public class CpuWatchdog implements Runnable {
    private long now;
    private final Map<String, PhaseRecord> phaseStart = new HashMap<>();
    private final Map<String, String> phaseUsage = new HashMap<>();
-
+   private final ProcStatReader statReader;
+   private final long cpuWatchDocPeriod;
    public CpuWatchdog(Consumer<Throwable> errorHandler, BooleanSupplier warmupTest) {
+      this(errorHandler, warmupTest, () -> Files.readAllLines(PROC_STAT));
+   }
+
+   public CpuWatchdog(Consumer<Throwable> errorHandler, BooleanSupplier warmupTest, ProcStatReader statReader) {
       this.errorHandler = errorHandler;
       this.warmupTest = warmupTest;
+      this.statReader = statReader;
+      this.cpuWatchDocPeriod = Properties.getLong(Properties.CPU_WATCHDOG_PERIOD, 5000);
       File stat = PROC_STAT.toFile();
       if (!stat.exists() || !stat.isFile() || !stat.canRead()) {
          log.warn("Not starting CPU watchdog as {} is not available (exists: {}, file: {}, readable: {})",
@@ -75,7 +81,7 @@ public class CpuWatchdog implements Runnable {
             return;
          }
          try {
-            Thread.sleep(PERIOD);
+            Thread.sleep(this.cpuWatchDocPeriod);
          } catch (InterruptedException e) {
             log.error("CPU watchdog thread interrupted, terminating.", e);
             return;
@@ -87,7 +93,7 @@ public class CpuWatchdog implements Runnable {
 
    private boolean readProcStat(Consumer<String[]> consumer) {
       try {
-         for (String line : Files.readAllLines(PROC_STAT)) {
+         for (String line : this.statReader.readLines()) {
             if (!line.startsWith("cpu"))
                continue;
             String[] parts = line.split(" ");
