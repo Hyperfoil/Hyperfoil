@@ -259,6 +259,15 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
     * @return {@code true} if the new {@link Session} was started, {@code false} otherwise.
     */
    protected boolean startNewSession() {
+      return startNewSession(-1, -1);
+   }
+
+   /**
+    * @param startTimeMs the intended start time in millis, or {@code -1} if not applicable.
+    * @param startNanoTime the intended start time as {@link System#nanoTime()}, or {@code -1} if not applicable.
+    * @return {@code true} if the new {@link Session} was started, {@code false} otherwise.
+    */
+   protected boolean startNewSession(long startTimeMs, long startNanoTime) {
       int numActive = activeSessions.incrementAndGet();
       if (numActive < 0) {
          // finished
@@ -279,7 +288,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          noSessionsAvailable();
          return false;
       }
-      session.start(this);
+      session.start(startTimeMs, startNanoTime, this);
       return true;
    }
 
@@ -363,7 +372,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          if (status.isFinished() || session == null) {
             super.notifyFinished(session);
          } else {
-            session.start(this);
+            session.start(-1, -1, this);
          }
       }
    }
@@ -400,7 +409,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
             }
             super.notifyFinished(session);
          } else {
-            session.start(this);
+            session.start(-1, -1, this);
          }
       }
    }

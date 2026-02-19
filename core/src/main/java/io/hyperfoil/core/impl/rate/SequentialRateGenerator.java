@@ -9,7 +9,7 @@ abstract class SequentialRateGenerator extends BaseRateGenerator {
       long fireTimesCount = 0;
       double nextFireTimeNs = fireTimeNs;
       while (elapsedTimeNs >= nextFireTimeNs) {
-         listener.onFireTime();
+         listener.onFireTime((long) Math.ceil(nextFireTimeNs));
          fireTimesCount++;
          nextFireTimeNs = nextFireTimeNs(nextFireTimeNs);
       }
