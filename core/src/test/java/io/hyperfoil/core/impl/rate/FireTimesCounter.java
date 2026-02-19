@@ -9,7 +9,7 @@ final class FireTimesCounter implements FireTimeListener {
    }
 
    @Override
-   public void onFireTime() {
+   public void onFireTime(long fireTimeNs) {
       fireTimes++;
    }
 }
