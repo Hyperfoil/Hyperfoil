@@ -28,6 +28,7 @@ import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.AgentData;
 import io.hyperfoil.api.session.ControllerListener;
@@ -48,6 +49,8 @@ import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.Native;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -156,6 +159,10 @@ public class SimulationRunner {
          phase.reserveSessions();
          // at this point all session resources should be reserved
       }
+
+      // Check if native epoll transport is available for sub-millisecond timing precision
+      checkNativeTransportForSubMillisecondTiming();
+
       // hint the GC to tenure sessions
       this.runGC();
 
@@ -542,6 +549,50 @@ public class SimulationRunner {
       System.gc();
 
       log.info("GC execution took {} ms", (System.currentTimeMillis() - actualGCRun));
+   }
+
+   private void checkNativeTransportForSubMillisecondTiming() {
+      boolean requiresSubMillisecondPrecision = false;
+      double threshold = 1000.0;
+      for (Phase phase : benchmark.phases()) {
+         if (phase.model instanceof Model.ConstantRate model) {
+            double rate = benchmark.slice(model.usersPerSec, agentId);
+            if (rate > threshold) {
+               requiresSubMillisecondPrecision = true;
+               break;
+            }
+         } else if (phase.model instanceof Model.RampRate model) {
+            double initialRate = benchmark.slice(model.initialUsersPerSec, agentId);
+            double targetRate = benchmark.slice(model.targetUsersPerSec, agentId);
+            if (initialRate > threshold || targetRate > threshold) {
+               requiresSubMillisecondPrecision = true;
+               break;
+            }
+         }
+      }
+
+      // Warn if sub-millisecond precision is needed but native epoll is not available
+      if (requiresSubMillisecondPrecision) {
+         if (Epoll.isAvailable()) {
+            try {
+               String kernelVersion = Native.KERNEL_VERSION;
+               String[] parts = kernelVersion.split("[\\.-]");
+               int major = Integer.parseInt(parts[0]);
+               int minor = Integer.parseInt(parts[1]);
+
+               boolean epollPwait2Support = major > 5 || (major == 5 && minor >= 11);
+               if (!epollPwait2Support) {
+                  log.warn(
+                        "Sub-millisecond rate detected and native epoll transport is available but your Linux kernel does not support epoll_pwait2. Timing precision may be limited to millisecond granularity.");
+               }
+            } catch (Exception e) {
+               log.error("Failed to detect epoll_pwait2.", e);
+            }
+         } else {
+            log.warn(
+                  "Sub-millisecond rate detected but native epoll transport is unavailable. Timing precision may be limited to millisecond granularity.");
+         }
+      }
    }
 
    private static class SharedResources {
