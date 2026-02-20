@@ -634,6 +634,16 @@
                         <source>${maven.compiler.source}</source>
                         <target>${maven.compiler.target}</target>
                         <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                        <!--
+                        As of JDK 23, the compiler no longer automatically scans the classpath for annotation processors by default, making explicit configuration the required approach.
+                        -->
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.kohsuke.metainf-services</groupId>
+                                <artifactId>metainf-services</artifactId>
+                                <version>${version.metainf-services}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                 </plugin>
 
