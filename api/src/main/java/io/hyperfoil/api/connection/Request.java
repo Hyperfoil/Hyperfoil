@@ -68,10 +68,12 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
          long sessionStartTime = session.scheduledStartTimestamp();
          long sessionStartNanoTime = session.scheduledStartNanoTime();
          if (sessionStartTime == -1 || sessionStartNanoTime == -1) {
-            throw new IllegalStateException("Session start time should be set before starting the request.");
+            startTimestampMillis = System.currentTimeMillis();
+            startTimestampNanos = System.nanoTime();
+         } else {
+            startTimestampMillis = sessionStartTime;
+            startTimestampNanos = sessionStartNanoTime;
          }
-         startTimestampMillis = sessionStartTime;
-         startTimestampNanos = sessionStartNanoTime;
       } else {
          startTimestampMillis = System.currentTimeMillis();
          startTimestampNanos = System.nanoTime();
