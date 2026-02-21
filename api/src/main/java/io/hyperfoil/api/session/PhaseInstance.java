@@ -11,8 +11,6 @@ public interface PhaseInstance {
 
    Status status();
 
-   void proceed(EventExecutorGroup executorGroup);
-
    long absoluteStartTime();
 
    String absoluteStartTimeAsString();
