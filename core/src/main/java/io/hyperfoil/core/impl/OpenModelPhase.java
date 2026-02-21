@@ -6,8 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.impl.rate.FireTimeListener;
-import io.hyperfoil.core.impl.rate.RateGenerator;
+import io.hyperfoil.core.impl.rate.FireTimeSequence;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 /**
@@ -19,7 +18,7 @@ import io.netty.util.concurrent.EventExecutorGroup;
  * <li>starting a {@link Session} doesn't mean immediate execution, but scheduling a deferred start in the
  * {@link Session#executor()}</li>
  * <li>given that {@link Session}s are pooled, being throttled means that no available instances are found by
- * {@link #onFireTime(long)}</li>
+ * {@link #proceed(EventExecutorGroup)}</li>
  * <li>when a {@link Session} finishes, {@link #notifyFinished(Session)} can immediately restart it if there are
  * throttled users, preventing it to be pooled</li>
  * </ul>
@@ -27,18 +26,18 @@ import io.netty.util.concurrent.EventExecutorGroup;
  * The last point is crucial because it means that a too small amount of pooled sessions would be "compensated" only
  * when a session finished, instead of when {@link #sessionPool} has available sessions available.
  */
-final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener {
+final class OpenModelPhase extends PhaseInstanceImpl {
 
    private final int maxSessions;
    private final AtomicLong throttledUsers = new AtomicLong(0);
-   private final RateGenerator rateGenerator;
-   private final long relativeFirstFireTimeNs;
+   private final FireTimeSequence fireTimeSequence;
+   private long nextScheduledFireTimeNs;
 
-   OpenModelPhase(RateGenerator rateGenerator, Phase def, String runId, int agentId) {
+   OpenModelPhase(FireTimeSequence fireTimeSequence, Phase def, String runId, int agentId) {
       super(def, runId, agentId);
-      this.rateGenerator = rateGenerator;
+      this.fireTimeSequence = fireTimeSequence;
       this.maxSessions = Math.max(1, def.benchmark().slice(((Model.OpenModel) def.model).maxSessions, agentId));
-      this.relativeFirstFireTimeNs = rateGenerator.lastComputedFireTimeNs();
+      this.nextScheduledFireTimeNs = fireTimeSequence.nextFireTimeNs();
    }
 
    @Override
@@ -52,7 +51,7 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
    @Override
    protected void proceedOnStarted(final EventExecutorGroup executorGroup) {
       long elapsedNs = System.nanoTime() - nanoTimeStart;
-      long remainingNsToFirstFireTime = relativeFirstFireTimeNs - elapsedNs;
+      long remainingNsToFirstFireTime = nextScheduledFireTimeNs - elapsedNs;
       if (remainingNsToFirstFireTime > 0) {
          executorGroup.schedule(() -> proceed(executorGroup), remainingNsToFirstFireTime, TimeUnit.NANOSECONDS);
       } else {
@@ -65,35 +64,33 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
       if (status.isFinished()) {
          return;
       }
-      long realFireTimeNs = System.nanoTime();
-      long elapsedTimeNs = realFireTimeNs - nanoTimeStart;
-      // the time should flow forward: we can have some better check here for NTP and maybe rise a warning
-      assert elapsedTimeNs >= rateGenerator.lastComputedFireTimeNs();
-      long expectedNextFireTimeNs = rateGenerator.computeNextFireTime(elapsedTimeNs, this);
-      // we need to make sure that the scheduling decisions are made based on the current time
-      long rateGenerationDelayNs = System.nanoTime() - realFireTimeNs;
-      assert rateGenerationDelayNs >= 0;
-      // given that both computeNextFireTime and onFireTime can take some time, we need to adjust the fire time
-      long scheduledFireDelayNs = Math.max(0, (expectedNextFireTimeNs - elapsedTimeNs) - rateGenerationDelayNs);
-      if (trace) {
-         log.trace("{}: {} ns after start, {} started ({} throttled), next user in {} ns, scheduling decisions took {} ns",
-               def.name, elapsedTimeNs,
-               rateGenerator.fireTimes(), throttledUsers, scheduledFireDelayNs, rateGenerationDelayNs);
+      long elapsedTimeNs = System.nanoTime() - nanoTimeStart;
+      if (elapsedTimeNs < nextScheduledFireTimeNs) {
+         log.warn("{}: proceed() called before fire time: elapsed={} ns, nextFireTime={} ns",
+               def.name, elapsedTimeNs, nextScheduledFireTimeNs);
+         executorGroup.schedule(() -> proceed(executorGroup),
+               nextScheduledFireTimeNs - elapsedTimeNs, TimeUnit.NANOSECONDS);
+         return;
       }
-      if (scheduledFireDelayNs <= 0) {
-         // we're so late that there's no point in bothering the executor with timers
-         executorGroup.execute(() -> proceed(executorGroup));
-      } else {
-         executorGroup.schedule(() -> proceed(executorGroup), scheduledFireDelayNs, TimeUnit.NANOSECONDS);
-      }
-   }
-
-   @Override
-   public void onFireTime(long fireTimeNs) {
+      // Handle the current fire time
+      long fireTimeNs = nextScheduledFireTimeNs;
       long absoluteStartTimeMs = absoluteStartTime + TimeUnit.NANOSECONDS.toMillis(fireTimeNs);
       long absoluteStartNanoTime = nanoTimeStart + fireTimeNs;
       if (!startNewSession(absoluteStartTimeMs, absoluteStartNanoTime)) {
          throttledUsers.incrementAndGet();
+      }
+      // Compute next fire time and schedule accordingly
+      nextScheduledFireTimeNs = fireTimeSequence.nextFireTimeNs();
+      long nowNs = System.nanoTime() - nanoTimeStart;
+      long delayNs = nextScheduledFireTimeNs - nowNs;
+      if (delayNs <= 0) {
+         executorGroup.execute(() -> proceed(executorGroup));
+      } else {
+         if (trace) {
+            log.trace("{}: {} ns after start, next fire in {} ns ({} throttled)",
+                  def.name, nowNs, delayNs, throttledUsers);
+         }
+         executorGroup.schedule(() -> proceed(executorGroup), delayNs, TimeUnit.NANOSECONDS);
       }
    }
 

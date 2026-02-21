@@ -3,7 +3,7 @@ package io.hyperfoil.core.impl;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseInstance;
-import io.hyperfoil.core.impl.rate.RateGenerator;
+import io.hyperfoil.core.impl.rate.FireTimeSequence;
 
 final class OpenModel {
 
@@ -11,9 +11,9 @@ final class OpenModel {
       var model = (Model.ConstantRate) def.model;
       double usersPerSec = def.benchmark().slice(model.usersPerSec, agentId);
       if (model.variance) {
-         return new OpenModelPhase(RateGenerator.poissonConstantRate(usersPerSec), def, runId, agentId);
+         return new OpenModelPhase(FireTimeSequence.poissonConstantRate(usersPerSec), def, runId, agentId);
       } else {
-         return new OpenModelPhase(RateGenerator.constantRate(usersPerSec), def, runId, agentId);
+         return new OpenModelPhase(FireTimeSequence.constantRate(usersPerSec), def, runId, agentId);
       }
    }
 
@@ -23,10 +23,10 @@ final class OpenModel {
       double targetUsersPerSec = def.benchmark().slice(model.targetUsersPerSec, agentId);
       long durationNs = def.duration * 1_000_000L;
       if (model.variance) {
-         return new OpenModelPhase(RateGenerator.poissonRampRate(initialUsersPerSec, targetUsersPerSec, durationNs), def, runId,
-               agentId);
+         return new OpenModelPhase(FireTimeSequence.poissonRampRate(initialUsersPerSec, targetUsersPerSec, durationNs), def,
+               runId, agentId);
       } else {
-         return new OpenModelPhase(RateGenerator.rampRate(initialUsersPerSec, targetUsersPerSec, durationNs), def, runId,
+         return new OpenModelPhase(FireTimeSequence.rampRate(initialUsersPerSec, targetUsersPerSec, durationNs), def, runId,
                agentId);
       }
    }

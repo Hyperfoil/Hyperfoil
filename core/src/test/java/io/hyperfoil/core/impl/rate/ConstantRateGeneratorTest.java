@@ -9,12 +9,12 @@ public class ConstantRateGeneratorTest extends RateGeneratorTest {
    }
 
    @Override
-   RateGenerator newUserGenerator() {
-      return RateGenerator.constantRate(1000);
+   FireTimeSequence newSequence() {
+      return FireTimeSequence.constantRate(1000);
    }
 
    @Override
-   void assertSamplesWithoutSkew(final double[] samples, final long totalUsers) {
+   void assertSamplesWithoutSkew(final double[] samples) {
       for (int i = 1; i < samples.length; ++i) {
          assertEquals(samples[i - 1] + 1_000_000.0, samples[i], 0.0);
       }
