@@ -1,21 +1,16 @@
 package io.hyperfoil.core.impl.rate;
 
-final class ConstantRateGenerator extends FunctionalRateGenerator {
+final class ConstantRateGenerator implements FireTimeSequence {
 
    private final double fireTimesPerSec;
+   private long index;
 
    ConstantRateGenerator(final double fireTimesPerSec) {
       this.fireTimesPerSec = fireTimesPerSec;
    }
 
    @Override
-   protected long computeFireTimes(final long elapsedTimeNs) {
-      return (long) (elapsedTimeNs * fireTimesPerSec / 1_000_000_000.0);
+   public long nextFireTimeNs() {
+      return (long) Math.ceil(1_000_000_000.0 * ++index / fireTimesPerSec);
    }
-
-   @Override
-   protected double computeFireTimeNs(final long targetFireTimes) {
-      return 1_000_000_000.0 * targetFireTimes / fireTimesPerSec;
-   }
-
 }
