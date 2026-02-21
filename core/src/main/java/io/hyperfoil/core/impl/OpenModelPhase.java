@@ -7,7 +7,6 @@ import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.impl.rate.FireTimeSequence;
-import io.netty.util.concurrent.EventExecutorGroup;
 
 /**
  * This is a base class for Open Model phases that need to compensate users based on the available ones in the session pool.
@@ -18,7 +17,7 @@ import io.netty.util.concurrent.EventExecutorGroup;
  * <li>starting a {@link Session} doesn't mean immediate execution, but scheduling a deferred start in the
  * {@link Session#executor()}</li>
  * <li>given that {@link Session}s are pooled, being throttled means that no available instances are found by
- * {@link #proceed(EventExecutorGroup)}</li>
+ * {@link #proceed()}</li>
  * <li>when a {@link Session} finishes, {@link #notifyFinished(Session)} can immediately restart it if there are
  * throttled users, preventing it to be pooled</li>
  * </ul>
@@ -31,6 +30,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
    private final int maxSessions;
    private final AtomicLong throttledUsers = new AtomicLong(0);
    private final FireTimeSequence fireTimeSequence;
+   private final Runnable proceedTask = this::proceed;
    private long nextScheduledFireTimeNs;
 
    OpenModelPhase(FireTimeSequence fireTimeSequence, Phase def, String runId, int agentId) {
@@ -49,18 +49,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
    }
 
    @Override
-   protected void proceedOnStarted(final EventExecutorGroup executorGroup) {
-      long elapsedNs = System.nanoTime() - nanoTimeStart;
-      long remainingNsToFirstFireTime = nextScheduledFireTimeNs - elapsedNs;
-      if (remainingNsToFirstFireTime > 0) {
-         executorGroup.schedule(() -> proceed(executorGroup), remainingNsToFirstFireTime, TimeUnit.NANOSECONDS);
-      } else {
-         proceed(executorGroup);
-      }
-   }
-
-   @Override
-   public void proceed(final EventExecutorGroup executorGroup) {
+   protected void proceed() {
       if (status.isFinished()) {
          return;
       }
@@ -68,7 +57,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
       if (elapsedTimeNs < nextScheduledFireTimeNs) {
          log.warn("{}: proceed() called before fire time: elapsed={} ns, nextFireTime={} ns",
                def.name, elapsedTimeNs, nextScheduledFireTimeNs);
-         executorGroup.schedule(() -> proceed(executorGroup),
+         executorGroup.schedule(proceedTask,
                nextScheduledFireTimeNs - elapsedTimeNs, TimeUnit.NANOSECONDS);
          return;
       }
@@ -84,13 +73,13 @@ final class OpenModelPhase extends PhaseInstanceImpl {
       long nowNs = System.nanoTime() - nanoTimeStart;
       long delayNs = nextScheduledFireTimeNs - nowNs;
       if (delayNs <= 0) {
-         executorGroup.execute(() -> proceed(executorGroup));
+         executorGroup.execute(proceedTask);
       } else {
          if (trace) {
             log.trace("{}: {} ns after start, next fire in {} ns ({} throttled)",
                   def.name, nowNs, delayNs, throttledUsers);
          }
-         executorGroup.schedule(() -> proceed(executorGroup), delayNs, TimeUnit.NANOSECONDS);
+         executorGroup.schedule(proceedTask, delayNs, TimeUnit.NANOSECONDS);
       }
    }
 
