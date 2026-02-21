@@ -40,6 +40,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    protected long nanoTimeStart;
    protected String absoluteStartTimeString;
    protected AtomicInteger activeSessions = new AtomicInteger(0);
+   protected EventExecutorGroup executorGroup;
    private volatile Throwable error;
    private volatile boolean sessionLimitExceeded;
    private Runnable failedSessionAcquisitionAction;
@@ -95,6 +96,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
    @Override
    public void start(EventExecutorGroup executorGroup) {
+      this.executorGroup = executorGroup;
       synchronized (this) {
          assert status == Status.NOT_STARTED : "Status is " + status;
          status = Status.RUNNING;
@@ -102,16 +104,10 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       recordAbsoluteStartTime();
       log.debug("{} changing status to RUNNING", def.name);
       phaseChangeHandler.onChange(def, Status.RUNNING, false, error)
-            .thenRun(() -> proceedOnStarted(executorGroup));
+            .thenRun(this::proceed);
    }
 
-   /**
-    * This method is called when the phase is started and the status is set to RUNNING.<br>
-    * It should be overridden by the subclasses to handle the very first call to {@link #proceed(EventExecutorGroup)}.
-    */
-   protected void proceedOnStarted(EventExecutorGroup executorGroup) {
-      proceed(executorGroup);
-   }
+   protected abstract void proceed();
 
    /**
     * This method can be overridden (but still need to call super) to create additional timestamps
@@ -320,7 +316,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       }
 
       @Override
-      public void proceed(EventExecutorGroup executorGroup) {
+      protected void proceed() {
          assert activeSessions.get() == 0;
          for (int i = 0; i < users; ++i) {
             startNewSession();
@@ -353,7 +349,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       }
 
       @Override
-      public void proceed(EventExecutorGroup executorGroup) {
+      protected void proceed() {
          assert activeSessions.get() == 0;
          for (int i = 0; i < users; ++i) {
             startNewSession();
@@ -385,7 +381,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       }
 
       @Override
-      public void proceed(EventExecutorGroup executorGroup) {
+      protected void proceed() {
          assert activeSessions.get() == 0;
          startNewSession();
       }
@@ -420,7 +416,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       }
 
       @Override
-      public void proceed(EventExecutorGroup executorGroup) {
+      protected void proceed() {
       }
 
       @Override
