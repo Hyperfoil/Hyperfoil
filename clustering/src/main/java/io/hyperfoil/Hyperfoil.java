@@ -231,6 +231,7 @@ public class Hyperfoil {
 
    public static class Agent extends Hyperfoil {
       public static void main(String[] args) {
+         logVersion();
          clusteredVertx(false)
                .onSuccess(vertx -> deploy(vertx, AgentVerticle.class))
                .onFailure(error -> System.exit(1));
@@ -239,6 +240,7 @@ public class Hyperfoil {
 
    public static class Controller extends Hyperfoil {
       public static void main(String[] args) {
+         logVersion();
          clusteredVertx(true)
                .onSuccess(vertx -> deploy(vertx, ControllerVerticle.class))
                .onFailure(error -> System.exit(1));
