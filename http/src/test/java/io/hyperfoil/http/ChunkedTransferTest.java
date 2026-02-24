@@ -87,6 +87,14 @@ public class ChunkedTransferTest extends BaseHttpScenarioTest {
          response.write("\"}");
          response.end();
       });
+      router.route("/test5").handler(ctx -> {
+         HttpServerResponse response = ctx.response().setChunked(true);
+         response.write("{\"keep\":");
+         response.write("\"value\",");
+         response.write("\"remove\":");
+         response.write("\"secret\"}");
+         response.end();
+      });
    }
 
    @Test
@@ -115,6 +123,63 @@ public class ChunkedTransferTest extends BaseHttpScenarioTest {
       assertNotNull(fooValue);
       // we're not using equals because the string is too long and will blow the test output on failure!
       assertTrue(fooValue.equals(capturedValue.get()));
+   }
+
+   @Test
+   public void testChunkedJsonDeleteTransfer() {
+      var capturedOutput = new AtomicReference<StringBuilder>();
+      // @formatter:off
+      scenario().initialSequence("test")
+            .step(SC).httpRequest(HttpMethod.GET).path("/test5")
+            .handler()
+            .body(new JsonHandler.Builder().query(".remove").delete(true)
+                  .processors().processor(fragmented -> (session, data, offset, length, isLastPart) -> {
+                     StringBuilder sb = capturedOutput.updateAndGet(old -> old != null ? old : new StringBuilder());
+                     sb.append(data.toString(offset, length, StandardCharsets.UTF_8));
+                  }).end())
+            .endHandler()
+            .sync(true)
+            .endStep()
+            .endSequence();
+      // @formatter:on
+      runScenario();
+      assertNotNull(capturedOutput.get());
+      String output = capturedOutput.get().toString();
+      assertThat(output).doesNotContain("remove");
+      assertThat(output).doesNotContain("secret");
+      assertThat(output).contains("keep");
+      assertThat(output).contains("value");
+   }
+
+   @Test
+   public void testChunkedJsonDeleteWithRandomSplits() {
+      var capturedOutput = new AtomicReference<StringBuilder>();
+      // @formatter:off
+      scenario().initialSequence("test")
+            .step(s -> {
+               HttpDestinationTable.get(s).getConnectionPoolByAuthority(null).connections()
+                     .forEach(c -> injectChannelHandler(c, new RandomLengthDecoder()));
+               return true;
+            })
+            .step(SC).httpRequest(HttpMethod.GET).path("/test5")
+            .handler()
+            .body(new JsonHandler.Builder().query(".remove").delete(true)
+                  .processors().processor(fragmented -> (session, data, offset, length, isLastPart) -> {
+                     StringBuilder sb = capturedOutput.updateAndGet(old -> old != null ? old : new StringBuilder());
+                     sb.append(data.toString(offset, length, StandardCharsets.UTF_8));
+                  }).end())
+            .endHandler()
+            .sync(true)
+            .endStep()
+            .endSequence();
+      // @formatter:on
+      runScenario();
+      assertNotNull(capturedOutput.get());
+      String output = capturedOutput.get().toString();
+      assertThat(output).doesNotContain("remove");
+      assertThat(output).doesNotContain("secret");
+      assertThat(output).contains("keep");
+      assertThat(output).contains("value");
    }
 
    @Test
