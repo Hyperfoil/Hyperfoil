@@ -210,6 +210,71 @@ public class JsonHandlerTest {
       }
    }
 
+   @Test
+   public void testDeleteMultiFragment() {
+      // Delete with many small fragments — exercises StreamQueue release behavior
+      // across many parts, verifying that lastOutputIndex data is not prematurely freed
+      for (int chunkSize : new int[] { 1, 2, 3, 5, 7, 11 }) {
+         StringCollector stringCollector = new StringCollector();
+         JsonHandler handler = new JsonHandler(".[].product", true, null, new DefragProcessor(stringCollector));
+         Session session = SessionFactory.forTesting();
+         ResourceUtilizer.reserveForTesting(session, handler);
+
+         handler.before(session);
+         int pos = 0;
+         while (pos < JSON.length) {
+            int len = Math.min(chunkSize, JSON.length - pos);
+            boolean isLast = (pos + len >= JSON.length);
+            ByteBuf buf = Unpooled.wrappedBuffer(JSON, pos, len);
+            handler.process(session, buf, buf.readerIndex(), buf.readableBytes(), isLast);
+            pos += len;
+         }
+         handler.after(session);
+
+         JsonArray array = (JsonArray) Json.decodeValue(stringCollector.str);
+         assertThat(array.size()).as("chunkSize=%d", chunkSize).isEqualTo(3);
+         array.forEach(o -> {
+            JsonObject obj = (JsonObject) o;
+            assertThat(obj.getInteger("id")).isNotNull();
+            assertThat(obj.getInteger("units")).isNotNull();
+         });
+      }
+   }
+
+   @Test
+   public void testReplaceMultiFragment() {
+      // Replace with many small fragments — same concern as delete
+      for (int chunkSize : new int[] { 1, 2, 3, 5, 7, 11 }) {
+         StringCollector stringCollector = new StringCollector();
+         JsonUnquotingTransformer replace = new JsonUnquotingTransformer(new ObscuringTransformer());
+         JsonHandler handler = new JsonHandler(".[].product", false, replace, new DefragProcessor(stringCollector));
+         Session session = SessionFactory.forTesting();
+         ResourceUtilizer.reserveForTesting(session, handler);
+
+         handler.before(session);
+         int pos = 0;
+         while (pos < JSON.length) {
+            int len = Math.min(chunkSize, JSON.length - pos);
+            boolean isLast = (pos + len >= JSON.length);
+            ByteBuf buf = Unpooled.wrappedBuffer(JSON, pos, len);
+            handler.process(session, buf, buf.readerIndex(), buf.readableBytes(), isLast);
+            pos += len;
+         }
+         handler.after(session);
+
+         JsonArray array = (JsonArray) Json.decodeValue(stringCollector.str);
+         assertThat(array.size()).as("chunkSize=%d", chunkSize).isEqualTo(3);
+         array.forEach(o -> {
+            JsonObject obj = (JsonObject) o;
+            assertThat(obj.getInteger("id")).isNotNull();
+            assertThat(obj.getInteger("units")).isNotNull();
+         });
+         assertThat(array.getJsonObject(0).getString("product")).as("chunkSize=%d", chunkSize).isEqualTo("xxxxxxx");
+         assertThat(array.getJsonObject(1).getString("product")).as("chunkSize=%d", chunkSize).isEqualTo("xxxxxxxxxxxxx");
+         assertThat(array.getJsonObject(2).getString("product")).as("chunkSize=%d", chunkSize).isEqualTo("xxxxxxxxx");
+      }
+   }
+
    private void handleSplit(JsonHandler handler, Session session, byte[] json, int position) {
       ByteBuf data1 = Unpooled.wrappedBuffer(json, 0, position);
       ByteBuf data2 = Unpooled.wrappedBuffer(json, position, json.length - position);

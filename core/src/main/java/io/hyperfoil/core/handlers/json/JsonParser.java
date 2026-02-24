@@ -376,7 +376,7 @@ public abstract class JsonParser implements Serializable {
                stream.consume(lastOutputIndex, safeOutputIndex, record, this, session, isLast);
                lastOutputIndex = safeOutputIndex;
             }
-            stream.releaseUntil(readerIndex);
+            stream.releaseUntil((delete || replace != null) ? Math.min(readerIndex, lastOutputIndex) : readerIndex);
          }
       }
 
