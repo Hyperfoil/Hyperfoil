@@ -220,6 +220,80 @@ public class JsonHandlerTest {
       handler.after(session);
    }
 
+   @Test
+   public void testSelectQuotedStringValues() {
+      // Test .[].name with quoted string values - split at every possible position
+      byte[] json = "[{\"id\":0,\"name\":\"alice\"},{\"id\":1,\"name\":\"bob\"}]".getBytes(StandardCharsets.UTF_8);
+
+      for (int i = 0; i <= json.length; ++i) {
+         List<String> values = new ArrayList<>();
+         Processor collector = (session, data, offset, length, isLastPart) -> {
+            byte[] bytes = new byte[length];
+            data.getBytes(offset, bytes);
+            values.add(new String(bytes, StandardCharsets.UTF_8));
+         };
+         JsonHandler handler = new JsonHandler(".[].name", false, null, new DefragProcessor(collector));
+         Session session = SessionFactory.forTesting();
+         ResourceUtilizer.reserveForTesting(session, handler);
+
+         handler.before(session);
+         if (i == json.length) {
+            // No split - single buffer
+            ByteBuf data = Unpooled.wrappedBuffer(json);
+            handler.process(session, data, data.readerIndex(), data.readableBytes(), true);
+         } else {
+            ByteBuf data1 = Unpooled.wrappedBuffer(json, 0, i);
+            ByteBuf data2 = Unpooled.wrappedBuffer(json, i, json.length - i);
+            handler.process(session, data1, data1.readerIndex(), data1.readableBytes(), false);
+            handler.process(session, data2, data2.readerIndex(), data2.readableBytes(), true);
+         }
+         handler.after(session);
+
+         assertThat(values).as("split at %d of '%s'", i, new String(json, 0, i, StandardCharsets.UTF_8))
+               .containsExactly("\"alice\"", "\"bob\"");
+      }
+   }
+
+   @Test
+   public void testSelectQuotedStringValuesMultiFragment() {
+      // Test with many small fragments to simulate TCP fragmentation
+      StringBuilder sb = new StringBuilder("[");
+      int count = 100;
+      for (int i = 0; i < count; i++) {
+         if (i > 0)
+            sb.append(",");
+         sb.append("{\"id\":").append(i).append(",\"name\":\"item").append(i).append("\"}");
+      }
+      sb.append("]");
+      byte[] json = sb.toString().getBytes(StandardCharsets.UTF_8);
+
+      // Split into chunks of varying sizes
+      for (int chunkSize : new int[] { 10, 17, 31, 64, 128 }) {
+         List<String> values = new ArrayList<>();
+         Processor collector = (session, data, offset, length, isLastPart) -> {
+            byte[] bytes = new byte[length];
+            data.getBytes(offset, bytes);
+            values.add(new String(bytes, StandardCharsets.UTF_8));
+         };
+         JsonHandler handler = new JsonHandler(".[].name", false, null, new DefragProcessor(collector));
+         Session session = SessionFactory.forTesting();
+         ResourceUtilizer.reserveForTesting(session, handler);
+
+         handler.before(session);
+         int pos = 0;
+         while (pos < json.length) {
+            int len = Math.min(chunkSize, json.length - pos);
+            boolean isLast = (pos + len >= json.length);
+            ByteBuf buf = Unpooled.wrappedBuffer(json, pos, len);
+            handler.process(session, buf, buf.readerIndex(), buf.readableBytes(), isLast);
+            pos += len;
+         }
+         handler.after(session);
+
+         assertThat(values).as("chunkSize=%d", chunkSize).hasSize(count);
+      }
+   }
+
    private boolean contains(byte[] data, int offset, int length, byte[] string) {
       OUTER: for (int i = 0; i <= length - string.length; ++i) {
          for (int j = 0; j < string.length && i + j < length; ++j) {

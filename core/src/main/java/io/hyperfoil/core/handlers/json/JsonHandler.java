@@ -27,9 +27,6 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
 
    @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLast) {
-      if (data.readableBytes() == 0) {
-         return;
-      }
       Context ctx = session.getResource(this);
       ctx.parse(ctx.wrap(data, offset, length), session, isLast);
    }
