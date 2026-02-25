@@ -55,8 +55,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
       }
       long elapsedTimeNs = System.nanoTime() - nanoTimeStart;
       if (elapsedTimeNs < nextScheduledFireTimeNs) {
-         log.warn("{}: proceed() called before fire time: elapsed={} ns, nextFireTime={} ns",
-               def.name, elapsedTimeNs, nextScheduledFireTimeNs);
+         // this can happen on PhaseInstanceImpl::start once RUNNING
          executorGroup.schedule(proceedTask,
                nextScheduledFireTimeNs - elapsedTimeNs, TimeUnit.NANOSECONDS);
          return;
