@@ -12,13 +12,12 @@ public class PoissonConstantRateGeneratorTest extends RateGeneratorTest {
    }
 
    @Override
-   RateGenerator newUserGenerator() {
-      // force the Random::nextDouble to return 0.5
-      return RateGenerator.poissonConstantRate(new Random(SEED), 1000);
+   FireTimeSequence newSequence() {
+      return FireTimeSequence.poissonConstantRate(new Random(SEED), 1000);
    }
 
    @Override
-   public void assertSamplesWithoutSkew(final double[] samples, final long totalUsers) {
+   public void assertSamplesWithoutSkew(final double[] samples) {
       // Perform K-S test
       final double[] interArrivalTimes = computeInterArrivalTimes(samples);
       // it is important to use the same SEED here!

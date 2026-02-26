@@ -12,12 +12,12 @@ public class DecreasingRumpRateGeneratorTest extends RateGeneratorTest {
    }
 
    @Override
-   RateGenerator newUserGenerator() {
-      return RateGenerator.rampRate(10, 1, 10_000_000_000L);
+   FireTimeSequence newSequence() {
+      return FireTimeSequence.rampRate(10, 1, 10_000_000_000L);
    }
 
    @Override
-   void assertSamplesWithoutSkew(final double[] samples, final long totalUsers) {
+   void assertSamplesWithoutSkew(final double[] samples) {
       assertEquals(10_000_000_000.0, samples[samples.length - 1], 0.0);
    }
 }
