@@ -104,7 +104,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       recordAbsoluteStartTime();
       log.debug("{} changing status to RUNNING", def.name);
       phaseChangeHandler.onChange(def, Status.RUNNING, false, error)
-            .thenRunAsync(this::proceed, executorGroup.next());
+            .thenRun(this::proceed);
    }
 
    protected abstract void proceed();
