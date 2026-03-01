@@ -3,6 +3,7 @@ package io.hyperfoil.clustering;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -244,18 +245,29 @@ public class AgentVerticle extends AbstractVerticle {
          log.debug("{} changed phase {} to {}", deploymentId, phase, status);
          log.debug("New global data is {}", globalData);
          String cpuUsage = runner.getCpuUsage(phase.name());
-         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded,
-               cpuUsage, error, globalData));
-         if (status == PhaseInstance.Status.TERMINATED) {
-            context.runOnContext(nil -> {
+         CompletableFuture<Void> future = new CompletableFuture<>();
+         // All event bus operations to run sequentially on the event loop thread to avoid race conditions.
+         context.runOnContext(nil -> {
+            if (status == PhaseInstance.Status.TERMINATED) {
                if (runner != null) {
+                  // The method visitStatistics() is a simple loop that iterates through statistics and calls the consumer's accept() method synchronously.
                   runner.visitStatistics(phase, requestStatsSender);
                }
+               log.debug("Sending remaining statistics when status={}", status);
                requestStatsSender.send(statisticsCountDown);
                requestStatsSender.sendPhaseComplete(phase, statisticsCountDown);
-            });
-         }
-         return Util.COMPLETED_VOID_FUTURE;
+               log.debug("Finish sending remaining statistics when status={}", status);
+            }
+            eb.request(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded,
+                  cpuUsage, error, globalData), ar -> {
+                     if (ar.succeeded()) {
+                        future.complete(null);
+                     } else {
+                        future.completeExceptionally(ar.cause());
+                     }
+                  });
+         });
+         return future;
       });
       runner.init();
 
