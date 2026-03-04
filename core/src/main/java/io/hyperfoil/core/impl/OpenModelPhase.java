@@ -7,6 +7,7 @@ import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.impl.rate.FireTimeSequence;
+import io.hyperfoil.core.jfr.ScheduledFireTimeEvent;
 
 /**
  * This is a base class for Open Model phases that need to compensate users based on the available ones in the session pool.
@@ -32,6 +33,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
    private final FireTimeSequence fireTimeSequence;
    private final Runnable proceedTask = this::proceed;
    private long nextScheduledFireTimeNs;
+   private String phaseDef;
 
    OpenModelPhase(FireTimeSequence fireTimeSequence, Phase def, String runId, int agentId) {
       super(def, runId, agentId);
@@ -53,7 +55,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
       if (status.isFinished()) {
          return;
       }
-      long elapsedTimeNs = System.nanoTime() - nanoTimeStart;
+      final long elapsedTimeNs = System.nanoTime() - nanoTimeStart;
       if (elapsedTimeNs < nextScheduledFireTimeNs) {
          // this can happen on PhaseInstanceImpl::start once RUNNING
          executorGroup.schedule(proceedTask,
@@ -61,16 +63,25 @@ final class OpenModelPhase extends PhaseInstanceImpl {
          return;
       }
       // Handle the current fire time
-      long fireTimeNs = nextScheduledFireTimeNs;
-      long absoluteStartTimeMs = absoluteStartTime + TimeUnit.NANOSECONDS.toMillis(fireTimeNs);
-      long absoluteStartNanoTime = nanoTimeStart + fireTimeNs;
+      final long fireTimeNs = nextScheduledFireTimeNs;
+      final long absoluteStartTimeMs = absoluteStartTime + TimeUnit.NANOSECONDS.toMillis(fireTimeNs);
+      final long absoluteStartNanoTime = nanoTimeStart + fireTimeNs;
+      boolean throttledSession = false;
       if (!startNewSession(absoluteStartTimeMs, absoluteStartNanoTime)) {
+         throttledSession = true;
          throttledUsers.incrementAndGet();
       }
       // Compute next fire time and schedule accordingly
       nextScheduledFireTimeNs = fireTimeSequence.nextFireTimeNs();
-      long nowNs = System.nanoTime() - nanoTimeStart;
-      long delayNs = nextScheduledFireTimeNs - nowNs;
+      final long nowNs = System.nanoTime() - nanoTimeStart;
+      final long delayNs = nextScheduledFireTimeNs - nowNs;
+      if (ScheduledFireTimeEvent.isEventEnabled()) {
+         if (phaseDef == null) {
+            phaseDef = def.toString();
+         }
+         ScheduledFireTimeEvent.fire(phaseDef, runId(), agentId(), nanoTimeStart, elapsedTimeNs, nowNs, fireTimeNs,
+               nextScheduledFireTimeNs, throttledSession);
+      }
       if (delayNs <= 0) {
          executorGroup.execute(proceedTask);
       } else {
