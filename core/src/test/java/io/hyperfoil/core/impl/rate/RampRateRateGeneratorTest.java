@@ -19,28 +19,45 @@ public class RampRateRateGeneratorTest extends RateGeneratorTest {
    }
 
    @Override
-   RateGenerator newUserGenerator() {
-      return RateGenerator.rampRate(1, 10, 10_000_000_000L);
+   FireTimeSequence newSequence() {
+      return FireTimeSequence.rampRate(1, 10, 10_000_000_000L);
    }
 
    @Test
    public void divisionByZeroTest() {
-      final var generator = RateGenerator.rampRate(10, 10, 10_000_000_000L);
-      final var missingFireTimeCounter = new FireTimesCounter();
-      generator.computeNextFireTime(9_999_000_000L, missingFireTimeCounter);
-      assertEquals(100, missingFireTimeCounter.fireTimes);
+      // rampRate with equal initial/target falls back to constantRate
+      final var sequence = FireTimeSequence.rampRate(10, 10, 10_000_000_000L);
+      // At 10/sec, fire times are at 100ms, 200ms, ... 9900ms = 99 fire times in 9.999s
+      long lastFireTime = 0;
+      int count = 0;
+      while (true) {
+         long fireTime = sequence.nextFireTimeNs();
+         if (fireTime > 9_999_000_000L) {
+            break;
+         }
+         lastFireTime = fireTime;
+         count++;
+      }
+      assertEquals(99, count);
    }
 
    @Test
    public void slowStartTest() {
-      final var generator = newUserGenerator();
-      final var missingFireTimeCounter = new FireTimesCounter();
-      generator.computeNextFireTime(9_999_000_000L, missingFireTimeCounter);
-      assertEquals(samples(), missingFireTimeCounter.fireTimes);
+      final var sequence = newSequence();
+      // Consume all fire times up to 9.999s
+      int count = 0;
+      while (true) {
+         long fireTime = sequence.nextFireTimeNs();
+         if (fireTime > 9_999_000_000L) {
+            break;
+         }
+         count++;
+      }
+      assertEquals(samples() - 1, count);
    }
 
    @Override
-   void assertSamplesWithoutSkew(final double[] samples, final long totalUsers) {
+   void assertSamplesWithoutSkew(final double[] samples) {
       // For a linearly changing rate, the number of events in [t1, t2] is the integral of rate(t) over that interval.
       // For a linear function, ∫[t1,t2] rate(t) dt = rate_at_midpoint * (t2 - t1).
       final double initialRatePerNs = 1.0 / 1_000_000_000.0;

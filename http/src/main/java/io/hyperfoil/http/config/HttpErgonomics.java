@@ -11,6 +11,7 @@ public class HttpErgonomics {
    private boolean autoRangeCheck = true;
    private boolean stopOnInvalid = true;
    private FollowRedirect followRedirect = FollowRedirect.NEVER;
+   private boolean compensateInternalLatency = false;
 
    public HttpErgonomics(HttpPluginBuilder parent) {
       this.parent = parent;
@@ -64,6 +65,22 @@ public class HttpErgonomics {
 
    public HttpErgonomics followRedirect(FollowRedirect followRedirect) {
       this.followRedirect = followRedirect;
+      return this;
+   }
+
+   public boolean compensateInternalLatency() {
+      return compensateInternalLatency;
+   }
+
+   /**
+    * When enabled, the first HTTP request in a root sequence of an open model phase will use the session's
+    * intended (scheduled) start time as the request start timestamp, compensating for internal coordinated omission.
+    *
+    * @param compensateInternalLatency Enable internal latency compensation?
+    * @return Self.
+    */
+   public HttpErgonomics compensateInternalLatency(boolean compensateInternalLatency) {
+      this.compensateInternalLatency = compensateInternalLatency;
       return this;
    }
 

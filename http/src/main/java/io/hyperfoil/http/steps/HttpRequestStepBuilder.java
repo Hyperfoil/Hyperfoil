@@ -88,6 +88,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    private SLABuilder.ListBuilder<HttpRequestStepBuilder> sla = null;
    private CompensationBuilder compensation;
    private CompressionBuilder compression = new CompressionBuilder(this);
+   private boolean useSessionStartTime = false;
 
    /**
     * HTTP method used for the request.
@@ -546,6 +547,13 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       Locator locator = Locator.current();
 
       HttpErgonomics ergonomics = locator.benchmark().plugin(HttpPluginBuilder.class).ergonomics();
+      if (ergonomics.compensateInternalLatency()) {
+         this.useSessionStartTime = locator.scenario().hasOpenModelPhase()
+               && locator.scenario().isFirstStepInInitialSequence(locator.sequence(), this);
+         if (log.isTraceEnabled()) {
+            traceCompensateInternalLatency(locator);
+         }
+      }
       if (ergonomics.repeatCookies()) {
          headerAppender(new CookieAppender());
       }
@@ -646,7 +654,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
       HttpRequestContext.Key contextKey = new HttpRequestContext.Key();
       PrepareHttpRequestStep prepare = new PrepareHttpRequestStep(stepId, contextKey, method.build(), endpoint, authority,
-            pathGenerator, metricSelector, handler.build());
+            pathGenerator, metricSelector, handler.build(), useSessionStartTime);
       SendHttpRequestStep step = new SendHttpRequestStep(stepId, contextKey, bodyGenerator, headerAppenders, injectHostHeader,
             timeout, sla);
       return Arrays.asList(prepare, step);
@@ -665,6 +673,26 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    public interface BodyGeneratorBuilder extends BuilderBase<BodyGeneratorBuilder> {
       SerializableBiFunction<Session, Connection, ByteBuf> build();
+   }
+
+   private void traceCompensateInternalLatency(Locator locator) {
+      String sequenceName = locator.sequence().name();
+      if (this.useSessionStartTime) {
+         log.trace("compensateInternalLatency: using session start time for step {} in sequence {}", stepId, sequenceName);
+         return;
+      }
+      ScenarioBuilder scenario = locator.scenario();
+      if (!scenario.hasOpenModelPhase()) {
+         log.trace("compensateInternalLatency: step {} in sequence {} skipped - phase is not open model", stepId, sequenceName);
+      } else if (!scenario.isFirstStepInInitialSequence(locator.sequence(), this)) {
+         if (!scenario.isInitialSequence(locator.sequence())) {
+            log.trace("compensateInternalLatency: step {} in sequence {} skipped - not an initial sequence", stepId,
+                  sequenceName);
+         } else {
+            log.trace("compensateInternalLatency: step {} in sequence {} skipped - not the first step in the sequence", stepId,
+                  sequenceName);
+         }
+      }
    }
 
    private static class PrefixMetricSelector implements SerializableBiFunction<String, String, String> {

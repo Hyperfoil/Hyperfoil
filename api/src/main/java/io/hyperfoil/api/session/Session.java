@@ -47,6 +47,18 @@ public interface Session {
 
    long phaseStartTimestamp();
 
+   /**
+    * @return the intended start time in millis for this session (as computed by the rate generator),
+    *         or {@code -1} if not applicable (e.g. for non-open-model phases or throttled sessions).
+    */
+   long scheduledStartTimestamp();
+
+   /**
+    * @return the intended start time as a {@link System#nanoTime()} value for this session,
+    *         or {@code -1} if not applicable (e.g. for non-open-model phases or throttled sessions).
+    */
+   long scheduledStartNanoTime();
+
    Statistics statistics(int stepId, String name);
 
    void pruneStats(Phase phase);
@@ -88,7 +100,7 @@ public interface Session {
    void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, GlobalData globalData,
          SessionStatistics statistics);
 
-   void start(PhaseInstance phase);
+   void start(long intendedStartTimeMs, long intendedStartNanoTime, PhaseInstance phase);
 
    /**
     * Run anything that can be executed.
