@@ -28,11 +28,13 @@ import io.hyperfoil.core.jfr.ScheduledFireTimeEvent;
  */
 final class OpenModelPhase extends PhaseInstanceImpl {
 
+   private static final AtomicLong INSTANCE_ID = new AtomicLong();
    private final int maxSessions;
    private final AtomicLong throttledUsers = new AtomicLong(0);
    private final FireTimeSequence fireTimeSequence;
    private final Runnable proceedTask = this::proceed;
    private long nextScheduledFireTimeNs;
+   private final long instanceId;
    private String phaseDef;
 
    OpenModelPhase(FireTimeSequence fireTimeSequence, Phase def, String runId, int agentId) {
@@ -40,6 +42,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
       this.fireTimeSequence = fireTimeSequence;
       this.maxSessions = Math.max(1, def.benchmark().slice(((Model.OpenModel) def.model).maxSessions, agentId));
       this.nextScheduledFireTimeNs = fireTimeSequence.nextFireTimeNs();
+      instanceId = INSTANCE_ID.incrementAndGet();
    }
 
    @Override
@@ -79,7 +82,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
          if (phaseDef == null) {
             phaseDef = def.toString();
          }
-         ScheduledFireTimeEvent.fire(phaseDef, runId(), agentId(), nanoTimeStart, elapsedTimeNs, nowNs, fireTimeNs,
+         ScheduledFireTimeEvent.fire(instanceId, phaseDef, runId(), agentId(), nanoTimeStart, elapsedTimeNs, nowNs, fireTimeNs,
                nextScheduledFireTimeNs, throttledSession);
       }
       if (delayNs <= 0) {

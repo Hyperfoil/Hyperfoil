@@ -12,6 +12,9 @@ public class ScheduledFireTimeEvent extends Event {
 
    private static final EventType EVENT_TYPE = EventType.getEventType(ScheduledFireTimeEvent.class);
 
+   @Label("ID")
+   public long id;
+
    @Label("Phase definition")
    public String phaseDef;
 
@@ -46,7 +49,9 @@ public class ScheduledFireTimeEvent extends Event {
       return EVENT_TYPE.isEnabled();
    }
 
-   public static void fire(String phaseDef,
+   public static void fire(
+         long instanceId,
+         String phaseDef,
          String runId,
          int agentId,
          long startTimeNs,
@@ -54,6 +59,7 @@ public class ScheduledFireTimeEvent extends Event {
          long currentFireTimeNs,
          long nextFireTimeNs, boolean throttledSession) {
       var event = new ScheduledFireTimeEvent();
+      event.id = instanceId;
       event.phaseDef = phaseDef;
       event.runId = runId;
       event.agentId = agentId;
