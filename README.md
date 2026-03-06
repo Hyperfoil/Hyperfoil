@@ -79,6 +79,30 @@ Follow these steps:
    ```
    You should be able to connect without entering a password.
 
+## Troubleshooting
+- Clean up the folder `/tmp/hyperfoil` and add `-Dio.hyperfoil.controller.log.level=debug` VM option
+- Add the `CounterProcessor` handler
+- Run the benchmark
+- Filter by `grep -E "ControllerPhase|CounterProcessor" /tmp/hyperfoil/hyperfoil.local.log` or use the following one-line script to generate a report
+- The values are an approximation per phase and status because it will log when `max` is reached. You can control it by `CounterProcessor(int max)`
+```bash
+grep -E "ControllerPhase|CounterProcessor" /tmp/hyperfoil/hyperfoil.local.log | awk '/ControllerPhase/ { if (p) printf "%s %-55s Sent: %-8d Recv: %-8d\n", ts, p, s, r; ts=$1; p=$6 " [" $9 " -> " $11 "]"; s=0; r=0 } /CounterProcessor/ { if ($5 == "Sent") s+=$6; else if ($5 == "Received") r+=$6 } END { printf "%s %-55s Sent: %-8d Recv: %-8d\n", ts, p, s, r }'
+```
+### Output example
+```text
+19:10:12,533 calibration [NOT_STARTED -> STARTING]                   Sent: 0        Recv: 0       
+19:10:12,538 calibration [STARTING -> RUNNING]                       Sent: 29000    Recv: 29000   
+19:10:18,533 calibration [RUNNING -> FINISHING]                      Sent: 0        Recv: 0       
+19:10:18,536 calibration [FINISHING -> FINISHED]                     Sent: 270000   Recv: 270000  
+19:11:11,287 calibration [FINISHED -> TERMINATED]                    Sent: 0        Recv: 0       
+19:11:11,287 test [NOT_STARTED -> STARTING]                          Sent: 0        Recv: 0       
+19:11:11,304 test [STARTING -> RUNNING]                              Sent: 51000    Recv: 51000   
+19:11:21,288 test [RUNNING -> FINISHING]                             Sent: 0        Recv: 0       
+19:11:21,289 test [FINISHING -> FINISHED]                            Sent: 0        Recv: 0       
+19:11:21,289 test [FINISHED -> TERMINATING]                          Sent: 0        Recv: 0       
+19:11:22,131 test [TERMINATING -> TERMINATED]                        Sent: 0        Recv: 0       
+```
+
 ## Contributing
 
 Contributions to `Hyperfoil` are managed on [GitHub.com](https://github.com/Hyperfoil/Hyperfoil/)
