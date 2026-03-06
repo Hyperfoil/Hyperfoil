@@ -83,7 +83,7 @@
         <version.jkube.maven-plugin>1.17.0</version.jkube.maven-plugin>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
         <version.javaparser>3.28.0</version.javaparser>
-        <version.marshalling>2.0.6.Final</version.marshalling>
+        <version.marshalling>2.3.0</version.marshalling>
         <version.junit-jupiter-api>6.0.3</version.junit-jupiter-api>
         <version.log4j2>2.25.2</version.log4j2>
         <version.metainf-services>1.8</version.metainf-services>
