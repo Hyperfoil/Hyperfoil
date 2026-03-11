@@ -184,12 +184,12 @@ public class Statistics {
       try {
          recordingPhaser.readerLock();
 
+         if (highestActive + 1 > inactive.length()) {
+            inactive = resizeArray(inactive, highestActive);
+         }
+
          if (++numSamples >= inactive.length()) {
-            AtomicReferenceArray<StatisticsSnapshot> temp = new AtomicReferenceArray<>(inactive.length() * 2);
-            for (int i = lastLowestIndex; i < inactive.length(); ++i) {
-               temp.set(i, inactive.get(i));
-            }
-            inactive = temp;
+            inactive = resizeArray(inactive, numSamples);
          }
 
          // Swap active and inactive histograms:
@@ -266,7 +266,8 @@ public class Statistics {
       int index = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
       if (index >= active.length()) {
-         index = active.length() - 1;
+         active = resizeArray(active, index);
+         this.active = active;
       } else if (index < 0) {
          log.error("Record start timestamp {} predates statistics start {}", timestamp, startTimestamp);
          index = 0;
@@ -292,6 +293,16 @@ public class Statistics {
 
    public interface ObjectUpdater<C extends StatsExtension> {
       void update(C custom, Object value);
+   }
+
+   private AtomicReferenceArray<StatisticsSnapshot> resizeArray(AtomicReferenceArray<StatisticsSnapshot> array,
+         int requiredIndex) {
+      int newLength = Math.max(array.length() * 2, requiredIndex + 1);
+      AtomicReferenceArray<StatisticsSnapshot> newArray = new AtomicReferenceArray<>(newLength);
+      for (int i = 0; i < array.length(); ++i) {
+         newArray.set(i, array.get(i));
+      }
+      return newArray;
    }
 
    @Override
