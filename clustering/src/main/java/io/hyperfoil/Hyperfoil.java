@@ -201,7 +201,8 @@ public class Hyperfoil {
 
    static void ensureNettyResourceLeakDetection() {
       // Vert.x disables Netty's memory leak detection in VertxImpl static ctor - we need to revert that
-      String leakDetectionLevel = System.getProperty("io.netty.leakDetection.level");
+      String leakDetectionLevel = System.getProperty("io.netty.leakDetection.level",
+            System.getProperty("io.netty.leakDetectionLevel"));
       if (leakDetectionLevel != null) {
          leakDetectionLevel = leakDetectionLevel.trim();
          for (ResourceLeakDetector.Level level : ResourceLeakDetector.Level.values()) {
@@ -214,7 +215,7 @@ public class Hyperfoil {
          log.warn("Cannot parse Netty leak detection level '{}', use one of: {}",
                leakDetectionLevel, ResourceLeakDetector.Level.values());
       }
-      ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.SIMPLE);
+      ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
    }
 
    public static Future<Void> shutdownVertx(Vertx vertx) {
