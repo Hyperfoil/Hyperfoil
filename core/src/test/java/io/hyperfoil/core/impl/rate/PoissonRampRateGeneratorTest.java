@@ -17,12 +17,12 @@ public class PoissonRampRateGeneratorTest extends RateGeneratorTest {
    }
 
    @Override
-   RateGenerator newUserGenerator() {
-      return RateGenerator.poissonRampRate(new Random(SEED), 1, 10, 10_000_000_000L);
+   FireTimeSequence newSequence() {
+      return FireTimeSequence.poissonRampRate(new Random(SEED), 1, 10, 10_000_000_000L);
    }
 
    @Override
-   void assertSamplesWithoutSkew(final double[] samples, final long totalUsers) {
+   void assertSamplesWithoutSkew(final double[] samples) {
       // For a linearly changing rate, the number of events in [t1, t2] is the integral of rate(t) over that interval.
       // For a linear function, ∫[t1,t2] rate(t) dt = rate_at_midpoint * (t2 - t1).
       final double[] fireTimesOnIntervals = new double[samples.length - 1];

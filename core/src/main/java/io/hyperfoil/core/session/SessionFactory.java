@@ -18,7 +18,6 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.WriteAccess;
 import io.hyperfoil.core.impl.PhaseInstanceImpl;
 import io.hyperfoil.core.util.Unique;
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 
 public final class SessionFactory {
@@ -53,7 +52,7 @@ public final class SessionFactory {
             Collections.emptyMap(), null);
       session.resetPhase(new PhaseInstanceImpl(dummyPhase, "dummy", 0) {
          @Override
-         public void proceed(EventExecutorGroup executorGroup) {
+         protected void proceed() {
          }
 
          @Override
