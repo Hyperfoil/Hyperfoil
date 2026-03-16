@@ -52,7 +52,9 @@ public class DefragProcessor extends Processor.BaseDelegating
       }
 
       public void buffer(ByteBuf data, int offset, int length) {
-         log.debug("Buffering {} bytes", length);
+         if (log.isDebugEnabled()) {
+            log.debug("Buffering {} bytes", length);
+         }
          if (composite == null) {
             composite = new CompositeByteBuf(data.alloc(), data.isDirect(), 16);
          }
@@ -60,7 +62,9 @@ public class DefragProcessor extends Processor.BaseDelegating
       }
 
       void flush(Session session, Processor processor) {
-         log.debug("Flushing {} bytes", composite.writerIndex());
+         if (log.isDebugEnabled()) {
+            log.debug("Flushing {} bytes", composite.writerIndex());
+         }
          processor.process(session, composite, 0, composite.writerIndex(), true);
          // Note that processors generally don't modify readerIndex in the ByteBuf
          // so we cannot expect `data.isReadable() == false` at this point.
