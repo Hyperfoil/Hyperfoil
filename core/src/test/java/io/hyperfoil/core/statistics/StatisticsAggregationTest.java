@@ -85,6 +85,76 @@ public class StatisticsAggregationTest {
       runExperiment(requestData);
    }
 
+   @Test
+   public void testSingleEntryBeyondInitialArraySize() {
+      long timestamp = baseTime + (20 * millis);
+      Statistics stats = new Statistics(baseTime);
+      stats.recordResponse(timestamp, 100_000);
+      stats.end(timestamp + millis);
+
+      Map<Long, Integer> statsPerTimestamp = new HashMap<>();
+      stats.visitSnapshots(snapshot -> {
+         if (snapshot.responseCount > 0) {
+            statsPerTimestamp.put(snapshot.histogram.getStartTimeStamp(), snapshot.responseCount);
+         }
+      });
+
+      assertEquals(1, statsPerTimestamp.size(), "Expected exactly one time slot with data");
+      assertEquals(1, statsPerTimestamp.getOrDefault(timestamp, 0),
+            "Response should be at index 20 (timestamp " + timestamp + "), not clamped to index 15");
+   }
+
+   @Test
+   public void testMultipleVisitSnapshotsWithOngoingRecording() {
+      Statistics stats = new Statistics(baseTime);
+
+      for (int i = 1; i <= 5; i++) {
+         stats.recordResponse(baseTime + (i * millis), 100_000);
+      }
+
+      // Last index withheld (phase not ended), so indices 1-4 published
+      Map<Long, Integer> phase1 = new HashMap<>();
+      stats.visitSnapshots(snapshot -> {
+         if (snapshot.responseCount > 0) {
+            phase1.put(snapshot.histogram.getStartTimeStamp(), snapshot.responseCount);
+         }
+      });
+      assertEquals(4, phase1.values().stream().mapToInt(Integer::intValue).sum(),
+            "Phase 1: indices 1-4 published (index 5 withheld)");
+
+      // Record beyond initial array size, forcing resize
+      for (int i = 20; i <= 25; i++) {
+         stats.recordResponse(baseTime + (i * millis), 100_000);
+      }
+
+      // Inactive resized before swap; indices 20-24 published (25 withheld)
+      Map<Long, Integer> phase2 = new HashMap<>();
+      stats.visitSnapshots(snapshot -> {
+         if (snapshot.responseCount > 0) {
+            phase2.put(snapshot.histogram.getStartTimeStamp(), snapshot.responseCount);
+         }
+      });
+      assertEquals(5, phase2.values().stream().mapToInt(Integer::intValue).sum());
+      for (int i = 20; i <= 24; i++) {
+         long ts = baseTime + (i * millis);
+         assertEquals(1, phase2.getOrDefault(ts, 0));
+      }
+
+      // End: both arrays published, withheld indices 5 and 25 collected
+      stats.end(baseTime + (30 * millis));
+
+      Map<Long, Integer> phase3 = new HashMap<>();
+      stats.visitSnapshots(snapshot -> {
+         if (snapshot.responseCount > 0) {
+            phase3.put(snapshot.histogram.getStartTimeStamp(), snapshot.responseCount);
+         }
+      });
+      long ts5 = baseTime + (5 * millis);
+      long ts25 = baseTime + (25 * millis);
+      assertEquals(1, phase3.getOrDefault(ts5, 0));
+      assertEquals(1, phase3.getOrDefault(ts25, 0));
+   }
+
    private void runExperiment(Map<Long, Integer> requestData) {
       Statistics stats = new Statistics(baseTime);
       long end = 0;
