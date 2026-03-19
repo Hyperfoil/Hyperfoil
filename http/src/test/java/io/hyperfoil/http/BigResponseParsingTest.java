@@ -115,7 +115,10 @@ public class BigResponseParsingTest extends VertxBaseTest {
 
          HttpConnectionPool pool = client.next();
          newRequest.start(pool, handlers, sequence, new Statistics(System.currentTimeMillis()));
-         pool.acquire(false, c -> newRequest.send(c, null, true, null));
+         // pool.acquire requires to be running within the event loop
+         // the acquire is called from onComplete callback that can run on different thread
+         // it can fail on CI sometimes. then, we add pool.executor to ensure that it will be running on the event loop.
+         pool.executor().execute(() -> pool.acquire(false, c -> newRequest.send(c, null, true, null)));
       });
    }
 }
