@@ -30,8 +30,16 @@ public class WrkTest extends BaseWrkBenchmarkTest {
    public void testWrk() {
       Wrk cmd = new Wrk();
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
-            "localhost:" + httpServer.actualPort() + "/unpredictable" });
+            "localhost:" + httpServer.actualPort() + "/highway" });
       assertEquals(CommandResult.SUCCESS.getResultValue(), result);
+   }
+
+   @Test
+   public void testWrkUnpredictable() {
+      Wrk cmd = new Wrk();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
+            "localhost:" + httpServer.actualPort() + "/unpredictable" });
+      assertEquals(CommandResult.FAILURE.getResultValue(), result);
    }
 
    @Test
@@ -44,6 +52,14 @@ public class WrkTest extends BaseWrkBenchmarkTest {
 
    @Test
    public void testWrk2() {
+      Wrk2 cmd = new Wrk2();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s",
+            "localhost:" + httpServer.actualPort() + "/highway" });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
+   }
+
+   @Test
+   public void testWrk2Unpredictable() {
       Wrk2 cmd = new Wrk2();
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s",
             "localhost:" + httpServer.actualPort() + "/unpredictable" });
@@ -78,6 +94,26 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       assertFalse(wrkCommandResult.getRequestStatisticsResponse().statistics.isEmpty());
       for (RequestStats requestStats : wrkCommandResult.getRequestStatisticsResponse().statistics) {
          assertTrue(requestStats.failedSLAs.isEmpty());
+      }
+   }
+
+   @Test
+   public void testWrk2HighLoad() throws CommandNotFoundException {
+      Wrk2 cmd = new Wrk2();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "20s", "-R", "20000", "--latency", "--timeout", "1s",
+            "localhost:" + httpServer.actualPort() + "/unpredictable" });
+
+      // Due to the nature of instances being created in runtime the only way to retrieve is by using the commandRegistry
+      CommandContainer<HyperfoilCommandInvocation> commandContainer = cmd.getCommandRegistry().getCommand("wrk2", null);
+      ProcessedCommand processedCommand = commandContainer.getParser().getProcessedCommand();
+      Wrk2.Wrk2Command wrk2Command = (Wrk2.Wrk2Command) processedCommand.getCommand();
+      WrkAbstract.WrkCommandResult wrkCommandResult = wrk2Command.getWrkCommandResult();
+
+      // assert
+      assertEquals(CommandResult.FAILURE.getResultValue(), result);
+      assertFalse(wrkCommandResult.getRequestStatisticsResponse().statistics.isEmpty());
+      for (RequestStats requestStats : wrkCommandResult.getRequestStatisticsResponse().statistics) {
+         assertFalse(requestStats.failedSLAs.isEmpty());
       }
    }
 }
