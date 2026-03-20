@@ -92,9 +92,15 @@
         <version.snakeyaml>2.5</version.snakeyaml>
         <version.vertx>4.5.21</version.vertx>
         <version.infinispan>15.2.6.Final</version.infinispan>
-        <version.jboss-threads>3.5.0.Final</version.jboss-threads>
-        <version.jboss-logging>3.6.2.Final</version.jboss-logging>
+        <!-- begin: JBoss/WildFly/SmallRye dependency versions - these must be compatible with each other.
+             jboss-threads 3.9.2 requires smallrye-common 2.14.0, which is newer than what
+             wildfly-common 2.0.1 brings (smallrye 2.4.0). We explicitly manage smallrye-common versions
+             in dependencyManagement to ensure all modules use 2.14.0 for consistency. -->
+        <version.jboss-threads>3.9.2</version.jboss-threads>
         <version.wildfly-common>2.0.1</version.wildfly-common>
+        <version.smallrye-common>2.14.0</version.smallrye-common>
+        <!-- end: JBoss/WildFly/SmallRye dependency versions -->
+        <version.jboss-logging>3.6.2.Final</version.jboss-logging>
         <version.jctools>4.0.5</version.jctools>
 
         <version.sonatype.central>0.10.0</version.sonatype.central>
@@ -438,6 +444,42 @@
                 <artifactId>jctools-core</artifactId>
                 <version>${version.jctools}</version>
             </dependency>
+
+            <!-- begin: SmallRye Common dependencies - Explicitly managed to resolve version conflicts.
+                 jboss-threads 3.9.2 requires smallrye-common 2.14.0, but wildfly-common 2.0.1
+                 brings in 2.4.0. We manage only the direct dependencies here; transitive ones
+                 (constraint, function) are automatically managed through their parent dependencies. -->
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-annotation</artifactId>
+                <version>${version.smallrye-common}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-cpu</artifactId>
+                <version>${version.smallrye-common}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-expression</artifactId>
+                <version>${version.smallrye-common}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-net</artifactId>
+                <version>${version.smallrye-common}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-os</artifactId>
+                <version>${version.smallrye-common}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-ref</artifactId>
+                <version>${version.smallrye-common}</version>
+            </dependency>
+            <!-- end: SmallRye Common dependencies - Explicitly managed to resolve version conflicts. -->
         </dependencies>
     </dependencyManagement>
 
