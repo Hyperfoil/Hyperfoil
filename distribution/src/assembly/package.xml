@@ -51,7 +51,7 @@
         </copy>
 
         <copy tofile="${dist.dir}/templates/report-template.html" failonerror="true">
-            <fileset dir="${docs.dir}">
+            <fileset dir="${root.dir}/clustering/src/main/resources">
                 <include name="report-template-v3.2.html"/>
             </fileset>
         </copy>
