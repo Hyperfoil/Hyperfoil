@@ -6,9 +6,9 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.readline.Prompt;
-import org.aesh.readline.terminal.formatting.Color;
-import org.aesh.readline.terminal.formatting.TerminalColor;
-import org.aesh.readline.terminal.formatting.TerminalString;
+import org.aesh.terminal.formatting.Color;
+import org.aesh.terminal.formatting.TerminalColor;
+import org.aesh.terminal.formatting.TerminalString;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;

@@ -45,9 +45,9 @@ import org.aesh.command.settings.Settings;
 import org.aesh.command.settings.SettingsBuilder;
 import org.aesh.command.validator.ValidatorInvocation;
 import org.aesh.readline.Prompt;
-import org.aesh.readline.terminal.formatting.Color;
-import org.aesh.readline.terminal.formatting.TerminalColor;
-import org.aesh.readline.terminal.formatting.TerminalString;
+import org.aesh.terminal.formatting.Color;
+import org.aesh.terminal.formatting.TerminalColor;
+import org.aesh.terminal.formatting.TerminalString;
 
 import io.hyperfoil.cli.commands.Compare;
 import io.hyperfoil.cli.commands.Connect;
