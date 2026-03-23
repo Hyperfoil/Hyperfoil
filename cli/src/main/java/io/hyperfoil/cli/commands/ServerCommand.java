@@ -19,10 +19,10 @@ import javax.net.ssl.SSLHandshakeException;
 import org.aesh.command.Command;
 import org.aesh.command.CommandException;
 import org.aesh.readline.Prompt;
-import org.aesh.readline.action.KeyAction;
-import org.aesh.readline.terminal.formatting.Color;
-import org.aesh.readline.terminal.formatting.TerminalColor;
-import org.aesh.readline.terminal.formatting.TerminalString;
+import org.aesh.terminal.KeyAction;
+import org.aesh.terminal.formatting.Color;
+import org.aesh.terminal.formatting.TerminalColor;
+import org.aesh.terminal.formatting.TerminalString;
 import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.CliUtil;

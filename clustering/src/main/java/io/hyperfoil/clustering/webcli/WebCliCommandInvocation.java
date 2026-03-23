@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.invocation.CommandInvocationProvider;
-import org.aesh.readline.action.KeyAction;
+import org.aesh.terminal.KeyAction;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 
