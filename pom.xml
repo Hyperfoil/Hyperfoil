@@ -87,7 +87,7 @@
         <version.junit-jupiter-api>6.0.3</version.junit-jupiter-api>
         <version.log4j2>2.25.3</version.log4j2>
         <version.metainf-services>1.8</version.metainf-services>
-        <version.netty.tcnative.boringssl>2.0.73.Final</version.netty.tcnative.boringssl>
+        <version.netty.tcnative.boringssl>2.0.75.Final</version.netty.tcnative.boringssl>
         <version.slf4j>2.0.17</version.slf4j>
         <version.snakeyaml>2.5</version.snakeyaml>
         <version.vertx>4.5.21</version.vertx>
