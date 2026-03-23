@@ -52,7 +52,7 @@
 
         <copy tofile="${dist.dir}/templates/report-template.html" failonerror="true">
             <fileset dir="${root.dir}/clustering/src/main/resources">
-                <include name="report-template-v3.2.html"/>
+                <include name="report-template-v3.3.html"/>
             </fileset>
         </copy>
     </target>

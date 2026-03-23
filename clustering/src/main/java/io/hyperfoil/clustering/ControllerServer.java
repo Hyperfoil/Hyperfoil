@@ -800,7 +800,7 @@ class ControllerServer implements ApiService {
 
          if (providedTemplatePath.isBlank()) {
             // use the embedded template html
-            try (InputStream stream = FileLookupFactory.newInstance().lookupFile("report-template-v3.2.html",
+            try (InputStream stream = FileLookupFactory.newInstance().lookupFile("report-template-v3.3.html",
                   Thread.currentThread().getContextClassLoader());
                   BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
                String line;
