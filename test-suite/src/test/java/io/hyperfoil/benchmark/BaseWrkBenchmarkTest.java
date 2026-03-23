@@ -36,6 +36,11 @@ public abstract class BaseWrkBenchmarkTest extends BaseBenchmarkTest {
       router.route("/highway").handler(ctx -> {
          ctx.response().end("highway");
       });
+      router.route("/500ms").handler(ctx -> {
+         ctx.vertx().setTimer(500, id -> {
+            ctx.response().end("500ms!");
+         });
+      });
       router.route("/1s").handler(ctx -> {
          ctx.vertx().setTimer(1_000, id -> {
             ctx.response().end("1s");
