@@ -1,6 +1,7 @@
 package io.hyperfoil.controller;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,13 +29,13 @@ final class Data {
    final int stepId;
    final String metric;
    // for reporting
-   private final Boolean trackIntervalHistograms;
+   private final boolean trackIntervalHistograms;
    final StatisticsSnapshot total = new StatisticsSnapshot();
    final Map<String, StatisticsSnapshot> perAgent = new HashMap<>();
    final Map<String, IntObjectMap<StatisticsSnapshot>> lastStats = new HashMap<>();
    final List<StatisticsSummary> series = new ArrayList<>();
-   final Map<String, List<Histogram>> intervalHistogramsPerAgent = new HashMap<>();;
-   final List<Histogram> intervalHistograms = new ArrayList<>();
+   final Map<String, List<Histogram>> intervalHistogramsPerAgent;
+   final List<Histogram> intervalHistograms;
    final Map<String, List<StatisticsSummary>> agentSeries = new HashMap<>();
    // floating statistics for SLAs
    private final Map<SLA, StatisticsStore.Window> windowSlas;
@@ -43,7 +44,7 @@ final class Data {
    private boolean completed;
 
    Data(StatisticsStore statisticsStore, String phase, boolean isWarmup, int stepId, String metric,
-         Map<SLA, StatisticsStore.Window> periodSlas, SLA[] totalSlas, Boolean trackIntervalHistograms) {
+         Map<SLA, StatisticsStore.Window> periodSlas, SLA[] totalSlas, boolean trackIntervalHistograms) {
       this.statisticsStore = statisticsStore;
       this.phase = phase;
       this.isWarmup = isWarmup;
@@ -52,6 +53,8 @@ final class Data {
       this.windowSlas = periodSlas;
       this.totalSlas = totalSlas;
       this.trackIntervalHistograms = trackIntervalHistograms;
+      this.intervalHistogramsPerAgent = trackIntervalHistograms ? new HashMap<>() : Collections.emptyMap();
+      this.intervalHistograms = trackIntervalHistograms ? new ArrayList<>() : Collections.emptyList();
    }
 
    boolean record(String agentName, StatisticsSnapshot stats) {

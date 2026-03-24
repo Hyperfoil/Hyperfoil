@@ -39,9 +39,9 @@ public class StatisticsStore {
    final Map<String, SessionPoolStats> sessionPoolStats = new HashMap<>();
    final Map<String, Map<String, Map<String, List<ConnectionPoolStats>>>> connectionPoolStats = new HashMap<>();
    final Map<String, Map<String, String>> cpuUsage = new HashMap<>();
-   private final Boolean trackIntervalHistograms;
+   private final boolean trackIntervalHistograms;
 
-   public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler, Boolean trackIntervalHistograms) {
+   public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler, boolean trackIntervalHistograms) {
       this.benchmark = benchmark;
       this.failureHandler = failureHandler;
       this.slaProviders = benchmark.steps()

@@ -19,7 +19,7 @@ import io.vertx.core.json.JsonObject;
 
 public class JsonLoader {
 
-   public static StatisticsStore read(String text, StatisticsStore store, Boolean trackIntervalHistograms) {
+   public static StatisticsStore read(String text, StatisticsStore store, boolean trackIntervalHistograms) {
       JsonObject object = new JsonObject(text);
       String schema = object.getString("$schema");
       if (!JsonWriter.RUN_SCHEMA.equals(schema)) {
