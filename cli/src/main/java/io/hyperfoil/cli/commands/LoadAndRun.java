@@ -25,7 +25,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
 
    @Override
    protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
-      return List.of(Upload.class, Wait.class, Report.class);
+      return List.of(Upload.class, Wait.class, Stats.class, Report.class);
    }
 
    @Override
@@ -57,6 +57,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
       @Override
       protected void monitor(HyperfoilCommandInvocation invocation) throws CommandException {
          invocation.executeSwitchable("wait");
+         invocation.executeSwitchable("stats -t");
          if (output != null && !output.isBlank()) {
             invocation.executeSwitchable("report --silent -y --destination " + output);
          } else {
