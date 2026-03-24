@@ -179,7 +179,14 @@ public class Table<T> {
       int suffixLength = prefixes == null ? 0
             : prefixes.stream().filter(Objects::nonNull).mapToInt(Table::width).max().orElse(0);
       int totalWidth = IntStream.of(width).map(w -> w + 2).sum() - 2;
-      int maxWidth = invocation.getShell().size().getWidth() - prefixLength - suffixLength;
+      int shellWidth = invocation.getShell().size().getWidth();
+      if (shellWidth < totalWidth) {
+         int termWidth = org.aesh.readline.util.TerminalUtil.terminalWidth();
+         if (termWidth > shellWidth) {
+            shellWidth = termWidth;
+         }
+      }
+      int maxWidth = shellWidth - prefixLength - suffixLength;
       boolean multiline = totalWidth > maxWidth;
       int idsWidth = IntStream.of(width).limit(idColumns).map(w -> w + 2).sum();
       int stride = width.length - idColumns;
