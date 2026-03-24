@@ -22,8 +22,10 @@ import io.hyperfoil.core.impl.rate.FireTimeSequence;
  * throttled users, preventing it to be pooled</li>
  * </ul>
  * <p>
- * The last point is crucial because it means that a too small amount of pooled sessions would be "compensated" only
- * when a session finished, instead of when {@link #sessionPool} has available sessions available.
+ * When catching up throttled users, the finishing session is released back to the pool and a new session acquisition
+ * is scheduled on the {@link #executorGroup} (which round-robins across event loops). This ensures catch-up sessions
+ * are distributed evenly across all event loops, preventing a single core from being saturated (see issue #627),
+ * while preserving progress guarantees since {@code acquire()} can still work-steal from other event loops.
  */
 final class OpenModelPhase extends PhaseInstanceImpl {
 
@@ -31,6 +33,7 @@ final class OpenModelPhase extends PhaseInstanceImpl {
    private final AtomicLong throttledUsers = new AtomicLong(0);
    private final FireTimeSequence fireTimeSequence;
    private final Runnable proceedTask = this::proceed;
+   private final Runnable catchUpTask = this::catchUp;
    private long nextScheduledFireTimeNs;
 
    OpenModelPhase(FireTimeSequence fireTimeSequence, Phase def, String runId, int agentId) {
@@ -88,11 +91,12 @@ final class OpenModelPhase extends PhaseInstanceImpl {
          long throttled = throttledUsers.get();
          while (throttled != 0) {
             if (throttledUsers.compareAndSet(throttled, throttled - 1)) {
-               // TODO: it would be nice to compensate response times
-               // in these invocations for the fact that we're applying
-               // SUT feedback, but that would be imprecise anyway.
-               session.start(-1, -1, this);
-               // this prevents the session to be pooled
+               // Release the session back to the pool and schedule a new session acquisition
+               // on the executorGroup, which round-robins across event loops. This distributes
+               // catch-up load evenly while preserving progress guarantees (acquire() can still
+               // work-steal from other event loops if the local queue is empty).
+               super.notifyFinished(session);
+               executorGroup.execute(catchUpTask);
                return;
             } else {
                throttled = throttledUsers.get();
@@ -100,6 +104,14 @@ final class OpenModelPhase extends PhaseInstanceImpl {
          }
       }
       super.notifyFinished(session);
+   }
+
+   private void catchUp() {
+      if (!startNewSession(-1, -1)) {
+         // Session acquisition failed (e.g., the released session was grabbed by proceed()
+         // before we ran). Re-increment so the user is not silently lost.
+         throttledUsers.incrementAndGet();
+      }
    }
 
 }
