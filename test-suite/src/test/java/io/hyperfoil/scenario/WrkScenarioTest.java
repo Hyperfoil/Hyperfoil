@@ -97,8 +97,8 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
          @Override
          public void onRequest(Request request, ByteBuf buf, int offset, int length) {
             // ignore outside the range
-            if (counter.get() < startTimesNs.length) {
-               int index = counter.getAndIncrement();
+            int index = counter.getAndIncrement();
+            if (index < startTimesNs.length) {
                startTimesNs[index] = request.startTimestampNanos();
             }
          }
