@@ -16,15 +16,17 @@ import org.junit.jupiter.api.Test;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.processor.RawBytesHandler;
+import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.benchmark.BaseWrkBenchmarkTest;
 import io.hyperfoil.cli.commands.WrkScenario;
 import io.hyperfoil.cli.commands.WrkScenarioPhaseConfig;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.session.BaseScenarioTest;
-import io.netty.buffer.ByteBuf;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.hyperfoil.http.steps.HttpStepCatalog;
 
 public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
@@ -88,29 +90,58 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       // should be greater than 1000
       int rate = 2000;
       int duration = 10;
+      int totalExpectedRequests = rate * duration;
 
-      class RequestCounterHandler implements RawBytesHandler {
-
+      class TimestampStep implements Step {
          private final AtomicInteger counter = new AtomicInteger();
-         long[] startTimesNs = new long[rate * duration];
+         final long[] startTimesNs = new long[totalExpectedRequests];
 
          @Override
-         public void onRequest(Request request, ByteBuf buf, int offset, int length) {
-            // ignore outside the range
+         public boolean invoke(Session session) {
             int index = counter.getAndIncrement();
             if (index < startTimesNs.length) {
-               startTimesNs[index] = request.startTimestampNanos();
+               startTimesNs[index] = System.nanoTime();
             }
-         }
-
-         @Override
-         public void onResponse(Request request, ByteBuf buf, int offset, int length, boolean isLastPart) {
-
+            return true;
          }
       }
 
-      RequestCounterHandler handler = new RequestCounterHandler();
-      runWrk2Scenario(0, duration, url, rate, 1, 10, 2, handler);
+      TimestampStep timestampStep = new TimestampStep();
+
+      // Build the benchmark explicitly for this test
+      BenchmarkBuilder builder = BenchmarkBuilder.builder()
+            .name("burstiness-test")
+            .threads(2);
+
+      builder.addPlugin(HttpPluginBuilder::new)
+            .http()
+            .host("localhost")
+            .port(httpServer.actualPort())
+            .sharedConnections(10)
+            .endHttp();
+
+      long durationMs = duration * 1000L;
+      long timeoutMs = 1000L; // 1 second timeout
+
+      // Explicitly set duration and maxDuration here
+      PhaseBuilder<?> phaseBuilder = WrkScenarioPhaseConfig
+            .wrk2PhaseConfig(builder.addPhase("test"), WrkScenario.PhaseType.test, durationMs, rate)
+            .duration(durationMs)
+            .maxDuration(durationMs + timeoutMs);
+
+      phaseBuilder.scenario()
+            .maxRequests(1)
+            .maxSequences(1)
+            .initialSequence("request")
+            .step(timestampStep) // Inject our timestamp recorder
+            .step(HttpStepCatalog.SC).httpRequest(HttpMethod.GET)
+            .path("/highway")
+            .endStep()
+            .endSequence();
+
+      BaseScenarioTest.TestStatistics statisticsConsumer = new BaseScenarioTest.TestStatistics();
+      LocalSimulationRunner runner = new LocalSimulationRunner(builder.build(), statisticsConsumer, null, null);
+      runner.run();
 
       int maxEventsInBucket = 0;
       int left = 0;
@@ -120,7 +151,8 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       // it will be super hard to be on 1, 2, 4
       int expectedMaxEventsPerBucket = 20;
 
-      long[] validStartTimesNs = Arrays.copyOf(handler.startTimesNs, handler.counter.get());
+      int actualRecorded = Math.min(timestampStep.counter.get(), timestampStep.startTimesNs.length);
+      long[] validStartTimesNs = Arrays.copyOf(timestampStep.startTimesNs, actualRecorded);
       Arrays.sort(validStartTimesNs);
 
       for (int right = 0; right < validStartTimesNs.length; right++) {
@@ -146,31 +178,25 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
                long durationMs) {
             return WrkScenarioPhaseConfig.wrkPhaseConfig(catalog, connections);
          }
-      }, null);
+      });
    }
 
    private BaseScenarioTest.TestStatistics runWrk2Scenario(int warmupDuration, int testDuration, String url,
          int rate, int timeout, int connections, int threads) throws URISyntaxException {
-      return this.runWrk2Scenario(warmupDuration, testDuration, url, rate, timeout, connections, threads, null);
-   }
-
-   private BaseScenarioTest.TestStatistics runWrk2Scenario(int warmupDuration, int testDuration, String url,
-         int rate, int timeout, int connections, int threads, RawBytesHandler otherHandler) throws URISyntaxException {
       return runScenario(warmupDuration, testDuration, url, timeout, connections, threads, () -> new WrkScenario() {
          @Override
          protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType,
                long durationMs) {
             return WrkScenarioPhaseConfig.wrk2PhaseConfig(catalog, phaseType, durationMs, rate);
          }
-      }, otherHandler);
+      });
    }
 
    /**
-    *
     * @param timeout value should be in second
     */
    private BaseScenarioTest.TestStatistics runScenario(int warmupDuration, int testDuration, String url, int timeout,
-         int connections, int threads, Supplier<WrkScenario> fn, RawBytesHandler otherHandler) throws URISyntaxException {
+         int connections, int threads, Supplier<WrkScenario> fn) throws URISyntaxException {
       boolean enableHttp2 = false;
       boolean useHttpCache = false;
       Map<String, String> agent = null;
@@ -179,7 +205,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       WrkScenario wrkScenario = fn.get();
 
       BenchmarkBuilder builder = wrkScenario.getBenchmark("my-test", url, enableHttp2, connections, useHttpCache,
-            threads, agent, warmupDuration + "s", testDuration + "s", parsedHeaders, timeout + "s", otherHandler);
+            threads, agent, warmupDuration + "s", testDuration + "s", parsedHeaders, timeout + "s");
 
       BaseScenarioTest.TestStatistics statisticsConsumer = new BaseScenarioTest.TestStatistics();
       LocalSimulationRunner runner = new LocalSimulationRunner(builder.build(), statisticsConsumer, null, null);
