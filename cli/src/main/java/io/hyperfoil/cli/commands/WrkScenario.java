@@ -25,7 +25,8 @@ public abstract class WrkScenario {
 
    public BenchmarkBuilder getBenchmark(String name, String url, boolean enableHttp2, int connections,
          boolean useHttpCache, int threads, Map<String, String> agentParam, String warmupDuration, String testDuration,
-         String[][] parsedHeaders, String timeout) throws URISyntaxException {
+         String[][] parsedHeaders, String timeout)
+         throws URISyntaxException {
       URI uri = this.getUri(url);
       BenchmarkBuilder builder = this.getBenchmarkBuilder(name, uri, enableHttp2, connections, useHttpCache, threads,
             agentParam);

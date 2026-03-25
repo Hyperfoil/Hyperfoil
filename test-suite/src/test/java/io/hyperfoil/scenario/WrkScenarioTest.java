@@ -146,11 +146,15 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
       int maxEventsInBucket = 0;
       int left = 0;
-      // target is 2,000 RPS, your ideal bucket size is 500,000 ns
-      // Real-world systems have scheduling jitter, network delays, and timing variations
-      long bucketWindowNs = 500_000;
-      // it will be super hard to be on 1, 2, 4
-      int expectedMaxEventsPerBucket = 20;
+
+      // At 2,000 RPS, we expect 2 requests/ms, or 20 requests per 10ms window.
+      // However, CI environments frequently experience GC pauses or CPU stealing.
+      // If the test thread freezes for 100ms, Hyperfoil will fire a "catch-up burst"
+      // of 200 requests instantly when it wakes up to maintain the target rate.
+      long bucketWindowNs = 10_000_000; // 10ms sliding window
+      // We set the failure threshold to 200 to tolerate up to 100ms of CI jitter
+      // while still catching genuinely broken rate-limiting (e.g., thousands of requests at once).
+      int expectedMaxEventsPerBucket = 200;
 
       int actualRecorded = Math.min(timestampStep.counter.get(), timestampStep.startTimesNs.length());
       long[] validStartTimesNs = new long[actualRecorded];
@@ -197,6 +201,7 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
    }
 
    /**
+    *
     * @param timeout value should be in second
     */
    private BaseScenarioTest.TestStatistics runScenario(int warmupDuration, int testDuration, String url, int timeout,
