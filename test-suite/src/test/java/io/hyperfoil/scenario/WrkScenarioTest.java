@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -94,13 +95,13 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
       class TimestampStep implements Step {
          private final AtomicInteger counter = new AtomicInteger();
-         final long[] startTimesNs = new long[totalExpectedRequests];
+         final AtomicLongArray startTimesNs = new AtomicLongArray(totalExpectedRequests);
 
          @Override
          public boolean invoke(Session session) {
             int index = counter.getAndIncrement();
-            if (index < startTimesNs.length) {
-               startTimesNs[index] = System.nanoTime();
+            if (index < startTimesNs.length()) {
+               startTimesNs.set(index, System.nanoTime());
             }
             return true;
          }
@@ -151,8 +152,11 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       // it will be super hard to be on 1, 2, 4
       int expectedMaxEventsPerBucket = 20;
 
-      int actualRecorded = Math.min(timestampStep.counter.get(), timestampStep.startTimesNs.length);
-      long[] validStartTimesNs = Arrays.copyOf(timestampStep.startTimesNs, actualRecorded);
+      int actualRecorded = Math.min(timestampStep.counter.get(), timestampStep.startTimesNs.length());
+      long[] validStartTimesNs = new long[actualRecorded];
+      for (int i = 0; i < actualRecorded; i++) {
+         validStartTimesNs[i] = timestampStep.startTimesNs.get(i);
+      }
       Arrays.sort(validStartTimesNs);
 
       for (int right = 0; right < validStartTimesNs.length; right++) {
