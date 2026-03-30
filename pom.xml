@@ -99,7 +99,7 @@
         <version.wildfly-common>2.0.1</version.wildfly-common>
         <version.smallrye-common>2.14.0</version.smallrye-common>
         <!-- end: JBoss/WildFly/SmallRye dependency versions -->
-        <version.jboss-logging>3.6.2.Final</version.jboss-logging>
+        <version.jboss-logging>3.6.3.Final</version.jboss-logging>
         <version.jctools>4.0.5</version.jctools>
 
         <version.sonatype.central>0.10.0</version.sonatype.central>
