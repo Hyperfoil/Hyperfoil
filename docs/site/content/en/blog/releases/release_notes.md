@@ -5,6 +5,23 @@ type: docs
 weight: 1
 ---
 
+## 0.29.0 (2026-04-16)
+
+* Nanosecond granularity for load generators, enabling sub-millisecond rate generation
+* Fix internal coordinated omission for open model phases
+* Fix open model catch-up sessions clustering on a single event loop (issue #627)
+* CLI and run commands packaged as standalone jar files via Maven Shade Plugin
+* Added warmupDuration option for wrk/wrk2 phases
+* Added version information to Agent and Controller
+* Print total stats summary after run completes in LoadAndRun
+* Refactored phase lifecycle and statistics collection for improved reliability
+* Ensured all statistics are properly collected and sent before phase completion
+* Resolved CpuWatchdog false positives due to tick rate assumptions
+* Disabled Netty leak detection by default
+* Updated the Hyperfoil report template
+* Added JDK 25 to the build matrix
+* Dependency upgrades, including HdrHistogram 2.2.2, JUnit 6, aesh 3.4, and various Maven plugins
+
 ## 0.28.0 (2025-10-01)
 
 * Upgraded to JDK 21
