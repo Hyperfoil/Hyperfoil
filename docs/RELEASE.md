@@ -1,132 +1,106 @@
-# Hyperfoil Release
+# Hyperfoil Release Guide
 
-This document summarizes all the steps needed to release next version of Hyperfoil.
+This document describes the steps needed to release a new version of Hyperfoil.
+
+## Pre-release Checklist
+
+### Report template
+
+The HTML report template lives in the [`Hyperfoil/report`](https://github.com/Hyperfoil/report) repo. If any changes were made there since the last release, someone needs to build the report and copy the output into the main repo before tagging the release:
+
+1. In the `report` repo, run `npm install && npm run build`.
+2. Copy the built `report-template.html` to `clustering/src/main/resources/report-template.html` in the main Hyperfoil repo.
+3. Commit and push to the stable branch (or include in a PR targeting it).
+
+If no changes were made to the report repo, this step can be skipped.
 
 ## Automated Release Process
 
-We automated the release process using GitHub workflows. 
+All credentials (GPG key, Maven Central Portal, SSH deploy key, Quay.io) are stored as GitHub Secrets. No local credentials are needed.
 
-The process consists of two main steps.
+### Minor release (e.g., 0.28 -> 0.29)
 
-### Create stable branch
+A minor release introduces new features and creates a new stable branch.
 
-Create the stable branch by running [Branch workflow](../.github/workflows/branch.yml).
-This will generate a new stable branch from the current `master` SNAPSHOT version, e.g., from `0.28-SNAPSHOT` 
-it will create `0.28.x` branch.
+1. Trigger the **Create New Stable Branch** workflow (`branch.yml`) from `master` via the GitHub Actions UI. This creates the `X.Y.x` branch, bumps master to the next minor SNAPSHOT, and updates workflow references.
+2. Trigger the **Perform Release** workflow (`release.yml`) from the newly created `X.Y.x` branch. This handles Maven Central publishing, GPG signing, container image build and push to quay.io, and GitHub Release creation.
+3. Submit a PR to the Hyperfoil repo targeting `master` with:
+   - `docs/site/content/en/blog/releases/release_notes.md` — add the changelog for the new version
+   - `docs/site/hugo.yaml` — update `version`, `github_branch`, `url_latest_distribution`, and `zip_latest_distribution`
 
->[!NOTE]
-> This is meant to be triggered when branching new `minor` release
+   Add the `backport` label to this PR. When merged, the backport workflow will automatically create a cherry-pick PR targeting the `X.Y.x` stable branch. Merge that backport PR as well — the website deploys from the stable branch, not `master`.
+4. Push directly to `master` in the [`Hyperfoil/Hyperfoil.github.io`](https://github.com/Hyperfoil/Hyperfoil.github.io) repo, updating `.github/workflows/deploy-gh-pages.yaml` to reference the new stable branch (e.g., `ref: '0.29.x'`). This repo uses direct pushes to `master`, not PRs. Then manually trigger the **Build and deploy Hyperfoil website** workflow from the [Actions tab](https://github.com/Hyperfoil/Hyperfoil.github.io/actions) — it uses `workflow_dispatch` and does not run automatically on push. After it completes, wait for the subsequent **pages build and deployment** workflow to finish before verifying the site.
+5. Push directly to `main` in the [`Hyperfoil/jbang-catalog`](https://github.com/Hyperfoil/jbang-catalog) repo: bump all Hyperfoil version references in `jbang-catalog.json` to the new release version (e.g., `0.29.0`). This affects the `wrk`, `wrk2`, `cli`, and `run` aliases.
 
-### Perform Release
+### Micro/patch release (e.g., 0.28.0 -> 0.28.1)
 
-The release MUST be performed from the current active stable branch, e.g., `0.28.x`.
+A micro release applies bug fixes to an existing stable branch. No branch creation is needed.
 
-Simply trigger the [Release workflow](../.github/workflows/release.yml) that will take care of 
-* Create the new maven artifacts
-* Push the artifacts to Central Portal
-* Build and push the container image
-* Prepare for the next dev cycle
+1. Trigger the **Perform Release** workflow (`release.yml`) from the existing `X.Y.x` branch (e.g., `0.28.x`).
+2. Submit a PR targeting the `X.Y.x` stable branch directly, updating `docs/site/hugo.yaml` with the new version and download URL. Update `docs/site/content/en/blog/releases/release_notes.md` with the changelog if needed.
+3. Manually trigger the **Build and deploy Hyperfoil website** workflow from the [`Hyperfoil/Hyperfoil.github.io` Actions tab](https://github.com/Hyperfoil/Hyperfoil.github.io/actions) to update the site with the new version. After it completes, wait for the subsequent **pages build and deployment** workflow to finish before verifying the site.
+4. Push directly to `main` in the [`Hyperfoil/jbang-catalog`](https://github.com/Hyperfoil/jbang-catalog) repo: bump all Hyperfoil version references in `jbang-catalog.json` to the new release version.
 
->[!NOTE]
-> If for any reason something goes wrong or the CI does not work, check the [manual release process](#manual-release-process)
+## Manual Release Process (fallback)
 
-
-## Manual Release Process
-
-Below you can find a step-by-step guide to release a new Hyperfoil version.
+If the automated workflows are unavailable, you can release manually.
 
 ### Prerequisites
 
-Here the full list of prerequisites and privileges that are required to release a new Hyperfoil version:
+1. GitHub push rights on [github.com/Hyperfoil/Hyperfoil](https://github.com/Hyperfoil/Hyperfoil).
+2. [Maven Central Portal](https://central.sonatype.com) access rights. Once you have an account, someone already in the Hyperfoil org on Sonatype has to add you.
+3. GPG keys configured locally for signing artifacts.
+4. [Optional] [Quay.io/hyperfoil](https://quay.io/organization/hyperfoil) push rights — only needed if the automated container image push fails.
 
-1. GitHub push rights on [github.com/Hyperfoil/Hyperfoil](https://github.com/Hyperfoil/Hyperfoil) repository.
-2. [Sonatype](https://s01.oss.sonatype.org) access rights.
-   1. More details on [central sonatype documentation](https://central.sonatype.org/register/legacy/)
-   2. Once you have the account created, someone already in sonatype Hyperfoil org has to add you there.
-3. [Optional] [Quay.io/hyperfoil](https://quay.io/organization/hyperfoil) push rights.
-   1. This is only required if the automated process that pushes the container image does not work.
-   2. More details on this step can be found in the [release process](#release-process).
+### Build and release artifacts
 
-### Prepare tag and next development cycle
+Run from the **stable branch** (e.g., `0.28.x`), not from `master`:
 
-From the `master` branch (ensure it is up-to-date), run the following command:
 ```bash
-mvn release:prepare -Prelease
-```
-
-You will be asked to confirm or change the version, something like:
-```bash
+$ mvn release:prepare -Prelease
 What is the release version for "Hyperfoil"? ... <- Use semantic version (X.Y.Z), default guessed by Maven works.
 ...
-What is SCM release tag or label for "Hyperfoil"? <- Use tag 'hyperfoil-all-X.Y.Z'
+What is SCM release tag or label for "Hyperfoil"? <- Use tag 'release-X.Y.Z'
 What is the new development version for "Hyperfoil"? ... <- Use semantic version (X.Y.Z) with -SNAPSHOT suffix
 ...
+$ mvn release:perform -Prelease
 ```
-
-This command will create two commits:
-1. `[maven-release-plugin] prepare release hyperfoil-all-<VERSION>`: Release version upgrade on all POMs.
-2. `[maven-release-plugin] prepare for next development iteration`: Version upgrade to the next `SNAPSHOT` version.
-
-Additionally, the process will create a new tag `hyperfoil-all-<VERSION>` starting from the commit first commit above.
-After that, it will push both `master` and the new _tag_.
-
-At the end you should see some un-versioned backup POM files and a release text file, do not remove them as they will
-be required by the [Push maven artifacts step](#push-maven-artifacts-to-sonatype).
 
 > [!NOTE]
-> Command `mvn release:prepare` triggers the tests, therefore the process might fail if there is any failure.
+> `mvn release:prepare` runs tests, so the process may fail if there are test failures.
 
-### Push maven artifacts to sonatype
+This creates the tag and pushes everything in the Hyperfoil/Hyperfoil repo. Check [GitHub Releases](https://github.com/Hyperfoil/Hyperfoil/releases) and [Quay](https://quay.io/repository/hyperfoil/hyperfoil?tab=tags) that the artifacts appeared after a few minutes.
 
-To push the maven artifacts you just need to run:
+### Container image (if not published automatically)
+
+Build and push the multi-arch container image manually:
+
 ```bash
-mvn release:perform -Prelease
+$ mvn clean -B package --file pom.xml
+$ cd distribution
+$ podman build --platform=linux/amd64,linux/arm64 \
+    --manifest quay.io/hyperfoil/hyperfoil:X.Y.Z \
+    -f src/main/docker/Dockerfile .
+$ podman manifest push quay.io/hyperfoil/hyperfoil:X.Y.Z
+$ podman manifest push quay.io/hyperfoil/hyperfoil:X.Y.Z quay.io/hyperfoil/hyperfoil:latest
 ```
 
-Once the command finishes, you should see the new artifacts available at [central.sonatype.com](https://central.sonatype.com/search?q=hyperfoil)
+> [!NOTE]
+> You need [quay.io/hyperfoil](https://quay.io/organization/hyperfoil) push rights to run this.
 
-### [Optional] Push container image to quay.io
+### GitHub Release (if not created automatically)
 
-If, for any reason, the GitHub workflow did not work (or the container image has not been published) 
-you could manually follow these steps:
-
-1. Checkout the latest generated tag
-2. Build the container image
-   ```bash
-   mvn clean -B package --file pom.xml
-   ```
-3. Build the container image
-   ```bash
-   cd distribution
-   podman build --platform=linux/amd64,linux/arm64 \
-     --manifest quay.io/hyperfoil/hyperfoil:<VERSION> \
-     -f src/main/docker/Dockerfile .
-   ```
-4. Push the container image
-   ```bash
-   podman manifest push quay.io/hyperfoil/hyperfoil:<VERSION>
-   podman manifest push quay.io/hyperfoil/hyperfoil:<VERSION> quay.io/hyperfoil/hyperfoil:latest
-   ```
-   > [!NOTE]
-   > To run this command you need to have [quay.io/Hyperfoil](https://quay.io/organization/hyperfoil) push rights
-5. Create a new GitHub release
-   1. Start drafting the release using [GitHub web UI](https://github.com/Hyperfoil/Hyperfoil/releases/new).
-   2. Auto-generate the release note
-   3. Attach the Hyperfoil distribution zip file `./distribution/target/hyperfoil-<VERSION>.zip`
+Create the release on [GitHub](https://github.com/Hyperfoil/Hyperfoil/releases) manually, attaching the distribution zip `distribution/target/hyperfoil-X.Y.Z.zip`.
 
 ## Website Update
 
-By default, the documentation hosted at https://hyperfoil.io points to the latest stable branch on this repository, e.g., `0.27.x`.
+The documentation at https://hyperfoil.io is deployed from the latest stable branch via [Hyperfoil/Hyperfoil.github.io](https://github.com/Hyperfoil/Hyperfoil.github.io).
 
-The deployment is managed by [github.com/Hyperfoil/Hyperfoil.github.io](https://github.com/Hyperfoil/Hyperfoil.github.io).
+Most changes should already be in place at release time, but verify the following:
 
-
-All changes should be already in place at the time a new release is being performed, but to be sure these are the changes that have to be applied:
-
-1. Drop the generated steps and replace them with the new ones.
+1. Generated reference docs (steps, processors, actions) are up to date:
 
    ```bash
-   # Remove and replace old steps docs with the latest generated steps files
    rm docs/site/content/en/docs/reference/steps/step_*
    rm docs/site/content/en/docs/reference/processors/processor_*
    rm docs/site/content/en/docs/reference/actions/action_*
@@ -135,42 +109,26 @@ All changes should be already in place at the time a new release is being perfor
    cp distribution/target/steps/processor_* docs/site/content/en/docs/reference/processors
    cp distribution/target/steps/action_* docs/site/content/en/docs/reference/actions
    ```
-   > [!NOTE]
-   > It's recommended to review changes in the generated docs using `git diff` at this point.
 
-2. Update the JSON schema
+   > [!NOTE]
+   > Review changes with `git diff` before committing.
+
+2. JSON schema is up to date:
+
    ```bash
-   # Update the benchmark JSON schema
    cp distribution/target/distribution/docs/schema.json docs/site/static/schema.json
    ```
 
-   In order to properly redirect from http://hyperfoil.io/schema to the JSON file we need to add this Front Matter to the 
-   beginning of the schema.json file:
+   Ensure the schema file has this front matter at the top for the redirect to work:
 
    ```
    ---
    redirect_from: /schema
    ---
-   (here follows the actual JSON)
+   (actual JSON follows)
    ```
 
-3. Update the latest release branch in the `hugo.yaml`
-   
-   ```yaml
-   params:
-      version: X.Y.Z
-      github_branch: X.Y.x
-      url_latest_distribution: https://github.com/Hyperfoil/Hyperfoil/releases/download/hyperfoil-all-X.Y.Z/hyperfoil-X.Y.Z.zip
-      zip_latest_distribution: hyperfoil-X.Y.Z.zip
-   ```
-
-4. [Optional] If you had to do some of the previous changes, most likely bullet #3, commit the new changes
-   ```sh
-   git commit -a -m 'Update documentation for X.Y.Z' && git push
-   ```
-
-   > [!NOTE]
-   > Remember to backport the same change to the latest stable branch, e.g., `0.26.x`.
+3. `hugo.yaml` references the new version (see step 3 of the automated minor release process).
 
 ## Hyperfoil Operator
 
@@ -178,27 +136,3 @@ Note that while the operator synchronizes to the latest Hyperfoil versions on re
 after 1.0 as it is confusing for some users) we don't have to release the operator for every release of the project.
 Therefore, there will be gaps in operator versions, and older version of operator will most likely work with most recent
 Hyperfoil.
-
-## Update Ansible Scripts
-
-> [!NOTE]
-> This section refers to an old automation process that might be no more applicable!
-
-### Prerequisites
-
-Clone the following repositories:
-- [Hyperfoil/hyperfoil_setup](https://github.com/Hyperfoil/hyperfoil_setup)
-- [Hyperfoil/hyperfoil_test](https://github.com/Hyperfoil/hyperfoil_test)
-- [Hyperfoil/hyperfoil_shutdown](https://github.com/Hyperfoil/hyperfoil_shutdown)
-
-### Create tags for Ansible Galaxy scripts
-```
-$ cd ../hyperfoil-ansible/hyperfoil_setup
-$ git pull && git tag X.Y.Z && git push --tags
-$ cd cd ../hyperfoil_test/
-$ git pull && git tag X.Y.Z && git push --tags
-$ cd cd ../hyperfoil_shutdown/
-$ git pull && git tag X.Y.Z && git push --tags
-```
-
-Travis CI will notify Ansible Galaxy to publish new version.
