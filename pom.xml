@@ -103,7 +103,7 @@
         <version.jctools>4.0.5</version.jctools>
 
         <version.sonatype.central>0.10.0</version.sonatype.central>
-        <version.maven.source>3.3.1</version.maven.source>
+        <version.maven.source>3.4.0</version.maven.source>
         <version.maven.javadoc>3.12.0</version.maven.javadoc>
         <version.maven.gpg>3.2.8</version.maven.gpg>
         <version.maven-core>3.9.14</version.maven-core>
@@ -632,7 +632,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>${version.maven.source}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
