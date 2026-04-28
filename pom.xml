@@ -88,7 +88,7 @@
         <version.log4j2>2.25.4</version.log4j2>
         <version.metainf-services>1.11</version.metainf-services>
         <version.slf4j>2.0.17</version.slf4j>
-        <version.snakeyaml>2.5</version.snakeyaml>
+        <version.snakeyaml>2.6</version.snakeyaml>
         <version.vertx>4.5.21</version.vertx>
         <version.infinispan>16.0.9</version.infinispan>
         <!-- begin: JBoss/WildFly/SmallRye dependency versions - these must be compatible with each other.
