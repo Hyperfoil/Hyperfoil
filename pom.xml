@@ -111,7 +111,7 @@
         <version.maven-surefire-plugin>3.5.4</version.maven-surefire-plugin>
         <version.antrun.plugin>1.8</version.antrun.plugin>
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
-        <version.buildnumber.plugin>3.2.1</version.buildnumber.plugin>
+        <version.buildnumber.plugin>3.3.0</version.buildnumber.plugin>
 
         <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
