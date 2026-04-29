@@ -67,7 +67,6 @@ import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -165,33 +164,35 @@ class ControllerServer implements ApiService {
       int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT,
             controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
       WebCLI webCLI = new WebCLI(controller.getVertx());
-      httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
-            .webSocketHandler(webCLI)
-            .listen(controllerPort, controllerHost, serverResult -> {
-               if (serverResult.succeeded()) {
-                  String host = controllerHost;
-                  // Can't advertise 0.0.0.0 as
-                  if (host.equals("0.0.0.0")) {
-                     try {
-                        host = InetAddress.getLocalHost().getHostName();
-                     } catch (UnknownHostException e) {
-                        host = "localhost";
-                     }
-                  }
-                  if (CONTROLLER_EXTERNAL_URI == null) {
-                     baseURL = (options.isSsl() ? "https://" : "http://") + host + ":" + serverResult.result().actualPort();
-                  } else {
-                     baseURL = CONTROLLER_EXTERNAL_URI;
-                  }
-                  webCLI.setConnectionOptions(host, serverResult.result().actualPort(), options.isSsl());
-                  log.info("Hyperfoil controller listening on {}", baseURL);
+      httpServer = controller.getVertx().createHttpServer(options)
+            .requestHandler(router)
+            .webSocketHandler(webCLI);
+      httpServer.listen(controllerPort, controllerHost).onComplete(serverResult -> {
+         if (serverResult.succeeded()) {
+            String host = controllerHost;
+            // Can't advertise 0.0.0.0
+            if (host.equals("0.0.0.0")) {
+               try {
+                  host = InetAddress.getLocalHost().getHostName();
+               } catch (UnknownHostException e) {
+                  host = "localhost";
                }
-               countDown.handle(serverResult.mapEmpty());
-            });
+            }
+            if (CONTROLLER_EXTERNAL_URI == null) {
+               baseURL = (options.isSsl() ? "https://" : "http://") + host + ":" + serverResult.result().actualPort();
+            } else {
+               baseURL = CONTROLLER_EXTERNAL_URI;
+            }
+            webCLI.setConnectionOptions(host, serverResult.result().actualPort(), options.isSsl());
+            log.info("Hyperfoil controller listening on {}", baseURL);
+         }
+         // Note: serverResult.mapEmpty() still works exactly as before
+         countDown.handle(serverResult.mapEmpty());
+      });
    }
 
    void stop(Promise<Void> stopFuture) {
-      httpServer.close(result -> stopFuture.complete());
+      httpServer.close().onComplete(stopFuture);
    }
 
    @Override
@@ -312,7 +313,7 @@ class ControllerServer implements ApiService {
          return;
       }
       var loadDirPath = Paths.get(loadDirProperty).toAbsolutePath();
-      String body = ctx.getBodyAsString();
+      String body = ctx.body().asString();
       if (body == null || body.isEmpty()) {
          log.error("Benchmark is empty, load failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
@@ -369,7 +370,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
-      String source = ctx.getBodyAsString();
+      String source = ctx.body().asString();
       if (source == null || source.isEmpty()) {
          log.error("Benchmark is empty, upload failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
@@ -399,7 +400,7 @@ class ControllerServer implements ApiService {
       if (storedFilesBenchmark != null) {
          log.warn("Ignoring parameter useStoredData for serialized benchmark upload.");
       }
-      byte[] bytes = ctx.getBody().getBytes();
+      byte[] bytes = ctx.body().buffer().getBytes();
       try {
          Benchmark benchmark = Util.deserialize(bytes);
          addBenchmarkAndReply(ctx, benchmark, ifMatch);
@@ -1143,7 +1144,7 @@ class ControllerServer implements ApiService {
       //noinspection ResultOfMethodCallIgnored
       ctx.response()
             .putHeader(HttpHeaders.ETAG, etag)
-            .sendFile(tempFile.toString(), r -> tempFile.delete());
+            .sendFile(tempFile.toString()).onComplete(r -> tempFile.delete());
    }
 
    @Override
@@ -1199,14 +1200,13 @@ class ControllerServer implements ApiService {
             .collect(Collectors.toList());
       if (force) {
          // We don't allow concurrent runs ATM, but...
-         @SuppressWarnings("rawtypes")
-         List<Future> futures = new ArrayList<>();
+         List<Future<?>> futures = new ArrayList<>();
          for (Run run : runs) {
             Promise<Void> promise = Promise.promise();
             futures.add(promise.future());
             controller.kill(run, result -> promise.complete());
          }
-         CompositeFuture.all(futures).onComplete(nil -> {
+         Future.all(futures).onComplete(nil -> {
             ctx.response().end();
             controller.shutdown();
          });

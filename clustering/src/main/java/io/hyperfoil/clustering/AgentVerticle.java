@@ -28,7 +28,7 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 
 public class AgentVerticle extends AbstractVerticle {
    private static Logger log = LogManager.getLogger(AgentVerticle.class);
@@ -87,11 +87,11 @@ public class AgentVerticle extends AbstractVerticle {
 
       if (vertx.isClustered()) {
          if (vertx instanceof VertxInternal) {
-            nodeId = ((VertxInternal) vertx).getClusterManager().getNodeId();
+            nodeId = ((VertxInternal) vertx).clusterManager().getNodeId();
          }
       }
       vertx.setPeriodic(1000, timerId -> {
-         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId), reply -> {
+         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId)).onComplete(reply -> {
             log.trace("{} Pinging controller", deploymentId);
             if (reply.succeeded()) {
                log.info("{} Got reply from controller.", deploymentId);
@@ -259,7 +259,7 @@ public class AgentVerticle extends AbstractVerticle {
                log.debug("Finish sending remaining statistics when status={}", status);
             }
             eb.request(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded,
-                  cpuUsage, error, globalData), ar -> {
+                  cpuUsage, error, globalData)).onComplete(ar -> {
                      if (ar.succeeded()) {
                         future.complete(null);
                      } else {

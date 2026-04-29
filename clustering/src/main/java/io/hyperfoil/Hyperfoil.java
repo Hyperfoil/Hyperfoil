@@ -4,10 +4,10 @@ import static io.hyperfoil.internal.Properties.CLUSTER_JGROUPS_STACK;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.FormattedMessage;
+import org.infinispan.commons.dataconversion.MediaType;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
@@ -39,7 +40,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
@@ -124,7 +125,7 @@ public class Hyperfoil {
    }
 
    private static void populateProperties(DefaultCacheManager dcm) {
-      JGroupsTransport transport = (JGroupsTransport) dcm.getCacheManagerConfiguration().transport().transport();
+      JGroupsTransport transport = (JGroupsTransport) dcm.getTransport();
       JChannel channel = transport.getChannel();
       TP tp = channel.getProtocolStack().getTransport();
       System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tp.getBindAddress().getHostAddress());
@@ -170,19 +171,14 @@ public class Hyperfoil {
    }
 
    private static DefaultCacheManager createCacheManager() {
-      try {
-         String configFile = "infinispan.xml";
-         URL url = FileLookupFactory.newInstance().lookupFileLocation(configFile,
-               Thread.currentThread().getContextClassLoader());
-         if (url == null) {
-            throw new IOException("Cannot find " + configFile);
-         }
-         ConfigurationBuilderHolder holder = new ParserRegistry().parse(url);
+      try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml",
+            Thread.currentThread().getContextClassLoader())) {
+         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, MediaType.APPLICATION_XML);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
                .withProperties(System.getProperties())
                .initialClusterSize(1);
          return new DefaultCacheManager(holder, true);
-      } catch (IOException e) {
+      } catch (Throwable e) { // capture all exceptions and log the root cause
          log.error("Cannot load Infinispan configuration", e);
          System.exit(1);
          return null;
@@ -191,7 +187,7 @@ public class Hyperfoil {
 
    static void deploy(Vertx vertx, Class<? extends Verticle> verticleClass) {
       log.info("Deploying {}...", verticleClass.getSimpleName());
-      vertx.deployVerticle(verticleClass, new DeploymentOptions(), event -> {
+      vertx.deployVerticle(verticleClass, new DeploymentOptions()).onComplete(event -> {
          if (event.succeeded()) {
             log.info("{} deployed.", verticleClass.getSimpleName());
          } else {
@@ -221,7 +217,7 @@ public class Hyperfoil {
    }
 
    public static Future<Void> shutdownVertx(Vertx vertx) {
-      ClusterManager clusterManager = ((VertxInternal) vertx).getClusterManager();
+      ClusterManager clusterManager = ((VertxInternal) vertx).clusterManager();
       DefaultCacheManager cacheManager = (DefaultCacheManager) ((InfinispanClusterManager) clusterManager).getCacheContainer();
       return vertx.close().onComplete(result -> {
          try {

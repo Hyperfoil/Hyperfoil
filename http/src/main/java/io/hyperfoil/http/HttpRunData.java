@@ -126,7 +126,7 @@ public class HttpRunData implements PluginRunData {
          if (entry.getKey() != null) {
             Promise<Void> promise = Promise.promise();
             promiseCollector.accept(promise.future());
-            entry.getValue().start(promise);
+            entry.getValue().start(promise::handle);
          }
       }
    }

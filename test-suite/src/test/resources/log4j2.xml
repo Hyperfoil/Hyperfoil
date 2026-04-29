@@ -14,12 +14,18 @@
     <Loggers>
         <Logger name="io.hyperfoil" level="TRACE"/>
         <Logger name="org.jgroups" level="TRACE"/>
-        <Logger name="org.infinispan" level="INFO"/>
-        <Logger name="io.vertx" level="INFO"/>
+        <!--
+        <Logger name="org.infinispan" level="TRACE"/>
+        -->
+        <Logger name="org.infinispan" level="TRACE"/>
+        <Logger name="io.vertx" level="TRACE"/>
         <Logger name="io.netty" level="INFO"/>
 
-        <Root level="INFO">
-            <AppenderRef ref="STDOUT" level="INFO"/>
+        <Root level="TRACE">
+            <!--
+            <AppenderRef ref="STDOUT" level="TRACE"/>
+            -->
+            <AppenderRef ref="STDOUT" level="TRACE"/>
 
             <AppenderRef ref="FILE" level="TRACE"/>
         </Root>

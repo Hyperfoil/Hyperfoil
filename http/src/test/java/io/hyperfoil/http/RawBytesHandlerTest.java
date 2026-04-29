@@ -45,7 +45,7 @@ public class RawBytesHandlerTest extends VertxBaseTest {
    public void test(Vertx vertx, VertxTestContext ctx) {
       var checkpoint = ctx.checkpoint(numberOfPasses.get());
       HttpServer httpServer = vertx.createHttpServer();
-      httpServer.requestHandler(this::handler).listen(0, "localhost", event -> {
+      httpServer.requestHandler(this::handler).listen(0, "localhost").onComplete(event -> {
          if (event.failed()) {
             ctx.failNow(event.cause());
          } else {

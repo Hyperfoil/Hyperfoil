@@ -39,13 +39,13 @@ public class TwoServersTest extends BaseHttpScenarioTest {
       Router secondRouter = Router.router(vertx);
       secondRouter.route("/test").handler(context -> context.response().setStatusCode(300).end());
       var secondServerLatch = new CountDownLatch(1);
-      secondServer = vertx.createHttpServer().requestHandler(secondRouter)
-            .listen(0, "localhost", ctx.succeeding(srv -> {
-               benchmarkBuilder.plugin(HttpPluginBuilder.class)
-                     .http("http://localhost:" + srv.actualPort()).endHttp();
-               ctx.completeNow();
-               secondServerLatch.countDown();
-            }));
+      secondServer = vertx.createHttpServer().requestHandler(secondRouter);
+      secondServer.listen(0, "localhost").onComplete(ctx.succeeding(srv -> {
+         benchmarkBuilder.plugin(HttpPluginBuilder.class)
+               .http("http://localhost:" + srv.actualPort()).endHttp();
+         ctx.completeNow();
+         secondServerLatch.countDown();
+      }));
       try {
          secondServerLatch.await(5, TimeUnit.SECONDS);
       } catch (InterruptedException e) {

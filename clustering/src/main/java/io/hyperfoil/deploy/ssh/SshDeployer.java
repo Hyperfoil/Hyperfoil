@@ -41,9 +41,18 @@ public class SshDeployer implements Deployer {
    private SshDeployer() {
       client = SshClient.setUpDefaultClient();
 
+      log.info("Configuring SSH client with extended timeouts for large file transfers");
       PropertyResolverUtils.updateProperty(client, CoreModuleProperties.IDLE_TIMEOUT.getName(), Long.MAX_VALUE);
       PropertyResolverUtils.updateProperty(client, CoreModuleProperties.NIO2_READ_TIMEOUT.getName(), Long.MAX_VALUE);
       PropertyResolverUtils.updateProperty(client, CoreModuleProperties.NIO_WORKERS.getName(), 1);
+
+      // Configure heartbeat/keepalive to prevent connection drops during long file transfers
+      PropertyResolverUtils.updateProperty(client, CoreModuleProperties.HEARTBEAT_INTERVAL.getName(), 10000L); // 10 seconds
+      PropertyResolverUtils.updateProperty(client, CoreModuleProperties.HEARTBEAT_REPLY_WAIT.getName(), 60000L); // 60 seconds
+
+      log.debug(
+            "SSH client configured: IDLE_TIMEOUT={}, NIO2_READ_TIMEOUT={}, NIO_WORKERS={}, HEARTBEAT_INTERVAL={}ms, HEARTBEAT_REPLY_WAIT={}ms",
+            Long.MAX_VALUE, Long.MAX_VALUE, 1, 10000L, 60000L);
 
       client.start();
       client.setServerKeyVerifier((clientSession1, remoteAddress, serverKey) -> true);
