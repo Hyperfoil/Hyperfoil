@@ -40,6 +40,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
@@ -216,7 +217,7 @@ public class Hyperfoil {
    }
 
    public static Future<Void> shutdownVertx(Vertx vertx) {
-      ClusterManager clusterManager = ((io.vertx.core.internal.VertxInternal) vertx).clusterManager();
+      ClusterManager clusterManager = ((VertxInternal) vertx).clusterManager();
       DefaultCacheManager cacheManager = (DefaultCacheManager) ((InfinispanClusterManager) clusterManager).getCacheContainer();
       return vertx.close().onComplete(result -> {
          try {

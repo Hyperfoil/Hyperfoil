@@ -28,7 +28,7 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 
 public class AgentVerticle extends AbstractVerticle {
    private static Logger log = LogManager.getLogger(AgentVerticle.class);
@@ -87,7 +87,7 @@ public class AgentVerticle extends AbstractVerticle {
 
       if (vertx.isClustered()) {
          if (vertx instanceof VertxInternal) {
-            nodeId = ((VertxInternal) vertx).getClusterManager().getNodeId();
+            nodeId = ((VertxInternal) vertx).clusterManager().getNodeId();
          }
       }
       vertx.setPeriodic(1000, timerId -> {

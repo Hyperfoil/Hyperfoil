@@ -24,9 +24,18 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.ext.web.client.HttpResponse;
 
 public class RunRefImpl implements Client.RunRef {
+
+   private static final DatabindCodec CODEC = new DatabindCodec();
+
+   private static final TypeReference<Map<String, Map<String, Client.MinMax>>> STATS_MAP_TYPE = new TypeReference<>() {
+   };
+   private static final TypeReference<Map<String, Map<String, String>>> AGENT_CPU_TYPE = new TypeReference<>() {
+   };
+
    private final RestClient client;
    private final String id;
 
@@ -77,19 +86,14 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> sessionStatsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/recent").send().onComplete(handler), 200,
-            response -> new io.vertx.core.json.jackson.DatabindCodec().fromBuffer(
-                  response.body(),
-                  new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
-                  }));
+            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
    public Map<String, Map<String, Client.MinMax>> sessionStatsTotal() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/total").send().onComplete(handler), 200,
-            response -> new io.vertx.core.json.jackson.DatabindCodec().fromBuffer(response.body(),
-                  new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
-                  }));
+            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
@@ -111,18 +115,14 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> connectionStatsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/recent").send().onComplete(handler), 200,
-            response -> new io.vertx.core.json.jackson.DatabindCodec().fromBuffer(response.body(),
-                  new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
-                  }));
+            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
    public Map<String, Map<String, Client.MinMax>> connectionStatsTotal() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/total").send().onComplete(handler), 200,
-            response -> new io.vertx.core.json.jackson.DatabindCodec().fromBuffer(response.body(),
-                  new TypeReference<Map<String, Map<String, Client.MinMax>>>() {
-                  }));
+            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
@@ -186,7 +186,7 @@ public class RunRefImpl implements Client.RunRef {
             .addQueryParam("stepId", String.valueOf(stepId))
             .addQueryParam("metric", metric)
             .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send().onComplete(handler), 200,
-            response -> new io.vertx.core.json.jackson.DatabindCodec().fromBuffer(response.body(), new TypeReference<>() {
+            response -> CODEC.fromBuffer(response.body(), new TypeReference<>() {
             }));
    }
 
@@ -211,8 +211,6 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, String>> agentCpu() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/agentCpu").send().onComplete(handler), 200,
-            response -> new io.vertx.core.json.jackson.DatabindCodec().fromBuffer(response.body(),
-                  new TypeReference<Map<String, Map<String, String>>>() {
-                  }));
+            response -> CODEC.fromBuffer(response.body(), AGENT_CPU_TYPE));
    }
 }

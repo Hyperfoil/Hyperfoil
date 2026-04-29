@@ -2,9 +2,7 @@ package io.hyperfoil.clustering;
 
 import java.io.OutputStream;
 
-import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.buffer.impl.BufferImpl;
 import io.vertx.core.streams.WriteStream;
 
 public class OutputStreamAdapter extends OutputStream {
@@ -16,12 +14,12 @@ public class OutputStreamAdapter extends OutputStream {
 
    @Override
    public void write(byte[] b) {
-      stream.write(new BufferImpl(Unpooled.wrappedBuffer(b)));
+      stream.write(Buffer.buffer(b));
    }
 
    @Override
    public void write(byte[] b, int off, int len) {
-      stream.write(new BufferImpl(Unpooled.wrappedBuffer(b, off, len)));
+      stream.write(Buffer.buffer().appendBytes(b, off, len));
    }
 
    @Override

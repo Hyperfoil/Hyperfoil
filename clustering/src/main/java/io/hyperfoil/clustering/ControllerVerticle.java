@@ -76,6 +76,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.ReplyException;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
@@ -131,7 +132,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          } else if (message.body() instanceof AuxiliaryHello) {
             AuxiliaryHello hello = (AuxiliaryHello) message.body();
             log.info("Noticed auxiliary {} (node {}, {})", hello.name(), hello.nodeId(), hello.deploymentId());
-            String nodeId = ((io.vertx.core.internal.VertxInternal) vertx).clusterManager().getNodeId();
+            String nodeId = ((VertxInternal) vertx).clusterManager().getNodeId();
             message.reply(nodeId);
          } else {
             log.error("Unknown message on discovery feed! {}", message.body());
@@ -261,8 +262,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   "Hyperfoil is running in clustered mode but it couldn't load deployer '" + Controller.DEPLOYER + "'");
          }
 
-         if (vertx instanceof io.vertx.core.internal.VertxInternal) {
-            ClusterManager clusterManager = ((io.vertx.core.internal.VertxInternal) vertx).clusterManager();
+         if (vertx instanceof VertxInternal) {
+            ClusterManager clusterManager = ((VertxInternal) vertx).clusterManager();
             clusterManager.nodeListener(this);
          }
       }
@@ -1145,7 +1146,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void shutdown() {
-      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((io.vertx.core.internal.VertxInternal) vertx)
+      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((VertxInternal) vertx)
             .clusterManager();
       if (clusterManager != null) {
          BasicCacheContainer cacheManager = clusterManager.getCacheContainer();
