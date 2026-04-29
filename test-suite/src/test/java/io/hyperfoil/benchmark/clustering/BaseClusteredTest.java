@@ -2,10 +2,11 @@ package io.hyperfoil.benchmark.clustering;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterEach;
 
 import io.hyperfoil.Hyperfoil;
@@ -13,12 +14,11 @@ import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.VertxInternal;
 import io.vertx.junit5.VertxTestContext;
 
 public abstract class BaseClusteredTest extends BaseBenchmarkTest {
+   protected static final Logger log = LogManager.getLogger(BaseClusteredTest.class);
    protected List<Vertx> servers = new ArrayList<>();
    protected volatile int controllerPort;
 
@@ -39,10 +39,9 @@ public abstract class BaseClusteredTest extends BaseBenchmarkTest {
       var countDownLatch = new CountDownLatch(1);
       Hyperfoil.clusteredVertx(true).onSuccess(vertx -> {
          servers.add(vertx);
-         vertx.deployVerticle(ControllerVerticle.class, new DeploymentOptions())
+         ControllerVerticle controller = new ControllerVerticle();
+         vertx.deployVerticle(() -> controller, new DeploymentOptions())
                .onSuccess(deploymentId -> {
-                  Set<Verticle> verticles = ((VertxInternal) vertx).getDeployment(deploymentId).getVerticles();
-                  ControllerVerticle controller = (ControllerVerticle) verticles.iterator().next();
                   controllerPort = controller.actualPort();
                   countDownLatch.countDown();
                   ctx.completeNow();

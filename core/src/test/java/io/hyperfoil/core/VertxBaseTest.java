@@ -11,7 +11,7 @@ import io.vertx.junit5.VertxExtension;
 
 @ExtendWith(VertxExtension.class)
 public class VertxBaseTest {
-   protected Vertx vertx = Vertx.vertx();
+   protected Vertx vertx;
    protected ArrayList<Runnable> cleanup = new ArrayList<>();
 
    @BeforeEach

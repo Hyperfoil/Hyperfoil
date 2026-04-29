@@ -18,7 +18,6 @@ public interface StatsExtension extends Serializable, Cloneable {
          if (typeName != null) {
             NamedType namedType = new NamedType(provider.type(), typeName.value());
             DatabindCodec.mapper().registerSubtypes(namedType);
-            DatabindCodec.prettyMapper().registerSubtypes(namedType);
          }
       });
    }
