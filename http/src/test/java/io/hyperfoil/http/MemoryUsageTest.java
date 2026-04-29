@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLException;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -26,6 +27,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
@@ -38,6 +40,12 @@ import io.vertx.junit5.VertxTestContext;
 
 @ExtendWith(VertxExtension.class)
 public class MemoryUsageTest {
+
+   @BeforeAll
+   public static void setupPooledBuffers() {
+      // Vert.x 5 requires explicit configuration to use pooled buffers
+      System.setProperty("vertx.buffer.pooled", "true");
+   }
 
    @Test
    public void testPlainHttp1x(VertxTestContext context) {
@@ -77,7 +85,9 @@ public class MemoryUsageTest {
             context.failNow(e);
          }
       };
-      Vertx.vertx().createHttpServer(serverOptions)
+      // Create Vertx with pooled buffers enabled for Vert.x 5
+      VertxOptions vertxOptions = new VertxOptions();
+      Vertx.builder().with(vertxOptions).build().createHttpServer(serverOptions)
             .requestHandler(ctx -> ctx.response()
                   .putHeader(HttpHeaders.CACHE_CONTROL, "no-store")
                   .end(Buffer.buffer(new byte[4 * 1024 * 1024])))

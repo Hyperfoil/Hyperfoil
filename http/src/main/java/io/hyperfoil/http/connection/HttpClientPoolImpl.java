@@ -194,6 +194,15 @@ public class HttpClientPoolImpl implements HttpClientPool {
             .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
             .trustManager(trustManagerFactory)
             .keyManager(createKeyManagerFactory());
+
+      // For Vert.x 5 compatibility: Netty now enforces stricter hostname verification by default.
+      // Disable endpoint identification when using InsecureTrustManagerFactory or when the system
+      // property is set (for testing with self-signed certificates that don't have proper SANs)
+      if (trustManagerFactory == InsecureTrustManagerFactory.INSTANCE ||
+            Boolean.getBoolean("io.hyperfoil.http.disableEndpointIdentification")) {
+         builder.endpointIdentificationAlgorithm(null);
+      }
+
       builder.applicationProtocolConfig(new ApplicationProtocolConfig(
             ApplicationProtocolConfig.Protocol.ALPN,
             // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
@@ -338,6 +347,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
       bootstrap.group(pool.executor());
       bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
       bootstrap.option(ChannelOption.SO_REUSEADDR, true);
+      // Use pooled allocator for Vert.x 5 compatibility
+      bootstrap.option(ChannelOption.ALLOCATOR, io.netty.buffer.PooledByteBufAllocator.DEFAULT);
 
       bootstrap.handler(new HttpChannelInitializer(this, handler));
 

@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import javax.net.ssl.SSLException;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -24,6 +25,7 @@ import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -34,6 +36,15 @@ import io.vertx.junit5.VertxTestContext;
 
 @ExtendWith(VertxExtension.class)
 public class CertificatesTest {
+
+   @BeforeAll
+   public static void setupPooledBuffers() {
+      // Vert.x 5 requires explicit configuration to use pooled buffers
+      System.setProperty("vertx.buffer.pooled", "true");
+      // Disable endpoint identification for tests with self-signed certificates
+      System.setProperty("io.hyperfoil.http.disableEndpointIdentification", "true");
+   }
+
    @Test
    public void testTrustJks(VertxTestContext context) {
       test(context, false, server -> executeRequestAndStop(context, server,
@@ -133,7 +144,9 @@ public class CertificatesTest {
          }
          serverOptions.setTrustOptions(new JksOptions().setPath("client.jks").setPassword("test123"));
       }
-      Vertx.vertx().createHttpServer(serverOptions).requestHandler(ctx -> ctx.response().end())
+      // Create Vertx with pooled buffers enabled for Vert.x 5
+      VertxOptions vertxOptions = new VertxOptions();
+      Vertx.builder().with(vertxOptions).build().createHttpServer(serverOptions).requestHandler(ctx -> ctx.response().end())
             .listen(0, "localhost").onComplete(context.succeeding(handler));
    }
 
