@@ -52,7 +52,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.Native;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 
@@ -176,14 +175,12 @@ public class SimulationRunner {
    }
 
    public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Handler<AsyncResult<Void>> handler) {
-      @SuppressWarnings("rawtypes")
-      ArrayList<Future> futures = new ArrayList<>();
+      List<Future<?>> futures = new ArrayList<>();
       for (PluginRunData plugin : runData) {
          plugin.openConnections(blockingHandler, futures::add);
       }
 
-      CompositeFuture composite = CompositeFuture.join(futures);
-      composite.onComplete(result -> {
+      Future.join(futures).onComplete(result -> {
          if (result.failed()) {
             log.error("One of the HTTP client pools failed to start.");
          }

@@ -23,7 +23,7 @@ public class JsonReplaceTest extends BaseHttpScenarioTest {
       });
       router.post("/post").handler(BodyHandler.create()).handler(ctx -> {
          try {
-            JsonObject person = ctx.getBodyAsJson();
+            JsonObject person = ctx.body().asJsonObject();
             assertThat(person.getInteger("age")).isEqualTo(34);
             ctx.response().end();
          } catch (Throwable t) {

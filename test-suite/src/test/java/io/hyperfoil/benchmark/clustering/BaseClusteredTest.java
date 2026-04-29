@@ -2,9 +2,9 @@ package io.hyperfoil.benchmark.clustering;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterEach;
 
@@ -13,9 +13,7 @@ import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.VertxInternal;
 import io.vertx.junit5.VertxTestContext;
 
 public abstract class BaseClusteredTest extends BaseBenchmarkTest {
@@ -36,14 +34,18 @@ public abstract class BaseClusteredTest extends BaseBenchmarkTest {
       System.setProperty(Properties.CONTROLLER_CLUSTER_IP, "localhost");
 
       // latch used to ensure we wait for controller startup before starting the test
+      AtomicReference<ControllerVerticle> controllerRef = new AtomicReference<>();
       var countDownLatch = new CountDownLatch(1);
       Hyperfoil.clusteredVertx(true).onSuccess(vertx -> {
          servers.add(vertx);
-         vertx.deployVerticle(ControllerVerticle.class, new DeploymentOptions())
+         vertx.deployVerticle(() -> {
+            ControllerVerticle verticle = new ControllerVerticle();
+            controllerRef.set(verticle);
+            return verticle;
+         }, new DeploymentOptions())
                .onSuccess(deploymentId -> {
-                  Set<Verticle> verticles = ((VertxInternal) vertx).getDeployment(deploymentId).getVerticles();
-                  ControllerVerticle controller = (ControllerVerticle) verticles.iterator().next();
-                  controllerPort = controller.actualPort();
+                  // 3. Retrieve the port from your captured instance
+                  controllerPort = controllerRef.get().actualPort();
                   countDownLatch.countDown();
                   ctx.completeNow();
                }).onFailure(ctx::failNow);

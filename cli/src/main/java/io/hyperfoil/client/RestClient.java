@@ -129,7 +129,7 @@ public class RestClient implements Client, Closeable {
                   request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
                }
                request.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
-                     .sendBuffer(Buffer.buffer(bytes), handler);
+                     .sendBuffer(Buffer.buffer(bytes)).onComplete(handler);
             }, 0,
             response -> {
                if (response.statusCode() == 204) {
@@ -174,7 +174,7 @@ public class RestClient implements Client, Closeable {
                if (prevVersion != null) {
                   request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
                }
-               request.sendMultipartForm(multipart, handler);
+               request.sendMultipartForm(multipart).onComplete(handler);
             }, 0,
             this::processRegisterResponse);
    }
@@ -188,7 +188,7 @@ public class RestClient implements Client, Closeable {
                   request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
                }
                request.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "text/uri-list")
-                     .sendBuffer(Buffer.buffer(benchmarkUri), handler);
+                     .sendBuffer(Buffer.buffer(benchmarkUri)).onComplete(handler);
             }, 0,
             this::processRegisterResponse);
    }
@@ -211,14 +211,14 @@ public class RestClient implements Client, Closeable {
    @Override
    public List<String> benchmarks() {
       return sync(
-            handler -> request(HttpMethod.GET, "/benchmark").send(handler), 200,
+            handler -> request(HttpMethod.GET, "/benchmark").send().onComplete(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 
    @Override
    public List<String> templates() {
       return sync(
-            handler -> request(HttpMethod.GET, "/template").send(handler), 200,
+            handler -> request(HttpMethod.GET, "/template").send().onComplete(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 
@@ -230,7 +230,7 @@ public class RestClient implements Client, Closeable {
    @Override
    public List<io.hyperfoil.controller.model.Run> runs(boolean details) {
       return sync(
-            handler -> request(HttpMethod.GET, "/run?details=" + details).send(handler), 200,
+            handler -> request(HttpMethod.GET, "/run?details=" + details).send().onComplete(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), io.hyperfoil.controller.model.Run[].class)));
    }
 
@@ -241,7 +241,7 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public long ping() {
-      return sync(handler -> request(HttpMethod.GET, "/").send(handler), 200, response -> {
+      return sync(handler -> request(HttpMethod.GET, "/").send().onComplete(handler), 200, response -> {
          try {
             String header = response.getHeader("x-epoch-millis");
             return header != null ? Long.parseLong(header) : 0L;
@@ -253,7 +253,7 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public Version version() {
-      return sync(handler -> request(HttpMethod.GET, "/version").send(handler), 0,
+      return sync(handler -> request(HttpMethod.GET, "/version").send().onComplete(handler), 0,
             response -> {
                if (response.statusCode() == 401) {
                   throw new Unauthorized();
@@ -278,7 +278,7 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public Collection<String> agents() {
-      return sync(handler -> request(HttpMethod.GET, "/agents").send(handler), 200,
+      return sync(handler -> request(HttpMethod.GET, "/agents").send().onComplete(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 
@@ -293,7 +293,7 @@ public class RestClient implements Client, Closeable {
          if (logId != null) {
             request.putHeader(HttpHeaders.IF_MATCH.toString(), logId);
          }
-         request.send(rsp -> {
+         request.send().onComplete(rsp -> {
             if (rsp.failed()) {
                future.completeExceptionally(rsp.cause());
                return;
@@ -345,12 +345,12 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public void shutdown(boolean force) {
-      sync(handler -> request(HttpMethod.GET, "/shutdown?force=" + force).send(handler), 200, response -> null);
+      sync(handler -> request(HttpMethod.GET, "/shutdown?force=" + force).send().onComplete(handler), 200, response -> null);
    }
 
    private void downloadFullLog(File destinationFile, String url, CompletableFuture<String> future) {
       // the etag does not match
-      request(HttpMethod.GET, url).send(rsp -> {
+      request(HttpMethod.GET, url).send().onComplete(rsp -> {
          if (rsp.failed()) {
             future.completeExceptionally(rsp.cause());
             return;

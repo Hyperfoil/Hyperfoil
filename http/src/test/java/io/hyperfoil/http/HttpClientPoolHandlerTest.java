@@ -58,7 +58,8 @@ public class HttpClientPoolHandlerTest {
       httpServer = vertx.createHttpServer().requestHandler(req -> {
          count.getAndIncrement();
          req.response().putHeader("foo", "bar").end("hello from server");
-      }).listen(0, "localhost", ctx.succeedingThenComplete());
+      });
+      httpServer.listen(0, "localhost").onComplete(ctx.succeedingThenComplete());
    }
 
    @Test

@@ -16,6 +16,9 @@ public abstract class EventLoopFactory {
    public static final EventLoopFactory INSTANCE;
 
    static {
+      // Configure Netty to use pooled buffers for Vert.x 5 compatibility
+      System.setProperty("io.netty.allocator.type", "pooled");
+
       String transport = Properties.get(Properties.NETTY_TRANSPORT, null);
       if (transport != null) {
          switch (transport.toLowerCase()) {

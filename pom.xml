@@ -89,7 +89,7 @@
         <version.metainf-services>1.11</version.metainf-services>
         <version.slf4j>2.0.17</version.slf4j>
         <version.snakeyaml>2.6</version.snakeyaml>
-        <version.vertx>4.5.21</version.vertx>
+        <version.vertx>5.0.11</version.vertx>
         <version.infinispan>16.0.10</version.infinispan>
         <!-- begin: JBoss/WildFly/SmallRye dependency versions - these must be compatible with each other.
              jboss-threads 3.9.2 requires smallrye-common 2.14.0, which is newer than what
@@ -112,7 +112,9 @@
         <version.antrun.plugin>3.2.0</version.antrun.plugin>
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
         <version.buildnumber.plugin>3.3.0</version.buildnumber.plugin>
-
+        <version.caffeine>3.2.3</version.caffeine>
+        <version.rxjava>3.1.12</version.rxjava>
+        <version.reactive-streams>1.0.4</version.reactive-streams>
         <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
         <!-- code formatting -->
@@ -162,6 +164,22 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${version.caffeine}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex.rxjava3</groupId>
+                <artifactId>rxjava</artifactId>
+                <version>${version.rxjava}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.reactivestreams</groupId>
+                <artifactId>reactive-streams</artifactId>
+                <version>${version.reactive-streams}</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.hyperfoil</groupId>
                 <artifactId>hyperfoil-api</artifactId>

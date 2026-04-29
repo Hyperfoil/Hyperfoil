@@ -76,7 +76,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.ReplyException;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
@@ -101,7 +101,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    @Override
    public void start(Promise<Void> future) {
       log.info("Starting in directory {}...", Controller.ROOT_DIR);
-      CountDown startCountDown = new CountDown(future, 2);
+      CountDown startCountDown = new CountDown(ar -> {
+         if (ar.succeeded()) {
+            future.complete();
+         } else {
+            future.fail(ar.cause());
+         }
+      }, 2);
       server = new ControllerServer(this, startCountDown);
       vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
       if (Files.exists(Controller.RUN_DIR)) {
@@ -126,7 +132,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          } else if (message.body() instanceof AuxiliaryHello) {
             AuxiliaryHello hello = (AuxiliaryHello) message.body();
             log.info("Noticed auxiliary {} (node {}, {})", hello.name(), hello.nodeId(), hello.deploymentId());
-            String nodeId = ((VertxInternal) vertx).getClusterManager().getNodeId();
+            String nodeId = ((VertxInternal) vertx).clusterManager().getNodeId();
             message.reply(nodeId);
          } else {
             log.error("Unknown message on discovery feed! {}", message.body());
@@ -257,7 +263,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
 
          if (vertx instanceof VertxInternal) {
-            ClusterManager clusterManager = ((VertxInternal) vertx).getClusterManager();
+            ClusterManager clusterManager = ((VertxInternal) vertx).clusterManager();
             clusterManager.nodeListener(this);
          }
       }
@@ -569,15 +575,18 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             AgentInfo agentInfo = new AgentInfo(agent.name, agentCounter++);
             run.agents.add(agentInfo);
             log.debug("Starting agent {}", agent.name);
-            vertx.executeBlocking(
-                  future -> agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
-                     if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
-                        run.errors.add(
-                              new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
-                        log.error("Failed to deploy agent {}", agent.name, exception);
-                        vertx.runOnContext(nil -> stopSimulation(run));
-                     }
-                  }), false, result -> {
+            vertx.executeBlocking(() -> {
+               agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
+                  if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
+                     run.errors.add(
+                           new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
+                     log.error("Failed to deploy agent {}", agent.name, exception);
+                     vertx.runOnContext(nil -> stopSimulation(run));
+                  }
+               });
+               return null;
+            }, false)
+                  .onComplete(result -> {
                      if (result.failed()) {
                         run.errors.add(new Run.Error(agentInfo,
                               new BenchmarkExecutionException("Failed to start agent", result.cause())));
@@ -608,7 +617,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   agent.status);
          } else {
             eb.request(agent.deploymentId,
-                  new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
+                  new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark))
+                  .onComplete(reply -> {
                      Throwable cause;
                      if (reply.failed()) {
                         cause = reply.cause();
@@ -636,7 +646,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    private void startSimulation(Run run) {
-      vertx.executeBlocking(future -> {
+      vertx.<Void> executeBlocking(() -> {
          // combine shared and benchmark-private hooks
          List<RunHook> hooks = loadHooks("pre");
          hooks.addAll(run.benchmark.preHooks());
@@ -649,12 +659,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             if (!success) {
                run.errors.add(
                      new Run.Error(null, new BenchmarkExecutionException("Execution of run hook " + hook.name() + " failed.")));
-               future.fail("Execution of pre-hook " + hook.name() + " failed.");
-               break;
+               throw new RuntimeException("Execution of pre-hook " + hook.name() + " failed.");
             }
          }
-         future.complete();
-      }, result -> {
+         return null;
+      }).onComplete(result -> {
          if (result.succeeded()) {
             vertx.runOnContext(nil -> {
                assert run.startTime == Long.MIN_VALUE;
@@ -748,25 +757,26 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             continue;
          }
          agent.status = AgentInfo.Status.STOPPING;
-         eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null), reply -> {
-            if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
-               agent.status = AgentInfo.Status.STOPPED;
-               checkAgentsStopped(run);
-               log.debug("Agent {}/{} stopped.", agent.name, agent.deploymentId);
-            } else {
-               agent.status = AgentInfo.Status.FAILED;
-               log.error("Agent {}/{} failed to stop", agent.name, agent.deploymentId);
-               if (reply.result() instanceof Throwable) {
-                  log.error("Failure thrown on the agent node (see agent log for details): ", (Throwable) reply.result());
-               } else {
-                  log.error("Failure thrown on the controller (this node): ", reply.cause());
-               }
-            }
-            if (agent.deployedAgent != null) {
-               // Give agents 3 seconds to leave the cluster
-               vertx.setTimer(3000, timerId -> agent.deployedAgent.stop());
-            }
-         });
+         eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null))
+               .onComplete(reply -> {
+                  if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
+                     agent.status = AgentInfo.Status.STOPPED;
+                     checkAgentsStopped(run);
+                     log.debug("Agent {}/{} stopped.", agent.name, agent.deploymentId);
+                  } else {
+                     agent.status = AgentInfo.Status.FAILED;
+                     log.error("Agent {}/{} failed to stop", agent.name, agent.deploymentId);
+                     if (reply.result() instanceof Throwable) {
+                        log.error("Failure thrown on the agent node (see agent log for details): ", (Throwable) reply.result());
+                     } else {
+                        log.error("Failure thrown on the controller (this node): ", reply.cause());
+                     }
+                  }
+                  if (agent.deployedAgent != null) {
+                     // Give agents 3 seconds to leave the cluster
+                     vertx.setTimer(3000, timerId -> agent.deployedAgent.stop());
+                  }
+               });
       }
       checkAgentsStopped(run);
    }
@@ -788,12 +798,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    private void persistRun(Run run) {
-      vertx.executeBlocking(future -> {
+      vertx.<Void> executeBlocking(() -> {
          try {
             CsvWriter.writeCsv(run.dir.resolve("stats"), run.statisticsStore());
          } catch (IOException e) {
             log.error("Failed to persist statistics", e);
-            future.fail(e);
+            throw new RuntimeException(e);
          }
 
          JsonObject info = new JsonObject()
@@ -819,7 +829,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             Files.writeString(run.dir.resolve("info.json"), info.encodePrettily());
          } catch (IOException e) {
             log.error("Cannot write info file", e);
-            future.fail(e);
+            throw new RuntimeException(e);
          }
          try (FileOutputStream stream = new FileOutputStream(run.dir.resolve(DEFAULT_STATS_JSON).toFile())) {
             JsonFactory jfactory = new JsonFactory();
@@ -831,7 +841,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.close();
          } catch (IOException e) {
             log.error("Cannot write to {}", DEFAULT_STATS_JSON, e);
-            future.fail(e);
+            throw new RuntimeException(e);
          }
          // combine shared and benchmark-private hooks
          List<RunHook> hooks = loadHooks("post");
@@ -856,11 +866,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             Files.writeString(run.dir.resolve("hooks.json"), hookResults.encodePrettily());
          } catch (IOException e) {
             log.error("Cannot write hook results", e);
-            future.fail(e);
+            throw new RuntimeException(e);
          }
 
-         future.tryComplete();
-      }, result -> {
+         return null;
+      }).onComplete(result -> {
          run.completed = true;
          run.persisted = true;
          if (result.failed()) {
@@ -935,11 +945,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       benchmarks.put(benchmark.name(), benchmark);
       templates.remove(benchmark.name());
-      return vertx.executeBlocking(promise -> {
+      return vertx.executeBlocking(() -> {
          if (benchmark.source() != null) {
             PersistenceUtil.store(benchmark.source(), Controller.BENCHMARK_DIR);
          }
-         promise.complete();
+         return null;
       });
    }
 
@@ -962,9 +972,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       templates.put(template.name, template);
       benchmarks.remove(template.name);
-      return vertx.executeBlocking(promise -> {
+      return vertx.executeBlocking(() -> {
          PersistenceUtil.store(template, Controller.BENCHMARK_DIR);
-         promise.complete();
+         return null;
       });
    }
 
@@ -986,7 +996,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    private void loadBenchmarks(Handler<AsyncResult<Void>> handler) {
-      vertx.executeBlocking(future -> {
+      vertx.<Void> executeBlocking(() -> {
          try {
             Files.list(Controller.BENCHMARK_DIR).forEach(file -> {
                try {
@@ -1005,9 +1015,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             });
          } catch (IOException e) {
             log.error("Failed to list benchmark dir {}", Controller.BENCHMARK_DIR, e);
+            throw new RuntimeException(e);
          }
-         future.complete();
-      }, handler);
+         return null;
+      }).onComplete(handler);
    }
 
    private List<RunHook> loadHooks(String subdir) {
@@ -1073,7 +1084,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             continue;
          }
          agentCounter.incrementAndGet();
-         eb.request(agent.deploymentId, new AgentControlMessage(command, agent.id, param), result -> {
+         eb.request(agent.deploymentId, new AgentControlMessage(command, agent.id, param)).onComplete(result -> {
             if (result.failed()) {
                log.error("Failed to connect to agent {}", agent.name, result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));
@@ -1096,23 +1107,27 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    public void downloadControllerLog(long offset, long maxLength, File tempFile, Handler<AsyncResult<Void>> handler) {
-      vertx.executeBlocking(future -> deployer.downloadControllerLog(offset, maxLength, tempFile.toString(), handler),
-            result -> {
-               if (result.failed()) {
-                  handler.handle(Future.failedFuture(result.cause()));
-               }
-            });
+      vertx.<Void> executeBlocking(() -> {
+         deployer.downloadControllerLog(offset, maxLength, tempFile.toString(), handler);
+         return null; // Return null to satisfy Callable<Void>
+      }).onComplete(result -> {
+         if (result.failed()) {
+            handler.handle(Future.failedFuture(result.cause()));
+         }
+      });
    }
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    public void downloadAgentLog(DeployedAgent deployedAgent, long offset, long maxLength, File tempFile,
          Handler<AsyncResult<Void>> handler) {
-      vertx.executeBlocking(future -> deployer.downloadAgentLog(deployedAgent, offset, maxLength, tempFile.toString(), handler),
-            result -> {
-               if (result.failed()) {
-                  handler.handle(Future.failedFuture(result.cause()));
-               }
-            });
+      vertx.<Void> executeBlocking(() -> {
+         deployer.downloadAgentLog(deployedAgent, offset, maxLength, tempFile.toString(), handler);
+         return null;
+      }).onComplete(result -> {
+         if (result.failed()) {
+            handler.handle(Future.failedFuture(result.cause()));
+         }
+      });
    }
 
    public Benchmark ensureBenchmark(Run run) throws ParserException {
@@ -1131,10 +1146,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void shutdown() {
-      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((VertxInternal) vertx).getClusterManager();
+      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((VertxInternal) vertx)
+            .clusterManager();
       if (clusterManager != null) {
          BasicCacheContainer cacheManager = clusterManager.getCacheContainer();
-         vertx.close(ar -> cacheManager.stop());
+         vertx.close().onComplete(ar -> cacheManager.stop());
       } else {
          vertx.close();
       }

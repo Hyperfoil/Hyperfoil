@@ -24,9 +24,7 @@ import org.infinispan.commons.dataconversion.MediaType;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
-import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.manager.DefaultCacheManager;
-import org.infinispan.remoting.transport.Transport;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.JChannel;
 import org.jgroups.protocols.TP;
@@ -42,7 +40,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
@@ -127,7 +125,7 @@ public class Hyperfoil {
    }
 
    private static void populateProperties(DefaultCacheManager dcm) {
-      JGroupsTransport transport = (JGroupsTransport) GlobalComponentRegistry.componentOf(dcm, Transport.class);
+      JGroupsTransport transport = (JGroupsTransport) dcm.getTransport();
       JChannel channel = transport.getChannel();
       TP tp = channel.getProtocolStack().getTransport();
       System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tp.getBindAddress().getHostAddress());
@@ -189,7 +187,7 @@ public class Hyperfoil {
 
    static void deploy(Vertx vertx, Class<? extends Verticle> verticleClass) {
       log.info("Deploying {}...", verticleClass.getSimpleName());
-      vertx.deployVerticle(verticleClass, new DeploymentOptions(), event -> {
+      vertx.deployVerticle(verticleClass, new DeploymentOptions()).onComplete(event -> {
          if (event.succeeded()) {
             log.info("{} deployed.", verticleClass.getSimpleName());
          } else {
@@ -219,7 +217,7 @@ public class Hyperfoil {
    }
 
    public static Future<Void> shutdownVertx(Vertx vertx) {
-      ClusterManager clusterManager = ((VertxInternal) vertx).getClusterManager();
+      ClusterManager clusterManager = ((VertxInternal) vertx).clusterManager();
       DefaultCacheManager cacheManager = (DefaultCacheManager) ((InfinispanClusterManager) clusterManager).getCacheContainer();
       return vertx.close().onComplete(result -> {
          try {

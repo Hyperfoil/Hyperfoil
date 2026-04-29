@@ -61,19 +61,19 @@ public abstract class BaseHttpScenarioTest extends BaseScenarioTest {
       HttpServerOptions options = new HttpServerOptions();
       if (tls) {
          options.setSsl(true).setUseAlpn(true)
-               .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
+               .setKeyCertOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
       }
       if (compression) {
          options.setCompressionSupported(true);
       }
       Promise<Void> promise = Promise.promise();
       server = vertx.createHttpServer(options)
-            .requestHandler(router)
-            .listen(0, "localhost", ctx.succeeding(srv -> {
-               initWithServer(srv, tls);
-               promise.complete();
-               ctx.completeNow();
-            }));
+            .requestHandler(router);
+      server.listen(0, "localhost").onComplete(ctx.succeeding(srv -> {
+         initWithServer(srv, tls);
+         promise.complete();
+         ctx.completeNow();
+      }));
       return promise.future();
    }
 
@@ -113,7 +113,7 @@ public abstract class BaseHttpScenarioTest extends BaseScenarioTest {
          // We'll send the body in two chunks to make sure the code works even if the body is not delivered in one row
          ctx.response().setChunked(true);
          int bodyStartIndex = html.indexOf("<body>");
-         ctx.response().write(html.substring(0, bodyStartIndex), result -> vertx.setTimer(100, ignores -> {
+         ctx.response().write(html.substring(0, bodyStartIndex)).onComplete(result -> vertx.setTimer(100, ignores -> {
             ctx.response().write(html.substring(bodyStartIndex));
             ctx.response().end();
          }));

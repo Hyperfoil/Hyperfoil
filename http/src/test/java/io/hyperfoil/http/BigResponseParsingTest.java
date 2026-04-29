@@ -47,12 +47,13 @@ public class BigResponseParsingTest extends VertxBaseTest {
          AtomicInteger counter = new AtomicInteger(100000);
          req.response().putHeader("content-length", String.valueOf(counter.get()));
          sendChunk(req, counter);
-      }).listen(0, "localhost", ctx.succeedingThenComplete());
+      });
+      httpServer.listen(0, "localhost").onComplete(ctx.succeedingThenComplete());
       cleanup.add(httpServer::close);
    }
 
    private void sendChunk(HttpServerRequest req, AtomicInteger counter) {
-      req.response().write(Buffer.buffer(new byte[10000]), result -> {
+      req.response().write(Buffer.buffer(new byte[10000])).onComplete(result -> {
          if (counter.addAndGet(-10000) == 0) {
             req.response().end();
          } else {

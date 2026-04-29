@@ -8,7 +8,7 @@ import org.apache.logging.log4j.Logger;
 import io.hyperfoil.Hyperfoil;
 import io.hyperfoil.clustering.messages.AuxiliaryHello;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 import io.vertx.core.spi.cluster.NodeListener;
 
 public class BaseAuxiliaryVerticle extends AbstractVerticle implements NodeListener {
@@ -22,31 +22,32 @@ public class BaseAuxiliaryVerticle extends AbstractVerticle implements NodeListe
       if (vertx.isClustered()) {
          if (vertx instanceof VertxInternal) {
             VertxInternal internal = (VertxInternal) this.vertx;
-            if (internal.getClusterManager().getNodes().size() < 2) {
+            if (internal.clusterManager().getNodes().size() < 2) {
                log.info("Did not cluster with Hyperfoil Controller, shutting down.");
                Hyperfoil.shutdownVertx(vertx);
                return;
             }
-            nodeId = internal.getClusterManager().getNodeId();
-            internal.getClusterManager().nodeListener(this);
+            nodeId = internal.clusterManager().getNodeId();
+            internal.clusterManager().nodeListener(this);
          }
       }
       vertx.setPeriodic(1000, timerId -> {
-         vertx.eventBus().request(Feeds.DISCOVERY, new AuxiliaryHello("CE Receiver", nodeId, deploymentID()), response -> {
-            if (response.succeeded()) {
-               log.info("Successfully registered at controller {}!", response.result().body());
-               vertx.cancelTimer(timerId);
-               controllerNodeId = (String) response.result().body();
-               onRegistered();
-            } else {
-               if (registrationAttempt++ < 10) {
-                  log.info("Auxiliary registration failed (attempt {})", registrationAttempt);
-                  if (registrationAttempt == 10) {
-                     log.info("Suspending registration failure logs.");
+         vertx.eventBus().request(Feeds.DISCOVERY, new AuxiliaryHello("CE Receiver", nodeId, deploymentID()))
+               .onComplete(response -> {
+                  if (response.succeeded()) {
+                     log.info("Successfully registered at controller {}!", response.result().body());
+                     vertx.cancelTimer(timerId);
+                     controllerNodeId = (String) response.result().body();
+                     onRegistered();
+                  } else {
+                     if (registrationAttempt++ < 10) {
+                        log.info("Auxiliary registration failed (attempt {})", registrationAttempt);
+                        if (registrationAttempt == 10) {
+                           log.info("Suspending registration failure logs.");
+                        }
+                     }
                   }
-               }
-            }
-         });
+               });
       });
    }
 
