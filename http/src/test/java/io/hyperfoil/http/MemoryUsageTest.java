@@ -47,7 +47,7 @@ public class MemoryUsageTest {
    @Test
    public void testEncryptHttp1x(VertxTestContext context) {
       HttpServerOptions serverOptions = new HttpServerOptions().setSsl(true)
-            .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
+            .setKeyCertOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
             .setUseAlpn(true).setAlpnVersions(Collections.singletonList(HttpVersion.HTTP_1_1));
       test(context, serverOptions);
    }
@@ -55,7 +55,7 @@ public class MemoryUsageTest {
    @Test
    public void testEncryptHttp2(VertxTestContext context) {
       HttpServerOptions serverOptions = new HttpServerOptions().setSsl(true)
-            .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
+            .setKeyCertOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
             .setUseAlpn(true).setAlpnVersions(Collections.singletonList(HttpVersion.HTTP_2));
       test(context, serverOptions);
    }
@@ -81,7 +81,7 @@ public class MemoryUsageTest {
             .requestHandler(ctx -> ctx.response()
                   .putHeader(HttpHeaders.CACHE_CONTROL, "no-store")
                   .end(Buffer.buffer(new byte[4 * 1024 * 1024])))
-            .listen(0, "localhost", context.succeeding(handler));
+            .listen(0, "localhost").onComplete(context.succeeding(handler));
    }
 
    private HttpClientPool client(Protocol protocol, int port) throws SSLException {

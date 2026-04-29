@@ -4,6 +4,7 @@ import java.io.OutputStream;
 
 import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.buffer.impl.BufferImpl;
 import io.vertx.core.streams.WriteStream;
 
 public class OutputStreamAdapter extends OutputStream {
@@ -15,12 +16,12 @@ public class OutputStreamAdapter extends OutputStream {
 
    @Override
    public void write(byte[] b) {
-      stream.write(Buffer.buffer(Unpooled.wrappedBuffer(b)));
+      stream.write(new BufferImpl(Unpooled.wrappedBuffer(b)));
    }
 
    @Override
    public void write(byte[] b, int off, int len) {
-      stream.write(Buffer.buffer(Unpooled.wrappedBuffer(b, off, len)));
+      stream.write(new BufferImpl(Unpooled.wrappedBuffer(b, off, len)));
    }
 
    @Override

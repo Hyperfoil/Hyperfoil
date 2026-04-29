@@ -17,11 +17,11 @@ public class CookieTest extends BaseHttpScenarioTest {
    @Override
    protected void initRouter() {
       router.route("/test1").handler(ctx -> {
-         ctx.addCookie(Cookie.cookie("foo", "bar"));
+         ctx.response().addCookie(Cookie.cookie("foo", "bar"));
          ctx.response().end("Hello!");
       });
       router.route("/test2").handler(ctx -> {
-         Cookie cookie = ctx.getCookie("foo");
+         Cookie cookie = ctx.request().getCookie("foo");
          int status = cookie != null && cookie.getValue().equals("bar") ? 200 : 500;
          ctx.response().setStatusCode(status).end();
       });

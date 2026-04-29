@@ -125,16 +125,16 @@ public class CertificatesTest {
    private void test(VertxTestContext context, boolean requireClientTrust, Handler<HttpServer> handler,
          Set<String> enabledSecureTransportProtocols) {
       HttpServerOptions serverOptions = new HttpServerOptions().setSsl(true)
-            .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
+            .setKeyCertOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
       if (requireClientTrust) {
          serverOptions.setClientAuth(ClientAuth.REQUIRED);
          if (enabledSecureTransportProtocols != null) {
             serverOptions.setEnabledSecureTransportProtocols(enabledSecureTransportProtocols);
          }
-         serverOptions.setTrustStoreOptions(new JksOptions().setPath("client.jks").setPassword("test123"));
+         serverOptions.setTrustOptions(new JksOptions().setPath("client.jks").setPassword("test123"));
       }
       Vertx.vertx().createHttpServer(serverOptions).requestHandler(ctx -> ctx.response().end())
-            .listen(0, "localhost", context.succeeding(handler));
+            .listen(0, "localhost").onComplete(context.succeeding(handler));
    }
 
    private void test(VertxTestContext context, boolean requireClientTrust, Handler<HttpServer> handler) {

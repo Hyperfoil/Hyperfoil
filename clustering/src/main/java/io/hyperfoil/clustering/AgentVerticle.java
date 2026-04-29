@@ -91,7 +91,7 @@ public class AgentVerticle extends AbstractVerticle {
          }
       }
       vertx.setPeriodic(1000, timerId -> {
-         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId), reply -> {
+         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId)).onComplete(reply -> {
             log.trace("{} Pinging controller", deploymentId);
             if (reply.succeeded()) {
                log.info("{} Got reply from controller.", deploymentId);
@@ -259,7 +259,7 @@ public class AgentVerticle extends AbstractVerticle {
                log.debug("Finish sending remaining statistics when status={}", status);
             }
             eb.request(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded,
-                  cpuUsage, error, globalData), ar -> {
+                  cpuUsage, error, globalData)).onComplete(ar -> {
                      if (ar.succeeded()) {
                         future.complete(null);
                      } else {

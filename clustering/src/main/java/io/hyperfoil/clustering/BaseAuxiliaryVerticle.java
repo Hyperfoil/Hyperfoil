@@ -32,21 +32,22 @@ public class BaseAuxiliaryVerticle extends AbstractVerticle implements NodeListe
          }
       }
       vertx.setPeriodic(1000, timerId -> {
-         vertx.eventBus().request(Feeds.DISCOVERY, new AuxiliaryHello("CE Receiver", nodeId, deploymentID()), response -> {
-            if (response.succeeded()) {
-               log.info("Successfully registered at controller {}!", response.result().body());
-               vertx.cancelTimer(timerId);
-               controllerNodeId = (String) response.result().body();
-               onRegistered();
-            } else {
-               if (registrationAttempt++ < 10) {
-                  log.info("Auxiliary registration failed (attempt {})", registrationAttempt);
-                  if (registrationAttempt == 10) {
-                     log.info("Suspending registration failure logs.");
+         vertx.eventBus().request(Feeds.DISCOVERY, new AuxiliaryHello("CE Receiver", nodeId, deploymentID()))
+               .onComplete(response -> {
+                  if (response.succeeded()) {
+                     log.info("Successfully registered at controller {}!", response.result().body());
+                     vertx.cancelTimer(timerId);
+                     controllerNodeId = (String) response.result().body();
+                     onRegistered();
+                  } else {
+                     if (registrationAttempt++ < 10) {
+                        log.info("Auxiliary registration failed (attempt {})", registrationAttempt);
+                        if (registrationAttempt == 10) {
+                           log.info("Suspending registration failure logs.");
+                        }
+                     }
                   }
-               }
-            }
-         });
+               });
       });
    }
 
