@@ -2,8 +2,10 @@ package io.hyperfoil.deploy.ssh;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -23,8 +25,6 @@ import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.io.IoReadFuture;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 import org.apache.sshd.common.util.io.output.NullOutputStream;
-import org.apache.sshd.scp.client.ScpClient;
-import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 
@@ -56,7 +56,7 @@ public class SshDeployedAgent implements DeployedAgent {
    private ClientSession session;
    private ChannelShell shellChannel;
    private Consumer<Throwable> exceptionHandler;
-   private ScpClient scpClient;
+   private SftpClient sftpClient;
    private PrintStream commandStream;
 
    public SshDeployedAgent(String name, String runId, String username, String hostname, String sshKey, int port, String dir,
@@ -79,6 +79,13 @@ public class SshDeployedAgent implements DeployedAgent {
          commandStream.close();
       }
       try {
+         if (sftpClient != null) {
+            sftpClient.close();
+         }
+      } catch (IOException e) {
+         log.error("Failed closing SFTP client", e);
+      }
+      try {
          if (shellChannel != null) {
             shellChannel.close();
          }
@@ -96,7 +103,13 @@ public class SshDeployedAgent implements DeployedAgent {
       this.session = session;
       this.exceptionHandler = exceptionHandler;
 
-      this.scpClient = ScpClientCreator.instance().createScpClient(session);
+      // Create SFTP client with the session - SFTP is more efficient for multiple file transfers
+      try {
+         this.sftpClient = SftpClientFactory.instance().createSftpClient(session);
+      } catch (IOException e) {
+         exceptionHandler.accept(new DeploymentException("Failed to create SFTP client", e));
+         return;
+      }
 
       try {
          this.shellChannel = session.createShellChannel();
@@ -166,21 +179,36 @@ public class SshDeployedAgent implements DeployedAgent {
       String java = Properties.get(Properties.AGENT_JAVA_EXECUTABLE, "java");
       startAgentCommmand.append(java).append(" -cp ");
 
+      int copiedCount = 0;
+      int skippedCount = 0;
       for (Map.Entry<String, String> entry : localMd5.entrySet()) {
          int lastSlash = entry.getKey().lastIndexOf("/");
          String filename = lastSlash < 0 ? entry.getKey() : entry.getKey().substring(lastSlash + 1);
          String remoteChecksum = remoteMd5.remove(filename);
          if (!entry.getValue().equals(remoteChecksum)) {
-            log.debug("MD5 mismatch {}/{}, copying {}", entry.getValue(), remoteChecksum, entry.getKey());
+            log.debug("Agent {}: Copying artifact {} (MD5 local={}, remote={})", name, filename, entry.getValue(),
+                  remoteChecksum);
+
             try {
-               scpClient.upload(entry.getKey(), dir + AGENTLIB + "/" + filename, ScpClient.Option.PreserveAttributes);
+               long startTime = System.currentTimeMillis();
+               String remotePath = dir + AGENTLIB + "/" + filename;
+               uploadViaSftp(entry.getKey(), remotePath);
+               long elapsed = System.currentTimeMillis() - startTime;
+               log.debug("Agent {}: Successfully copied {} in {}ms", name, filename, elapsed);
+               copiedCount++;
             } catch (IOException e) {
+               log.error("Agent {}: Failed to copy artifact {}: {}", name, filename, e.getMessage());
                exceptionHandler.accept(e);
                return;
             }
+         } else {
+            log.debug("Agent {}: Skipping artifact {} (MD5 match)", name, filename);
+            skippedCount++;
          }
          startAgentCommmand.append(dir).append(AGENTLIB).append('/').append(filename).append(':');
       }
+      log.info("Agent {}: Artifact deployment complete - copied: {}, skipped: {}, total: {}",
+            name, copiedCount, skippedCount, localMd5.size());
       if (!remoteMd5.isEmpty()) {
          StringBuilder rmCommand = new StringBuilder();
          // Drop those files that are not on classpath
@@ -198,7 +226,7 @@ public class SshDeployedAgent implements DeployedAgent {
          String filename = log4jConfigurationFile.substring(log4jConfigurationFile.lastIndexOf(File.separatorChar) + 1);
          try {
             String targetFile = dir + AGENTLIB + "/" + filename;
-            scpClient.upload(log4jConfigurationFile, targetFile, ScpClient.Option.PreserveAttributes);
+            uploadViaSftp(log4jConfigurationFile, targetFile);
             startAgentCommmand.append(" -D").append(Properties.LOG4J2_CONFIGURATION_FILE)
                   .append("=file://").append(targetFile);
          } catch (IOException e) {
@@ -229,6 +257,17 @@ public class SshDeployedAgent implements DeployedAgent {
       onPrompt(new StringBuilder(), new ByteArrayBuffer(),
             () -> exceptionHandler.accept(new BenchmarkExecutionException(
                   "Agent process terminated prematurely. Hint: type 'log " + name + "' to see agent output.")));
+   }
+
+   private void uploadViaSftp(String localPath, String remotePath) throws IOException {
+      try (InputStream in = new FileInputStream(localPath);
+            OutputStream out = sftpClient.write(remotePath)) {
+         byte[] buffer = new byte[8192];
+         int len;
+         while ((len = in.read(buffer)) != -1) {
+            out.write(buffer, 0, len);
+         }
+      }
    }
 
    private void onPrompt(StringBuilder sb, ByteArrayBuffer buffer, Runnable completion) {
