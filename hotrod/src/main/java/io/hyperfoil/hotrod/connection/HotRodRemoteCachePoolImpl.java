@@ -1,6 +1,5 @@
 package io.hyperfoil.hotrod.connection;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -13,7 +12,6 @@ import org.infinispan.client.hotrod.TransportFactory;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.client.hotrod.impl.ConfigurationProperties;
 import org.infinispan.client.hotrod.impl.HotRodURI;
-import org.infinispan.client.hotrod.impl.transport.netty.OperationDispatcher;
 
 import io.hyperfoil.hotrod.api.HotRodRemoteCachePool;
 import io.hyperfoil.hotrod.config.HotRodCluster;
@@ -56,17 +54,7 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
    }
 
    private void validateEventLoop(RemoteCacheManager remoteCacheManager) {
-      try {
-         Field dispatcherField = RemoteCacheManager.class.getDeclaredField("dispatcher");
-         dispatcherField.setAccessible(true);
-         OperationDispatcher dispatcher = (OperationDispatcher) dispatcherField.get(remoteCacheManager);
-         EventLoopGroup actualEventLoop = dispatcher.getChannelHandler().getEventLoopGroup();
-         if (actualEventLoop != eventLoop) {
-            throw new IllegalStateException("Event loop was not injected correctly. This is a classpath issue.");
-         }
-      } catch (NoSuchFieldException | IllegalAccessException e) {
-         throw new IllegalStateException(e);
-      }
+      // Validate that the async executor service is using our event loop
       ExecutorService asyncExecutorService = remoteCacheManager.getAsyncExecutorService();
       if (asyncExecutorService != eventLoop) {
          throw new IllegalStateException("Event loop was not configured correctly.");
