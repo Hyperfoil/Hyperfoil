@@ -76,7 +76,6 @@
         <maven.compiler.release>21</maven.compiler.release>
 
         <version.aesh>3.4</version.aesh>
-        <version.apache.sshd>2.17.1</version.apache.sshd>
         <version.assertj>3.27.7</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
         <version.fabric8.kubernetes-client>7.6.1</version.fabric8.kubernetes-client>
@@ -90,7 +89,12 @@
         <version.slf4j>2.0.17</version.slf4j>
         <version.snakeyaml>2.6</version.snakeyaml>
         <version.vertx>4.5.21</version.vertx>
-        <version.infinispan>16.0.10</version.infinispan>
+        <!-- version.infinispan must match what came from vertx-infinispan version -->
+        <version.infinispan>13.0.17.Final</version.infinispan>
+        <version.caffeine>2.8.4</version.caffeine>
+        <version.rxjava>3.0.4</version.rxjava>
+        <version.apache.sshd>2.17.1</version.apache.sshd>
+        <!-- end version.infinispan -->
         <!-- begin: JBoss/WildFly/SmallRye dependency versions - these must be compatible with each other.
              jboss-threads 3.9.2 requires smallrye-common 2.14.0, which is newer than what
              wildfly-common 2.0.1 brings (smallrye 2.4.0). We explicitly manage smallrye-common versions
@@ -473,6 +477,48 @@
                 <version>${version.smallrye-common}</version>
             </dependency>
             <!-- end: SmallRye Common dependencies - Explicitly managed to resolve version conflicts. -->
+
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${version.caffeine}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex.rxjava3</groupId>
+                <artifactId>rxjava</artifactId>
+                <version>${version.rxjava}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-common</artifactId>
+                <version>${version.apache.sshd}</version>
+            </dependency>
+
+            <!-- Should be here to avoid dependency convergence error for io.smallrye.common:smallrye-common-constraint -->
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-hotrod</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-core</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-client-hotrod</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
