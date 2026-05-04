@@ -1,24 +1,19 @@
 <config xmlns="urn:org:jgroups"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups-4.0.xsd">
-    <TCP bind_addr="${jgroups.bind.address,jgroups.tcp.address,io.hyperfoil.controller.cluster.ip:SITE_LOCAL}"
-         bind_port="${jgroups.bind.port,jgroups.tcp.port,io.hyperfoil.controller.cluster.port:7800}"
-         diag.enabled="${jgroups.diag.enabled:false}"
+    <TCP bind_addr="${jgroups.bind.address,jgroups.tcp.address:SITE_LOCAL}"
+         bind_port="${jgroups.bind.port,jgroups.tcp.port:7800}"
+         enable_diagnostics="${jgroups.diag.enabled:false}"
          thread_naming_pattern="pl"
          send_buf_size="640k"
          sock_conn_timeout="300"
-         tcp_nodelay="${jgroups.tcp.no_delay:true}"
          linger="${jgroups.tcp.linger:-1}"
          bundler_type="${jgroups.bundler.type:transfer-queue}"
-         bundler.max_size="${jgroups.bundler.max_size:64000}"
-         non_blocking_sends="${jgroups.non_blocking_sends:false}"
+         max_bundle_size="${jgroups.bundler.max_size:64000}"
 
          thread_pool.min_threads="${jgroups.thread_pool.min_threads:0}"
          thread_pool.max_threads="${jgroups.thread_pool.max_threads:200}"
          thread_pool.keep_alive_time="60000"
-
-         thread_pool.thread_dumps_threshold="${jgroups.thread_dumps_threshold:10000}"
-         use_virtual_threads="${jgroups.thread.virtual,org.infinispan.threads.virtual:true}"
     />
     <RED/>
     <TCPPING send_cache_on_join="true"/>
@@ -28,9 +23,8 @@
     <MERGE3 min_interval="1000"
             max_interval="3000"
     />
-    <FD_SOCK2 offset="${jgroups.fd.port-offset:50000}"/>
     <FD_ALL3/>
-    <VERIFY_SUSPECT2 timeout="1000"/>
+    <VERIFY_SUSPECT timeout="1000"/>
     <pbcast.NAKACK2 use_mcast_xmit="false"
                     xmit_interval="200"
                     xmit_table_num_rows="50"
@@ -47,12 +41,14 @@
     <pbcast.STABLE desired_avg_gossip="5000"
                    max_bytes="1M"
     />
-    <pbcast.GMS print_local_addr="false" join_timeout="0"/>
+    <pbcast.GMS print_local_addr="false"
+                join_timeout="${jgroups.join_timeout:2000}"
+    />
     <UFC max_credits="${jgroups.max_credits:4m}"
          min_threshold="0.40"
     />
     <MFC max_credits="${jgroups.max_credits:4m}"
          min_threshold="0.40"
     />
-    <FRAG4 frag_size="${jgroups.frag_size:60000}"/>
+    <FRAG3 frag_size="${jgroups.frag_size:60000}"/>
 </config>

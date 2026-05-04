@@ -15,8 +15,8 @@
   ~ under the License.
   -->
 <infinispan xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="urn:infinispan:config:11.0 http://www.infinispan.org/schemas/infinispan-config-11.0.xsd urn:infinispan:config:clustered-locks:11.0 https://infinispan.org/schemas/infinispan-clustered-locks-config-11.0.xsd"
-            xmlns="urn:infinispan:config:11.0">
+            xsi:schemaLocation="urn:infinispan:config:13.0 http://www.infinispan.org/schemas/infinispan-config-13.0.xsd urn:infinispan:config:clustered-locks:13.0 https://infinispan.org/schemas/infinispan-clustered-locks-config-13.0.xsd"
+            xmlns="urn:infinispan:config:13.0">
 
     <jgroups>
         <stack-file name="jgroups" path="${io.hyperfoil.cluster.jgroups_stack:jgroups-tcp.xml}"/>
@@ -31,7 +31,7 @@
         <replicated-cache name="__vertx.haInfo"/>
         <replicated-cache name="__vertx.nodeInfo"/>
         <replicated-cache-configuration name="__vertx.distributed.cache.configuration"/>
-        <clustered-locks xmlns="urn:infinispan:config:clustered-locks:11.0"
+        <clustered-locks xmlns="urn:infinispan:config:clustered-locks:13.0"
                          reliability="AVAILABLE"/>
     </cache-container>
 

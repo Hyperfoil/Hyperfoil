@@ -90,7 +90,6 @@
         <version.slf4j>2.0.17</version.slf4j>
         <version.snakeyaml>2.6</version.snakeyaml>
         <version.vertx>4.5.21</version.vertx>
-        <version.infinispan>16.0.10</version.infinispan>
         <!-- begin: JBoss/WildFly/SmallRye dependency versions - these must be compatible with each other.
              jboss-threads 3.9.2 requires smallrye-common 2.14.0, which is newer than what
              wildfly-common 2.0.1 brings (smallrye 2.4.0). We explicitly manage smallrye-common versions
@@ -279,14 +278,6 @@
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-dependencies</artifactId>
                 <version>${version.vertx}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-bom</artifactId>
-                <version>${version.infinispan}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
