@@ -82,7 +82,7 @@
         <version.fabric8.kubernetes-client>7.6.1</version.fabric8.kubernetes-client>
         <version.jkube.maven-plugin>1.19.0</version.jkube.maven-plugin>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
-        <version.javaparser>3.28.0</version.javaparser>
+        <version.javaparser>3.28.1</version.javaparser>
         <version.marshalling>2.3.0</version.marshalling>
         <version.junit-jupiter-api>6.0.3</version.junit-jupiter-api>
         <version.log4j2>2.25.4</version.log4j2>
