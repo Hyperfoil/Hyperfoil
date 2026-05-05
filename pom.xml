@@ -75,7 +75,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.release>21</maven.compiler.release>
 
-        <version.aesh>3.4</version.aesh>
+        <version.aesh>3.6</version.aesh>
         <version.apache.sshd>2.17.1</version.apache.sshd>
         <version.assertj>3.27.7</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
