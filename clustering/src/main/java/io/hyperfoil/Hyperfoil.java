@@ -4,10 +4,10 @@ import static io.hyperfoil.internal.Properties.CLUSTER_JGROUPS_STACK;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -20,13 +20,10 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.FormattedMessage;
-import org.infinispan.commons.dataconversion.MediaType;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
-import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.manager.DefaultCacheManager;
-import org.infinispan.remoting.transport.Transport;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.JChannel;
 import org.jgroups.protocols.TP;
@@ -127,7 +124,7 @@ public class Hyperfoil {
    }
 
    private static void populateProperties(DefaultCacheManager dcm) {
-      JGroupsTransport transport = (JGroupsTransport) GlobalComponentRegistry.componentOf(dcm, Transport.class);
+      JGroupsTransport transport = (JGroupsTransport) dcm.getCacheManagerConfiguration().transport().transport();
       JChannel channel = transport.getChannel();
       TP tp = channel.getProtocolStack().getTransport();
       System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tp.getBindAddress().getHostAddress());
@@ -173,15 +170,20 @@ public class Hyperfoil {
    }
 
    private static DefaultCacheManager createCacheManager() {
-      try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml",
-            Thread.currentThread().getContextClassLoader())) {
-         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, MediaType.APPLICATION_XML);
+      try {
+         String configFile = "infinispan.xml";
+         URL url = FileLookupFactory.newInstance().lookupFileLocation(configFile,
+               Thread.currentThread().getContextClassLoader());
+         if (url == null) {
+            throw new IOException("Cannot find " + configFile);
+         }
+         ConfigurationBuilderHolder holder = new ParserRegistry().parse(url);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
                .withProperties(System.getProperties())
                .initialClusterSize(1);
          return new DefaultCacheManager(holder, true);
       } catch (IOException e) {
-         log.error("Cannot load Infinispan configuration");
+         log.error("Cannot load Infinispan configuration", e);
          System.exit(1);
          return null;
       }

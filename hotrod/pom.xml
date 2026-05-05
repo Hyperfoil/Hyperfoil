@@ -9,6 +9,48 @@
 
     <artifactId>hyperfoil-hotrod</artifactId>
     <name>Hyperfoil Hot Rod Client</name>
+    
+    <properties>
+        <!-- latest available version -->
+        <version.infinispan>16.0.10</version.infinispan>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-bom</artifactId>
+                <version>${version.infinispan}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- BOM doesn't manage test-jar classifiers, so we need to explicitly define them -->
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-hotrod</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-core</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-client-hotrod</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -27,29 +69,7 @@
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-client-hotrod</artifactId>
-            <version>${version.infinispan}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.logging</groupId>
-                    <artifactId>jboss-logging</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.github.ben-manes.caffeine</groupId>
-                    <artifactId>caffeine</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.sshd</groupId>
-                    <artifactId>sshd-common</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.reactivex.rxjava3</groupId>
-                    <artifactId>rxjava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.reactivex.rxjava2</groupId>
-                    <artifactId>rxjava</artifactId>
-                </exclusion>
-            </exclusions>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -57,6 +77,12 @@
             <artifactId>hyperfoil-core</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.vertx</groupId>
+                    <artifactId>vertx-infinispan</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -76,7 +102,6 @@
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-server-hotrod</artifactId>
-            <version>${version.infinispan}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -88,14 +113,23 @@
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-server-hotrod</artifactId>
-            <version>${version.infinispan}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-server-core</artifactId>
-            <version>${version.infinispan}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.logging</groupId>
+                    <artifactId>jboss-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-server-core</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
             <exclusions>
@@ -108,7 +142,6 @@
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-core</artifactId>
-            <version>${version.infinispan}</version>
             <scope>test</scope>
             <type>test-jar</type>
             <exclusions>
@@ -125,7 +158,6 @@
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-client-hotrod</artifactId>
-            <version>${version.infinispan}</version>
             <type>test-jar</type>
             <scope>test</scope>
             <exclusions>
@@ -138,7 +170,6 @@
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-commons-test</artifactId>
-            <version>${version.infinispan}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -154,6 +185,26 @@
                     <artifactId>rxjava</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-tasks</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-commons</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.infinispan.protostream</groupId>
+            <artifactId>protostream</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -196,6 +247,49 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>com.github.ben-manes.caffeine:*</include>
+                                    <include>org.infinispan:*</include>
+                                    <include>org.infinispan.protostream:*</include>
+                                    <include>org.wildfly.common:*</include>
+                                    <include>org.wildfly.security:*</include>
+                                    <include>jakarta.transaction:jakarta.transaction-api</include>
+                                    <include>io.reactivex.rxjava3:rxjava</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.infinispan</pattern>
+                                    <shadedPattern>shaded.org.infinispan</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>jakarta.transaction</pattern>
+                                    <shadedPattern>shaded.jakarta.transaction</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.reactivex.rxjava3</pattern>
+                                    <shadedPattern>shaded.io.reactivex.rxjava3</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
@@ -207,7 +301,7 @@
                         <configuration>
                             <skip>${module.skipCopyDependencies}</skip>
                             <includeScope>runtime</includeScope>
-                            <excludeGroupIds>com.github.ben-manes.caffeine,org.infinispan.protostream</excludeGroupIds>
+                            <excludeGroupIds>com.github.ben-manes.caffeine,org.infinispan,org.infinispan.protostream,org.wildfly,jakarta.transaction,io.reactivex.rxjava3</excludeGroupIds>
                             <silent>true</silent>
                         </configuration>
                     </execution>
