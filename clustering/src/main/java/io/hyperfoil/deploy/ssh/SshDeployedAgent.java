@@ -197,7 +197,7 @@ public class SshDeployedAgent implements DeployedAgent {
                log.debug("Agent {}: Successfully copied {} in {}ms", name, filename, elapsed);
                copiedCount++;
             } catch (IOException e) {
-               log.error("Agent {}: Failed to copy artifact {}: {}", name, filename, e.getMessage());
+               log.error("Agent {}: Failed to copy artifact {}", name, filename, e);
                exceptionHandler.accept(e);
                return;
             }
