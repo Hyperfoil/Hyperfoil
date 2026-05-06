@@ -107,6 +107,11 @@ public class SshDeployedAgent implements DeployedAgent {
       try {
          this.sftpClient = SftpClientFactory.instance().createSftpClient(session);
       } catch (IOException e) {
+         try {
+            session.close();
+         } catch (IOException closeException) {
+            log.error("Failed to close session after SFTP client creation failure", closeException);
+         }
          exceptionHandler.accept(new DeploymentException("Failed to create SFTP client", e));
          return;
       }
