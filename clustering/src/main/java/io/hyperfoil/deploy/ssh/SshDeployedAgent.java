@@ -23,8 +23,6 @@ import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.io.IoReadFuture;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 import org.apache.sshd.common.util.io.output.NullOutputStream;
-import org.apache.sshd.scp.client.ScpClient;
-import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 
@@ -56,7 +54,7 @@ public class SshDeployedAgent implements DeployedAgent {
    private ClientSession session;
    private ChannelShell shellChannel;
    private Consumer<Throwable> exceptionHandler;
-   private ScpClient scpClient;
+   private FileTransfer fileTransfer;
    private PrintStream commandStream;
 
    public SshDeployedAgent(String name, String runId, String username, String hostname, String sshKey, int port, String dir,
@@ -95,9 +93,7 @@ public class SshDeployedAgent implements DeployedAgent {
    public void deploy(ClientSession session, Consumer<Throwable> exceptionHandler) {
       this.session = session;
       this.exceptionHandler = exceptionHandler;
-
-      this.scpClient = ScpClientCreator.instance().createScpClient(session);
-
+      this.fileTransfer = new FileTransfer(session);
       try {
          this.shellChannel = session.createShellChannel();
          shellChannel.setStreaming(ClientChannel.Streaming.Async);
@@ -165,7 +161,7 @@ public class SshDeployedAgent implements DeployedAgent {
       }
       String java = Properties.get(Properties.AGENT_JAVA_EXECUTABLE, "java");
       startAgentCommmand.append(java).append(" -cp ");
-
+      long startTime = System.currentTimeMillis();
       for (Map.Entry<String, String> entry : localMd5.entrySet()) {
          int lastSlash = entry.getKey().lastIndexOf("/");
          String filename = lastSlash < 0 ? entry.getKey() : entry.getKey().substring(lastSlash + 1);
@@ -173,7 +169,10 @@ public class SshDeployedAgent implements DeployedAgent {
          if (!entry.getValue().equals(remoteChecksum)) {
             log.debug("MD5 mismatch {}/{}, copying {}", entry.getValue(), remoteChecksum, entry.getKey());
             try {
-               scpClient.upload(entry.getKey(), dir + AGENTLIB + "/" + filename, ScpClient.Option.PreserveAttributes);
+               if (log.isDebugEnabled()) {
+                  log.info("Starting file transfer for {}", filename);
+               }
+               fileTransfer.upload(entry.getKey(), dir + AGENTLIB + "/" + filename);
             } catch (IOException e) {
                exceptionHandler.accept(e);
                return;
@@ -181,6 +180,8 @@ public class SshDeployedAgent implements DeployedAgent {
          }
          startAgentCommmand.append(dir).append(AGENTLIB).append('/').append(filename).append(':');
       }
+      long elapsed = System.currentTimeMillis() - startTime;
+      log.info("File transfer completed in {} ms", elapsed);
       if (!remoteMd5.isEmpty()) {
          StringBuilder rmCommand = new StringBuilder();
          // Drop those files that are not on classpath
@@ -198,7 +199,7 @@ public class SshDeployedAgent implements DeployedAgent {
          String filename = log4jConfigurationFile.substring(log4jConfigurationFile.lastIndexOf(File.separatorChar) + 1);
          try {
             String targetFile = dir + AGENTLIB + "/" + filename;
-            scpClient.upload(log4jConfigurationFile, targetFile, ScpClient.Option.PreserveAttributes);
+            fileTransfer.upload(log4jConfigurationFile, targetFile);
             startAgentCommmand.append(" -D").append(Properties.LOG4J2_CONFIGURATION_FILE)
                   .append("=file://").append(targetFile);
          } catch (IOException e) {
