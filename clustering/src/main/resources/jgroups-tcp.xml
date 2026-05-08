@@ -1,8 +1,8 @@
 <config xmlns="urn:org:jgroups"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups-4.0.xsd">
-    <TCP bind_addr="${jgroups.bind.address,jgroups.tcp.address:SITE_LOCAL}"
-         bind_port="${jgroups.bind.port,jgroups.tcp.port:7800}"
+    <TCP bind_addr="${jgroups.bind.address,jgroups.tcp.address,io.hyperfoil.controller.cluster.ip:SITE_LOCAL}"
+         bind_port="${jgroups.bind.port,jgroups.tcp.port,io.hyperfoil.controller.cluster.port:7800}"
          enable_diagnostics="${jgroups.diag.enabled:false}"
          thread_naming_pattern="pl"
          send_buf_size="640k"
@@ -23,6 +23,7 @@
     <MERGE3 min_interval="1000"
             max_interval="3000"
     />
+    <FD_SOCK />
     <FD_ALL3/>
     <VERIFY_SUSPECT timeout="1000"/>
     <pbcast.NAKACK2 use_mcast_xmit="false"
