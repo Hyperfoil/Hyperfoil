@@ -84,6 +84,11 @@ public class SshDeployedAgent implements DeployedAgent {
          log.error("Failed closing shell", e);
       }
       try {
+         this.fileTransfer.close();
+      } catch (IOException e) {
+         log.error("Failed closing the file transfer", e);
+      }
+      try {
          session.close();
       } catch (IOException e) {
          log.error("Failed closing SSH session", e);
@@ -93,7 +98,12 @@ public class SshDeployedAgent implements DeployedAgent {
    public void deploy(ClientSession session, Consumer<Throwable> exceptionHandler) {
       this.session = session;
       this.exceptionHandler = exceptionHandler;
-      this.fileTransfer = new FileTransfer(session);
+      try {
+         this.fileTransfer = new FileTransfer(session);
+      } catch (Exception e) {
+         exceptionHandler.accept(new DeploymentException("Failed to initialize file transfer", e));
+         return;
+      }
       try {
          this.shellChannel = session.createShellChannel();
          shellChannel.setStreaming(ClientChannel.Streaming.Async);
@@ -170,7 +180,7 @@ public class SshDeployedAgent implements DeployedAgent {
             log.debug("MD5 mismatch {}/{}, copying {}", entry.getValue(), remoteChecksum, entry.getKey());
             try {
                if (log.isDebugEnabled()) {
-                  log.info("Starting file transfer for {}", filename);
+                  log.debug("Starting file transfer for {}", filename);
                }
                fileTransfer.upload(entry.getKey(), dir + AGENTLIB + "/" + filename);
             } catch (IOException e) {

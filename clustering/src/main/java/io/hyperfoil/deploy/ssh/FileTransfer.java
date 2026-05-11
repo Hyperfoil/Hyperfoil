@@ -15,21 +15,21 @@ import org.apache.sshd.sftp.client.SftpClientFactory;
 
 import io.hyperfoil.internal.Properties;
 
-public class FileTransfer {
+public class FileTransfer implements AutoCloseable {
 
    private static final Logger log = LogManager.getLogger(FileTransfer.class);
 
    private IFileTransfer client;
 
-   FileTransfer(ClientSession session) {
-      String fileTransferClient = System.getProperty(Properties.FILE_TRANSFER_CLIENT, "scp");
+   FileTransfer(ClientSession session) throws Exception {
+      String fileTransferClient = Properties.get(Properties.FILE_TRANSFER_CLIENT, "scp");
       log.info("Using {} protocol for file transfer", fileTransferClient);
       if ("scp".equals(fileTransferClient)) {
          this.client = new Scp(session);
       } else if ("sftp".equals(fileTransferClient)) {
          this.client = new Sftp(session);
       } else {
-         throw new RuntimeException("Invalid file transfer client. You provided: " + fileTransferClient);
+         throw new IllegalArgumentException("Invalid file transfer client. You provided: " + fileTransferClient);
       }
    }
 
@@ -37,8 +37,15 @@ public class FileTransfer {
       this.client.upload(key, remote);
    }
 
+   @Override
+   public void close() throws IOException {
+      this.client.close();
+   }
+
    private interface IFileTransfer {
       void upload(String key, String remote) throws IOException;
+
+      void close() throws IOException;
    }
 
    private static class Scp implements IFileTransfer {
@@ -52,22 +59,22 @@ public class FileTransfer {
       public void upload(String key, String remote) throws IOException {
          this.scpClient.upload(key, remote, ScpClient.Option.PreserveAttributes);
       }
+
+      @Override
+      public void close() {
+
+      }
    }
 
    private static class Sftp implements IFileTransfer {
 
       private SftpClient sftpClient;
 
-      Sftp(ClientSession session) {
+      Sftp(ClientSession session) throws Exception {
          try {
             this.sftpClient = SftpClientFactory.instance().createSftpClient(session);
          } catch (IOException e) {
-            try {
-               session.close();
-            } catch (IOException ex) {
-               throw new RuntimeException("Problem while closing the session", ex);
-            }
-            throw new RuntimeException("Problem while creating the Sftp instance", e);
+            throw new Exception("Problem while creating the Sftp instance", e);
          }
       }
 
@@ -81,6 +88,11 @@ public class FileTransfer {
                out.write(buffer, 0, len);
             }
          }
+      }
+
+      @Override
+      public void close() throws IOException {
+         this.sftpClient.close();
       }
    }
 }
