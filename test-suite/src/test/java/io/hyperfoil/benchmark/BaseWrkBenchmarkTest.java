@@ -11,7 +11,7 @@ import io.vertx.ext.web.Router;
  */
 public abstract class BaseWrkBenchmarkTest extends BaseBenchmarkTest {
 
-   private final long unservedDelay = 2000;
+   private final long unservedDelay = 100;
    private final double servedRatio = 0.9;
 
    @Override
