@@ -8,7 +8,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -166,20 +168,25 @@ public class SshDeployedAgent implements DeployedAgent {
       String java = Properties.get(Properties.AGENT_JAVA_EXECUTABLE, "java");
       startAgentCommmand.append(java).append(" -cp ");
 
+      List<String> fileToUpload = new ArrayList<>();
       for (Map.Entry<String, String> entry : localMd5.entrySet()) {
          int lastSlash = entry.getKey().lastIndexOf("/");
          String filename = lastSlash < 0 ? entry.getKey() : entry.getKey().substring(lastSlash + 1);
          String remoteChecksum = remoteMd5.remove(filename);
          if (!entry.getValue().equals(remoteChecksum)) {
             log.debug("MD5 mismatch {}/{}, copying {}", entry.getValue(), remoteChecksum, entry.getKey());
-            try {
-               scpClient.upload(entry.getKey(), dir + AGENTLIB + "/" + filename, ScpClient.Option.PreserveAttributes);
-            } catch (IOException e) {
-               exceptionHandler.accept(e);
-               return;
-            }
+            fileToUpload.add(entry.getKey());
          }
          startAgentCommmand.append(dir).append(AGENTLIB).append('/').append(filename).append(':');
+      }
+      if (!fileToUpload.isEmpty()) {
+         try {
+            scpClient.upload(fileToUpload.toArray(String[]::new), dir + AGENTLIB + "/",
+                  ScpClient.Option.PreserveAttributes);
+         } catch (IOException e) {
+            exceptionHandler.accept(e);
+            return;
+         }
       }
       if (!remoteMd5.isEmpty()) {
          StringBuilder rmCommand = new StringBuilder();
