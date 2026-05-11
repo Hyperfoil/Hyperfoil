@@ -73,8 +73,8 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       Wrk2 cmd = new Wrk2();
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "--output",
             reportFile.toString(), "localhost:" + httpServer.actualPort() + "/unpredictable" });
-      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
-      assertTrue(reportFile.toFile().exists());
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Wrk2 command should succeed.");
+      assertTrue(reportFile.toFile().exists(), "Expected HTML report file to be created at: " + reportFile);
    }
 
    @Test
