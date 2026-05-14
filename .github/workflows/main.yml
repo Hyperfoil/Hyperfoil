@@ -23,6 +23,7 @@ jobs:
       NO_DOWNLOAD_MESSAGE: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
       QUAY_BOT_LOGIN: ${{secrets.QUAY_BOT_LOGIN}}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         java: [21, 26]
