@@ -139,8 +139,10 @@ public class ClusterTestCase extends BaseClusteredTest {
          assertEquals(response.statusCode(), 200);
          try {
             JsonObject status = new JsonObject(response.bodyAsString());
+            log.info("Benchmark status: {}", status.encodePrettily());
             assertThat(status.getString("benchmark")).isEqualTo("test");
             if (status.getString("terminated") != null) {
+               log.info("Benchmark terminated at: {}", status.getString("terminated"));
                JsonArray errors = status.getJsonArray("errors");
                assertThat(errors).isNotNull();
                assertThat(errors.size()).withFailMessage("Found errors: %s", errors).isEqualTo(0);
@@ -151,11 +153,13 @@ public class ClusterTestCase extends BaseClusteredTest {
                }
                termination.flag();
             } else {
+               log.info("Benchmark not yet terminated, polling again...");
                vertx.setTimer(100, id -> {
                   getStatus(ctx, client, location, termination);
                });
             }
          } catch (Throwable t) {
+            log.error("Error checking benchmark status", t);
             ctx.failNow(t);
             throw t;
          }

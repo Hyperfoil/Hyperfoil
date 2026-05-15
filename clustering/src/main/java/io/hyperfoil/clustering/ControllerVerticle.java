@@ -748,21 +748,24 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       run.terminateTime.complete(System.currentTimeMillis());
       run.completed = true;
+      log.info("=== Stopping all agents for run: {} ===", run.id);
       for (AgentInfo agent : run.agents) {
          if (agent.deploymentId == null) {
             assert agent.status == AgentInfo.Status.STARTING;
+            log.info("Agent {}/{} has no deploymentId, stopping deployed agent directly", agent.name, agent.id);
             if (agent.deployedAgent != null) {
                agent.deployedAgent.stop();
             }
             continue;
          }
+         log.info("Sending STOP command to agent {}/{} (deploymentId: {})", agent.name, agent.id, agent.deploymentId);
          agent.status = AgentInfo.Status.STOPPING;
          eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null))
                .onComplete(reply -> {
                   if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
                      agent.status = AgentInfo.Status.STOPPED;
                      checkAgentsStopped(run);
-                     log.debug("Agent {}/{} stopped.", agent.name, agent.deploymentId);
+                     log.info("Agent {}/{} stopped successfully.", agent.name, agent.deploymentId);
                   } else {
                      agent.status = AgentInfo.Status.FAILED;
                      log.error("Agent {}/{} failed to stop", agent.name, agent.deploymentId);
@@ -774,7 +777,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   }
                   if (agent.deployedAgent != null) {
                      // Give agents 3 seconds to leave the cluster
-                     vertx.setTimer(3000, timerId -> agent.deployedAgent.stop());
+                     log.info("Scheduling deployed agent stop for {}/{} in 3 seconds to allow cluster leave", agent.name,
+                           agent.deploymentId);
+                     vertx.setTimer(3000, timerId -> {
+                        log.info("Stopping deployed agent {}/{} after cluster leave delay", agent.name, agent.deploymentId);
+                        agent.deployedAgent.stop();
+                     });
                   }
                });
       }

@@ -50,6 +50,7 @@ public class AgentVerticle extends AbstractVerticle {
    @Override
    public void start() {
       deploymentId = deploymentID();
+      log.info("=== AgentVerticle starting - deploymentId: {} ===", deploymentId);
       name = context.config().getString("name");
       if (name == null) {
          name = Properties.get(Properties.AGENT_NAME, null);
@@ -221,12 +222,19 @@ public class AgentVerticle extends AbstractVerticle {
 
    @Override
    public void stop() {
+      log.info("=== AgentVerticle stopping - deploymentId: {}, name: {} ===", deploymentId, name);
       if (runner != null) {
+         log.info("Shutting down SimulationRunner for agent: {}", name);
          runner.shutdown();
+         log.info("SimulationRunner shutdown complete for agent: {}", name);
+      } else {
+         log.info("No SimulationRunner to shutdown for agent: {}", name);
       }
+      log.info("=== AgentVerticle stopped - deploymentId: {} ===", deploymentId);
    }
 
    private void initBenchmark(Benchmark benchmark, int agentId) {
+      log.info("=== Initializing benchmark for agent: {}, agentId: {} ===", name, agentId);
       if (runner != null) {
          throw new IllegalStateException("Another simulation is running!");
       }
