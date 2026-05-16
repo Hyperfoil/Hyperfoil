@@ -39,7 +39,7 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       Wrk cmd = new Wrk();
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "--latency", "--timeout", "1s",
             "localhost:" + httpServer.actualPort() + "/unpredictable" });
-      assertEquals(CommandResult.FAILURE.getResultValue(), result);
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
    }
 
    @Test
@@ -98,6 +98,26 @@ public class WrkTest extends BaseWrkBenchmarkTest {
    }
 
    @Test
+   public void testWrk2CalibrationDoesNotCancelTestPhase() throws CommandNotFoundException {
+      Wrk2 cmd = new Wrk2();
+      int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "60000", "--latency", "--timeout", "1s",
+            "localhost:" + httpServer.actualPort() + "/highway" });
+
+      CommandContainer<HyperfoilCommandInvocation> commandContainer = cmd.getCommandRegistry().getCommand("wrk2", null);
+      ProcessedCommand processedCommand = commandContainer.getParser().getProcessedCommand();
+      Wrk2.Wrk2Command wrk2Command = (Wrk2.Wrk2Command) processedCommand.getCommand();
+      WrkAbstract.WrkCommandResult wrkCommandResult = wrk2Command.getWrkCommandResult();
+
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result,
+            "wrk2 should succeed even when calibration SLA fails — wrk2 does not enforce SLA");
+      assertFalse(wrkCommandResult.getRequestStatisticsResponse().statistics.isEmpty());
+      boolean testPhaseFound = wrkCommandResult.getRequestStatisticsResponse().statistics.stream()
+            .anyMatch(rs -> "test".equals(rs.phase));
+      assertTrue(testPhaseFound,
+            "Test phase must have statistics even when calibration fails SLA validation");
+   }
+
+   @Test
    public void testWrk2HighLoad() throws CommandNotFoundException {
       Wrk2 cmd = new Wrk2();
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20000", "--latency", "--timeout", "1s",
@@ -109,7 +129,9 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       Wrk2.Wrk2Command wrk2Command = (Wrk2.Wrk2Command) processedCommand.getCommand();
       WrkAbstract.WrkCommandResult wrkCommandResult = wrk2Command.getWrkCommandResult();
 
-      // assert
+      // At 20K rate with 10 connections against /unpredictable, the test phase runs but
+      // all sessions block waiting for connections and time out — no test-phase stats are produced.
+      // The command returns FAILURE because it cannot find test-phase statistics to print.
       assertEquals(CommandResult.FAILURE.getResultValue(), result);
       assertFalse(wrkCommandResult.getRequestStatisticsResponse().statistics.isEmpty());
       for (RequestStats requestStats : wrkCommandResult.getRequestStatisticsResponse().statistics) {
