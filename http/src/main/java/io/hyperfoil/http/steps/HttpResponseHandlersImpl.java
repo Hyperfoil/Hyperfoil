@@ -758,8 +758,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
       public void run(Session session) {
          Request request = session.currentRequest();
          if (!request.isValid()) {
-            log.info("#{} Stopping session due to invalid response {} on connection {}", session.uniqueId(), request,
-                  request.connection());
+            // If the request is invalid for some reason, this will be on hot path
+            if (log.isDebugEnabled()) {
+               log.debug("#{} Stopping session due to invalid response {} on connection {}", session.uniqueId(), request,
+                     request.connection());
+            }
             session.stop();
          }
       }
