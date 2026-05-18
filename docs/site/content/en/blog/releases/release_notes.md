@@ -5,6 +5,14 @@ type: docs
 weight: 1
 ---
 
+## 0.29.2 (2026-05-18)
+
+* Fix wrk/wrk2 calibration SLA failure cancelling test phase
+
+## 0.29.1 (2026-04-16)
+
+* Preserve dependency POM for clustering shade plugin
+
 ## 0.29.0 (2026-04-16)
 
 * Nanosecond granularity for load generators, enabling sub-millisecond rate generation
