@@ -36,10 +36,11 @@ A minor release introduces new features and creates a new stable branch.
 
 A micro release applies bug fixes to an existing stable branch. No branch creation is needed.
 
-1. Trigger the **Perform Release** workflow (`release.yml`) from the existing `X.Y.x` branch (e.g., `0.28.x`).
-2. Submit a PR targeting the `X.Y.x` stable branch directly, updating `docs/site/hugo.yaml` with the new version and download URL. Update `docs/site/content/en/blog/releases/release_notes.md` with the changelog if needed.
-3. Manually trigger the **Build and deploy Hyperfoil website** workflow from the [`Hyperfoil/Hyperfoil.github.io` Actions tab](https://github.com/Hyperfoil/Hyperfoil.github.io/actions) to update the site with the new version. After it completes, wait for the subsequent **pages build and deployment** workflow to finish before verifying the site.
-4. Push directly to `main` in the [`Hyperfoil/jbang-catalog`](https://github.com/Hyperfoil/jbang-catalog) repo: bump all Hyperfoil version references in `jbang-catalog.json` to the new release version.
+1. Submit a PR targeting the `X.Y.x` stable branch directly.
+2. Update `docs/site/hugo.yaml` with the new version and download URL. Update `docs/site/content/en/blog/releases/release_notes.md` with the changelog if needed.
+3. Trigger the **Perform Release** workflow (`release.yml`) from the existing `X.Y.x` branch (e.g., `0.28.x`).
+4. Trigger the **Build and deploy Hyperfoil website** workflow from the [`Hyperfoil/Hyperfoil.github.io` Actions tab](https://github.com/Hyperfoil/Hyperfoil.github.io/actions) to update the site with the new version. After it completes, wait for the subsequent **pages build and deployment** workflow to finish before verifying the site.
+5. Push directly to `main` in the [`Hyperfoil/jbang-catalog`](https://github.com/Hyperfoil/jbang-catalog) repo: bump all Hyperfoil version references in `jbang-catalog.json` to the new release version.
 
 ## Manual Release Process (fallback)
 
