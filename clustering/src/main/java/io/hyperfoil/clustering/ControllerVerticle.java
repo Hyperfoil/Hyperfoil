@@ -481,7 +481,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             run.newGlobalData.putAll(run.phases.get(phase).completeGlobalData());
             break;
       }
-      if (controllerPhase.isFailed()) {
+      if (controllerPhase.isFailed() && run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
          failNotStartedPhases(run, controllerPhase);
       }
    }

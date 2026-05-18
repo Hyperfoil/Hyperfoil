@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
@@ -64,7 +65,8 @@ public abstract class WrkScenario {
                   .useHttpCache(useHttpCache)
                .endHttp()
             .endPlugin()
-            .threads(threads);
+            .threads(threads)
+            .failurePolicy(Benchmark.FailurePolicy.CONTINUE);
       // @formatter:on
       if (agentParam != null) {
          for (Map.Entry<String, String> agent : agentParam.entrySet()) {
