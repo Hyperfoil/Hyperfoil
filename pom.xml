@@ -86,7 +86,7 @@
         <version.junit-jupiter-api>6.0.3</version.junit-jupiter-api>
         <version.log4j2>2.26.0</version.log4j2>
         <version.metainf-services>1.11</version.metainf-services>
-        <version.slf4j>2.0.17</version.slf4j>
+        <version.slf4j>2.0.18</version.slf4j>
         <version.snakeyaml>2.6</version.snakeyaml>
         <version.vertx>4.5.21</version.vertx>
         <!-- version.infinispan must match what came from vertx-infinispan version -->
