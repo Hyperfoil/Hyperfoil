@@ -76,21 +76,27 @@ public class SshDeployedAgent implements DeployedAgent {
 
    @Override
    public void stop() {
-      log.info("Stopping agent {}", name);
+      log.info("=== Stopping SSH agent: {} (runId: {}) ===", name, runId);
       if (commandStream != null) {
+         log.info("Closing command stream for agent: {}", name);
          commandStream.close();
+         log.info("Command stream closed for agent: {}", name);
       }
       try {
          if (shellChannel != null) {
+            log.info("Closing shell channel for agent: {}", name);
             shellChannel.close();
+            log.info("Shell channel closed for agent: {}", name);
          }
       } catch (IOException e) {
-         log.error("Failed closing shell", e);
+         log.error("Failed closing shell for agent: {}", name, e);
       }
       try {
+         log.info("Closing SSH session for agent: {}", name);
          session.close();
+         log.info("=== SSH agent stopped: {} ===", name);
       } catch (IOException e) {
-         log.error("Failed closing SSH session", e);
+         log.error("Failed closing SSH session for agent: {}", name, e);
       }
    }
 

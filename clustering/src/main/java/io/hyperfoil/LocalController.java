@@ -37,7 +37,7 @@ public class LocalController implements Controller {
    @Override
    public void stop() {
       CompletableFuture<Void> stopFuture = new CompletableFuture<>();
-      vertx.close(result -> {
+      vertx.close().onComplete(result -> {
          if (result.succeeded()) {
             stopFuture.complete(null);
          } else {
@@ -66,7 +66,7 @@ public class LocalController implements Controller {
          Hyperfoil.ensureNettyResourceLeakDetection();
          CompletableFuture<Integer> completion = new CompletableFuture<>();
          ControllerVerticle controller = new ControllerVerticle();
-         vertx.deployVerticle(controller, new DeploymentOptions().setConfig(config), event -> {
+         vertx.deployVerticle(controller, new DeploymentOptions().setConfig(config)).onComplete(event -> {
             if (event.succeeded()) {
                completion.complete(controller.actualPort());
             } else {

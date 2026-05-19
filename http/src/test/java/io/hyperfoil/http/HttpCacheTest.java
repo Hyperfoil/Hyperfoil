@@ -271,7 +271,7 @@ public class HttpCacheTest extends VertxBaseTest {
          if (!req.response().ended()) {
             ctx.failNow(("Response not sent"));
          }
-      }).listen(0, "localhost", event -> {
+      }).listen(0, "localhost").onComplete(event -> {
          if (event.failed()) {
             ctx.failNow(event.cause());
          } else {

@@ -29,7 +29,8 @@ public abstract class BaseBenchmarkTest {
    }
 
    private void setupHttpServer(VertxTestContext ctx, Handler<HttpServerRequest> handler) {
-      httpServer = vertx.createHttpServer().requestHandler(handler).listen(0, "localhost", ctx.succeedingThenComplete());
+      httpServer = vertx.createHttpServer().requestHandler(handler);
+      httpServer.listen(0, "localhost").onComplete(ctx.succeedingThenComplete());
    }
 
    protected String getBenchmarkPath(String name) {

@@ -47,7 +47,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), YAML)
-                  .send(handler),
+                  .send().onComplete(handler),
             0,
             response -> {
                if (response.statusCode() == 200) {
@@ -66,7 +66,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), SERIALIZED)
-                  .send(handler),
+                  .send().onComplete(handler),
             200,
             response -> {
                try {
@@ -93,7 +93,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
             request.addQueryParam("templateParam", param.getKey() + "=" + param.getValue());
          }
          request.addQueryParam("validate", validate.toString());
-         request.send(rsp -> {
+         request.send().onComplete(rsp -> {
             if (rsp.succeeded()) {
                HttpResponse<Buffer> response = rsp.result();
                String location = response.getHeader(HttpHeaders.LOCATION.toString());
@@ -118,7 +118,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                   }
                   String runId = response.getHeader("x-run-id");
                   client.request(HttpMethod.GET, "https".equalsIgnoreCase(url.getProtocol()), url.getHost(), url.getPort(),
-                        url.getFile()).send(rsp2 -> {
+                        url.getFile()).send().onComplete(rsp2 -> {
                            if (rsp2.succeeded()) {
                               HttpResponse<Buffer> response2 = rsp2.result();
                               if (response2.statusCode() >= 200 && response2.statusCode() < 300) {
@@ -156,7 +156,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                }
                request
                      .putHeader(HttpHeaders.ACCEPT.toString(), JSON)
-                     .send(handler);
+                     .send().onComplete(handler);
             }, 200,
             response -> Json.decodeValue(response.body(), Client.BenchmarkStructure.class));
    }
@@ -166,7 +166,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/files")
                   .putHeader(HttpHeaders.ACCEPT.toString(), MULTIPART_FORM_DATA)
-                  .send(handler),
+                  .send().onComplete(handler),
             200,
             response -> {
                String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
@@ -247,7 +247,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), YAML)
-                  .send(handler),
+                  .send().onComplete(handler),
             0,
             response -> {
                if (response.statusCode() == 200) {
@@ -264,7 +264,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    public boolean forget() {
       return client.sync(
             handler -> client.request(HttpMethod.DELETE, "/benchmark/" + encode(name))
-                  .send(handler),
+                  .send().onComplete(handler),
             0, response -> {
                if (response.statusCode() == 204) {
                   return true;

@@ -106,8 +106,8 @@ public class ClusterTestCase extends BaseClusteredTest {
          Promise<HttpResponse<Buffer>> uploadPromise = Promise.promise();
          client.post("/benchmark")
                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
-               .sendBuffer(Buffer.buffer(serialize(testBenchmark(AGENTS, httpServer.actualPort()))),
-                     ctx.succeeding(uploadPromise::complete));
+               .sendBuffer(Buffer.buffer(serialize(testBenchmark(AGENTS, httpServer.actualPort()))))
+               .onComplete(ctx.succeeding(uploadPromise::complete));
 
          Promise<HttpResponse<Buffer>> benchmarkPromise = Promise.promise();
          uploadPromise.future().onSuccess(response -> {
@@ -115,7 +115,7 @@ public class ClusterTestCase extends BaseClusteredTest {
             assertEquals(response.getHeader(HttpHeaders.LOCATION.toString()),
                   "http://localhost:" + controllerPort + "/benchmark/test");
             // list benchmarks
-            client.get("/benchmark").send(ctx.succeeding(benchmarkPromise::complete));
+            client.get("/benchmark").send().onComplete(ctx.succeeding(benchmarkPromise::complete));
          });
 
          Promise<HttpResponse<Buffer>> startPromise = Promise.promise();
@@ -123,7 +123,7 @@ public class ClusterTestCase extends BaseClusteredTest {
             assertEquals(response.statusCode(), 200);
             assertTrue(new JsonArray(response.bodyAsString()).contains("test"));
             //start benchmark running
-            client.get("/benchmark/test/start").send(ctx.succeeding(startPromise::complete));
+            client.get("/benchmark/test/start").send().onComplete(ctx.succeeding(startPromise::complete));
          });
 
          startPromise.future().onSuccess(response -> {
@@ -135,12 +135,14 @@ public class ClusterTestCase extends BaseClusteredTest {
    }
 
    private void getStatus(VertxTestContext ctx, WebClient client, String location, Checkpoint termination) {
-      client.get(location).send(ctx.succeeding(response -> {
+      client.get(location).send().onComplete(ctx.succeeding(response -> {
          assertEquals(response.statusCode(), 200);
          try {
             JsonObject status = new JsonObject(response.bodyAsString());
+            log.info("Benchmark status: {}", status.encodePrettily());
             assertThat(status.getString("benchmark")).isEqualTo("test");
             if (status.getString("terminated") != null) {
+               log.info("Benchmark terminated at: {}", status.getString("terminated"));
                JsonArray errors = status.getJsonArray("errors");
                assertThat(errors).isNotNull();
                assertThat(errors.size()).withFailMessage("Found errors: %s", errors).isEqualTo(0);
@@ -151,11 +153,13 @@ public class ClusterTestCase extends BaseClusteredTest {
                }
                termination.flag();
             } else {
+               log.info("Benchmark not yet terminated, polling again...");
                vertx.setTimer(100, id -> {
                   getStatus(ctx, client, location, termination);
                });
             }
          } catch (Throwable t) {
+            log.error("Error checking benchmark status", t);
             ctx.failNow(t);
             throw t;
          }

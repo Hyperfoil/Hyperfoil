@@ -28,7 +28,7 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
-import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.internal.VertxInternal;
 
 public class AgentVerticle extends AbstractVerticle {
    private static Logger log = LogManager.getLogger(AgentVerticle.class);
@@ -49,7 +49,7 @@ public class AgentVerticle extends AbstractVerticle {
 
    @Override
    public void start() {
-      deploymentId = deploymentID();
+      String vertxDeploymentId = deploymentID();
       name = context.config().getString("name");
       if (name == null) {
          name = Properties.get(Properties.AGENT_NAME, null);
@@ -59,7 +59,7 @@ public class AgentVerticle extends AbstractVerticle {
             name = InetAddress.getLocalHost().getHostName();
          } catch (UnknownHostException e) {
             log.debug("Cannot deduce name from host name", e);
-            name = deploymentId;
+            name = vertxDeploymentId;
          }
       }
       runId = context.config().getString("runId");
@@ -71,10 +71,21 @@ public class AgentVerticle extends AbstractVerticle {
       }
       eb = vertx.eventBus();
 
+      if (vertx.isClustered()) {
+         if (vertx instanceof VertxInternal) {
+            nodeId = ((VertxInternal) vertx).clusterManager().getNodeId();
+         }
+      }
+      // Vert.x 4.5.26+ deployment IDs are local to a JVM in this setup; agent control addresses must be cluster-wide unique.
+      deploymentId = agentControlAddress(vertxDeploymentId);
+      log.info("Agent {} for run {} uses control address {} (Vert.x deployment ID {}, node ID {})", name, runId,
+            deploymentId, vertxDeploymentId, nodeId);
+
       eb.consumer(deploymentId, message -> {
          try {
             AgentControlMessage controlMessage = (AgentControlMessage) message.body();
             if (controlMessage == null) {
+               log.error("{} Failed to decode message body", deploymentId);
                message.fail(1, "Could not decode message body. Does this Agent have the same version as the Controller?");
                return;
             }
@@ -85,13 +96,11 @@ public class AgentVerticle extends AbstractVerticle {
          }
       });
 
-      if (vertx.isClustered()) {
-         if (vertx instanceof VertxInternal) {
-            nodeId = ((VertxInternal) vertx).getClusterManager().getNodeId();
-         }
-      }
       vertx.setPeriodic(1000, timerId -> {
-         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId), reply -> {
+         if (log.isDebugEnabled()) {
+            log.debug("Sending AgentHello with deploymentId={}, name={}, nodeId={}", deploymentId, name, nodeId);
+         }
+         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId)).onComplete(reply -> {
             log.trace("{} Pinging controller", deploymentId);
             if (reply.succeeded()) {
                log.info("{} Got reply from controller.", deploymentId);
@@ -110,12 +119,19 @@ public class AgentVerticle extends AbstractVerticle {
       });
    }
 
+   private String agentControlAddress(String vertxDeploymentId) {
+      return "__hyperfoil.agent." + runId + "." + name + "." + nodeId + "." + vertxDeploymentId;
+   }
+
    private void handleAgentControlMessage(Message<Object> message, AgentControlMessage controlMessage) {
+      log.info("handleAgentControlMessage received command: {} for agent {}, runner is null: {}", controlMessage.command(),
+            deploymentId, runner == null);
       switch (controlMessage.command()) {
          case INITIALIZE:
-            log.info("Initializing agent");
+            log.info("Initializing agent, runner is null: {}", runner == null);
             try {
                initBenchmark(controlMessage.benchmark(), controlMessage.agentId());
+               log.info("Initialization completed for {}", deploymentId);
                message.reply("OK");
             } catch (Throwable e) {
                log.error("Failed to initialize agent", e);
@@ -124,7 +140,7 @@ public class AgentVerticle extends AbstractVerticle {
             break;
          case STOP:
             // collect stats one last time before acknowledging termination
-            log.info("Received agent reset");
+            log.info("Received agent reset, runner is null: {}", runner == null);
             try {
                if (statsTimerId >= 0) {
                   vertx.cancelTimer(statsTimerId);
@@ -227,12 +243,14 @@ public class AgentVerticle extends AbstractVerticle {
    }
 
    private void initBenchmark(Benchmark benchmark, int agentId) {
+      log.info("initBenchmark called for {}, current runner status: {}", agentId, runner != null ? "NOT NULL" : "NULL");
       if (runner != null) {
          throw new IllegalStateException("Another simulation is running!");
       }
 
       Context context = vertx.getOrCreateContext();
 
+      log.info("Creating SimulationRunner for {}", agentId);
       runner = new SimulationRunner(benchmark, runId, agentId,
             error -> eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, false)));
       controlFeedConsumer = listenOnControl();
@@ -259,7 +277,7 @@ public class AgentVerticle extends AbstractVerticle {
                log.debug("Finish sending remaining statistics when status={}", status);
             }
             eb.request(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded,
-                  cpuUsage, error, globalData), ar -> {
+                  cpuUsage, error, globalData)).onComplete(ar -> {
                      if (ar.succeeded()) {
                         future.complete(null);
                      } else {
@@ -289,9 +307,9 @@ public class AgentVerticle extends AbstractVerticle {
 
       runner.openConnections(vertx::executeBlocking, result -> {
          if (result.succeeded()) {
-            eb.send(Feeds.RESPONSE, new AgentReadyMessage(deploymentID(), runId));
+            eb.send(Feeds.RESPONSE, new AgentReadyMessage(deploymentId, runId));
          } else {
-            eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentID(), runId, result.cause(), true));
+            eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, result.cause(), true));
          }
       });
    }

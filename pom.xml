@@ -88,12 +88,13 @@
         <version.metainf-services>1.11</version.metainf-services>
         <version.slf4j>2.0.17</version.slf4j>
         <version.snakeyaml>2.6</version.snakeyaml>
-        <version.vertx>4.5.21</version.vertx>
+        <version.vertx>5.0.12</version.vertx>
         <!-- version.infinispan must match what came from vertx-infinispan version -->
-        <version.infinispan>13.0.17.Final</version.infinispan>
+        <version.infinispan>14.0.25.Final</version.infinispan>
         <version.caffeine>2.8.4</version.caffeine>
         <version.rxjava>3.0.4</version.rxjava>
         <version.apache.sshd>2.17.1</version.apache.sshd>
+        <version.reactive-streams>1.0.3</version.reactive-streams>
         <!-- end version.infinispan -->
         <!-- begin: JBoss/WildFly/SmallRye dependency versions - these must be compatible with each other.
              jboss-threads 3.9.2 requires smallrye-common 2.14.0, which is newer than what
@@ -166,6 +167,22 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${version.caffeine}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex.rxjava3</groupId>
+                <artifactId>rxjava</artifactId>
+                <version>${version.rxjava}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.reactivestreams</groupId>
+                <artifactId>reactive-streams</artifactId>
+                <version>${version.reactive-streams}</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.hyperfoil</groupId>
                 <artifactId>hyperfoil-api</artifactId>
@@ -442,6 +459,12 @@
                 <version>${version.jctools}</version>
             </dependency>
 
+            <dependency>
+                <groupId>jakarta.transaction</groupId>
+                <artifactId>jakarta.transaction-api</artifactId>
+                <version>2.0.1</version>
+            </dependency>
+
             <!-- begin: SmallRye Common dependencies - Explicitly managed to resolve version conflicts.
                  jboss-threads 3.9.2 requires smallrye-common 2.14.0, but wildfly-common 2.0.1
                  brings in 2.4.0. We manage only the direct dependencies here; transitive ones
@@ -503,13 +526,41 @@
             </dependency>
             <dependency>
                 <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-hotrod-jakarta</artifactId>
+                <version>${version.infinispan}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-hotrod-jakarta</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
                 <artifactId>infinispan-server-core</artifactId>
                 <version>${version.infinispan}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
                 <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-core-jakarta</artifactId>
+                <version>${version.infinispan}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-server-core-jakarta</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
                 <artifactId>infinispan-core</artifactId>
+                <version>${version.infinispan}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core-jakarta</artifactId>
                 <version>${version.infinispan}</version>
                 <type>test-jar</type>
             </dependency>

@@ -39,8 +39,8 @@ public class RequestStatsSender extends StatisticsCollector {
          // (on a local eventbus we'd have to do a copy in transform() anyway)
          StatisticsSnapshot copy = statistics.clone();
          countDown.increment();
-         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), stepId, metric, copy),
-               reply -> countDown.countDown());
+         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), stepId, metric, copy))
+               .onComplete(reply -> countDown.countDown());
       }
    }
 
@@ -51,8 +51,8 @@ public class RequestStatsSender extends StatisticsCollector {
          }
 
          countDown.increment();
-         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phaseAndStepId >> 16, -1, null, null),
-               reply -> countDown.countDown());
+         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phaseAndStepId >> 16, -1, null, null))
+               .onComplete(reply -> countDown.countDown());
       }
       if (phase == null) {
          // TODO: it would be better to not send this for those phases that are already complete
