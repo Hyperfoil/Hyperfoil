@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        java: [21, 23, 26]
+        java: [21, 22, 26]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
