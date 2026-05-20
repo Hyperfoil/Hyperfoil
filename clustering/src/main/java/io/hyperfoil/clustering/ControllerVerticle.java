@@ -290,6 +290,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    private void handleAgentHello(Message<Object> message, AgentHello hello) {
+      log.info("Received AgentHello from {} (nodeId={}, deploymentId={}, runId={})", hello.name(), hello.nodeId(),
+            hello.deploymentId(), hello.runId());
       String runId = hello.runId();
       Run run = runs.get(runId);
       if (run == null) {
@@ -303,8 +305,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          message.fail(1, "Unknown agent");
          return;
       }
+      log.info("Agent {} status before: {}, runId={}", hello.name(), agentInfo.status, runId);
       if (agentInfo.status != AgentInfo.Status.STARTING) {
-         log.info("Ignoring message, {} is not starting", agentInfo.name);
+         log.info("Ignoring message, {} is not starting (status={})", agentInfo.name, agentInfo.status);
          message.reply("Ignoring");
          return;
       }
@@ -315,6 +318,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       message.reply("Registered");
 
       if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.STARTING)) {
+         log.info("All agents registered, calling handleAgentsStarted");
          handleAgentsStarted(run);
       } else {
          log.debug("Waiting for registration from agents {}",
