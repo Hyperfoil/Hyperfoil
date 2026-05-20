@@ -18,7 +18,7 @@ import javax.net.ssl.SSLHandshakeException;
 
 import org.aesh.command.Command;
 import org.aesh.command.CommandException;
-import org.aesh.readline.Prompt;
+import org.aesh.readline.prompt.Prompt;
 import org.aesh.terminal.KeyAction;
 import org.aesh.terminal.formatting.Color;
 import org.aesh.terminal.formatting.TerminalColor;
