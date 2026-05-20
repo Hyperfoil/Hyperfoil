@@ -40,6 +40,11 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
       this.request.session.proceed();
    }
 
+   @Override
+   public boolean isValid() {
+      return this.request != null;
+   }
+
    public void startWaiting() {
       if (waitTimestamp == Long.MIN_VALUE) {
          waitTimestamp = System.nanoTime();
