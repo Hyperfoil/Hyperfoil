@@ -44,6 +44,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    private volatile Throwable error;
    private volatile boolean sessionLimitExceeded;
    private Runnable failedSessionAcquisitionAction;
+   private final AtomicInteger requestsInFlight = new AtomicInteger(0);
 
    public static PhaseInstance newInstance(Phase def, String runId, int agentId) {
       PhaseCtor ctor = constructors.get(def.model.getClass());
@@ -296,6 +297,13 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          sessionLimitExceeded = true;
       }
       notifyFinished(null);
+   }
+
+   @Override
+   public void notifyRequestsInFlight() {
+      if (this.requestsInFlight.getAndIncrement() == 0) {
+         log.warn("#Phase {} completed with requests in-flight!", this.getName());
+      }
    }
 
    public static class AtOnce extends PhaseInstanceImpl {

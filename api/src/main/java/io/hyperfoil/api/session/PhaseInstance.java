@@ -70,4 +70,6 @@ public interface PhaseInstance {
          return this.ordinal() >= RUNNING.ordinal();
       }
    }
+
+   void notifyRequestsInFlight();
 }
