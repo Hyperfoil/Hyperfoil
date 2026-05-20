@@ -201,7 +201,12 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          if (connection != null) {
             blockedSessions.decrementUsed();
             try {
-               consumer.accept(connection);
+               if (consumer.isValid()) {
+                  consumer.accept(connection);
+               } else {
+                  this.waiting.clear();
+                  this.pulse();
+               }
             } catch (Throwable t) { // runtime error can happen
                // then we have a real bug on Hyperfoil
                log.error("Unexpected error while pulsing", t);
