@@ -25,16 +25,21 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
    @Override
    public void onSessionReset(Session session) {
       if (!isFull()) {
-         // We can't guarantee that requests will be back in session's requestPool when it terminates
-         // because if the requests did timeout (calling handlers and eventually letting the session terminate)
-         // it might still be held in the connection.
-         for (HttpRequest request : (HttpRequest[]) originalObjects) {
-            // We won't issue the warning for invalid requests because these are likely not in flight anymore
-            // and we are stopping the session exactly due to the invalid request.
-            if (!request.isCompleted() && request.isValid()) {
-               log.warn("#Phase {}/{} with session {} completed with requests in-flight!",
-                     session.phase().getName(), session.phase().status(), session.uniqueId());
-               break;
+         // This is a hot path when the scenario ends-up with in-flight requests.
+         // Guarded with isDebugEnabled to prevent log spam from excessive warnings during failures.
+         // Ideally, dropped in-flight requests should be tracked as metrics/statistics rather than logged.
+         if (log.isDebugEnabled()) {
+            // We can't guarantee that requests will be back in session's requestPool when it terminates
+            // because if the requests did timeout (calling handlers and eventually letting the session terminate)
+            // it might still be held in the connection.
+            for (HttpRequest request : (HttpRequest[]) originalObjects) {
+               // We won't issue the warning for invalid requests because these are likely not in flight anymore
+               // and we are stopping the session exactly due to the invalid request.
+               if (!request.isCompleted() && request.isValid()) {
+                  log.warn("#Phase {}/{} with session {} completed with requests in-flight!",
+                        session.phase().getName(), session.phase().status(), session.uniqueId());
+                  break;
+               }
             }
          }
          cancelRequests();
