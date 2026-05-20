@@ -200,7 +200,13 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          HttpConnection connection = acquireNow(false);
          if (connection != null) {
             blockedSessions.decrementUsed();
-            consumer.accept(connection);
+            try {
+               consumer.accept(connection);
+            } catch (Throwable t) { // runtime error can happen
+               // then we have a real bug on Hyperfoil
+               log.error("Unexpected error while pulsing", t);
+               this.shutdown();
+            }
          } else if (failures > MAX_FAILURES) {
             log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.",
                   authority);
