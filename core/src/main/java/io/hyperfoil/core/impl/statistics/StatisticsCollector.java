@@ -30,7 +30,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
    @Override
    public void accept(SessionStatistics statistics) {
       if (log.isDebugEnabled()) {
-         log.debug("{}: Received statistics", statistics);
+         log.trace("{}: Received statistics", statistics);
       }
       for (int i = 0; i < statistics.size(); ++i) {
          int phaseAndStepId = (statistics.phase(i).id() << 16) + statistics.step(i);

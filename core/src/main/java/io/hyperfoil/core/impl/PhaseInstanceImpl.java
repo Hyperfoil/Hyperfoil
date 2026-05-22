@@ -103,7 +103,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          status = Status.RUNNING;
       }
       recordAbsoluteStartTime();
-      log.debug("{} changing status to RUNNING", def.name);
+      log.debug("Phase '{}' changing status to RUNNING", def.name);
       phaseChangeHandler.onChange(def, Status.RUNNING, false, error)
             .thenRun(this::proceed);
    }
@@ -125,7 +125,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       synchronized (this) {
          if (status == Status.RUNNING) {
             status = Status.FINISHED;
-            log.debug("{} changing status to FINISHED", def.name);
+            log.debug("Phase '{}' changing status to FINISHED", def.name);
          } else {
             log.debug("{} already in state {}, not finishing", def.name, status);
          }
@@ -159,7 +159,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
             status = Status.TERMINATING;
          }
       }
-      log.debug("{} changing status to TERMINATING", def.name);
+      log.debug("Phase '{}' changing status to TERMINATING", def.name);
       tryTerminate();
    }
 
@@ -200,7 +200,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       synchronized (this) {
          status = Status.TERMINATED;
       }
-      log.debug("{} changing status to TERMINATED", def.name);
+      log.debug("Phase '{}' changing status to TERMINATED", def.name);
       phaseChangeHandler.onChange(def, status, false, error);
    }
 
@@ -244,7 +244,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          }
          status = Status.STATS_COMPLETE;
       }
-      log.debug("{} changing status to STATS_COMPLETE", def.name);
+      log.debug("Phase '{}' changing status to STATS_COMPLETE", def.name);
    }
 
    @Override
@@ -406,7 +406,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
             synchronized (this) {
                if (status.ordinal() < Status.TERMINATING.ordinal()) {
                   status = Status.TERMINATING;
-                  log.debug("{} changing status to TERMINATING", def.name);
+                  log.debug("Phase '{}' changing status to TERMINATING", def.name);
                } else {
                   log.warn("{} not terminating because it is already {}", def.name, status);
                }
