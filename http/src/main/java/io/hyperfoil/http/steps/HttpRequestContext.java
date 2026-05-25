@@ -34,6 +34,11 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
 
    @Override
    public void accept(HttpConnection connection) {
+      var request = this.request;
+      // if a reset has happened already
+      if (request == null) {
+         return;
+      }
       assert request.session.executor().inEventLoop();
       this.connection = connection;
       this.ready = true;
