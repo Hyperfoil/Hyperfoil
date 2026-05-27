@@ -100,10 +100,9 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       this.executorGroup = executorGroup;
       synchronized (this) {
          assert status == Status.NOT_STARTED : "Status is " + status;
-         status = Status.RUNNING;
+         this.changeStatus(Status.RUNNING);
       }
       recordAbsoluteStartTime();
-      log.debug("{} changing status to RUNNING", def.name);
       phaseChangeHandler.onChange(def, Status.RUNNING, false, error)
             .thenRun(this::proceed);
    }
@@ -124,8 +123,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    public void finish() {
       synchronized (this) {
          if (status == Status.RUNNING) {
-            status = Status.FINISHED;
-            log.debug("{} changing status to FINISHED", def.name);
+            this.changeStatus(Status.FINISHED);
          } else {
             log.debug("{} already in state {}, not finishing", def.name, status);
          }
@@ -156,10 +154,9 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    public void terminate() {
       synchronized (this) {
          if (status.ordinal() < Status.TERMINATED.ordinal()) {
-            status = Status.TERMINATING;
+            this.changeStatus(Status.TERMINATING);
          }
       }
-      log.debug("{} changing status to TERMINATING", def.name);
       tryTerminate();
    }
 
@@ -198,9 +195,8 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    @Override
    public void setTerminated() {
       synchronized (this) {
-         status = Status.TERMINATED;
+         this.changeStatus(Status.TERMINATED);
       }
-      log.debug("{} changing status to TERMINATED", def.name);
       phaseChangeHandler.onChange(def, status, false, error);
    }
 
@@ -242,9 +238,8 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          if (status != Status.TERMINATED) {
             throw new IllegalStateException();
          }
-         status = Status.STATS_COMPLETE;
+         this.changeStatus(Status.STATS_COMPLETE);
       }
-      log.debug("{} changing status to STATS_COMPLETE", def.name);
    }
 
    @Override
@@ -306,6 +301,11 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       }
    }
 
+   protected void changeStatus(Status newStatus) {
+      log.debug("Phase '{}' changing status from {} to {}", def.name, status, newStatus);
+      this.status = newStatus;
+   }
+
    public static class AtOnce extends PhaseInstanceImpl {
       private final int users;
 
@@ -329,6 +329,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          for (int i = 0; i < users; ++i) {
             startNewSession();
          }
+         finish();
       }
 
       @Override
@@ -405,8 +406,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          if (++counter >= model.repeats) {
             synchronized (this) {
                if (status.ordinal() < Status.TERMINATING.ordinal()) {
-                  status = Status.TERMINATING;
-                  log.debug("{} changing status to TERMINATING", def.name);
+                  changeStatus(Status.TERMINATING);
                } else {
                   log.warn("{} not terminating because it is already {}", def.name, status);
                }
@@ -425,6 +425,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
       @Override
       protected void proceed() {
+         finish();
       }
 
       @Override
