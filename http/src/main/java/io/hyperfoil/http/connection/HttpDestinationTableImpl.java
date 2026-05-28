@@ -77,4 +77,14 @@ public class HttpDestinationTableImpl implements HttpDestinationTable {
    public Iterable<Map.Entry<String, HttpConnectionPool>> iterable() {
       return byAuthority.entrySet();
    }
+
+   @Override
+   public void onSessionTryTerminate(Session session) {
+      for (HttpConnectionPool pool : byAuthority.values()) {
+         pool.onSessionTryTerminate();
+      }
+      for (HttpConnectionPool pool : byName.values()) {
+         pool.onSessionTryTerminate();
+      }
+   }
 }

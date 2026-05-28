@@ -161,6 +161,11 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
                   }
                }
             }
+            for (int i = 0; i < sessionList.size(); i++) {
+               Session session = sessionList.get(i);
+               // add resources back
+               session.tryTerminate();
+            }
          }
 
          Future<Void> proceedPhaseComplete = proceedFutures.isEmpty() ? Future.succeededFuture()

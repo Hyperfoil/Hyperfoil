@@ -52,6 +52,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    private final Deque<ConnectionConsumer> waiting = new ArrayDeque<>();
    private ScheduledFuture<?> pulseFuture;
    private ScheduledFuture<?> keepAliveFuture;
+   private boolean shouldPulse = true;
 
    SharedConnectionPool(HttpClientPoolImpl clientPool, EventLoop eventLoop, ConnectionPoolConfig sizeConfig) {
       super(clientPool.authority);
@@ -139,13 +140,14 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          log.trace("Release {} (became available={} after request={})", connection, becameAvailable, afterRequest);
       }
       if (becameAvailable) {
-         assert !connection.isClosed();
-         if (connection.inFlight() == 0) {
-            // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
-            // too many often-idle connections
-            available.addFirst(connection);
-         } else {
-            available.addLast(connection);
+         if (!connection.isClosed()) {
+            if (connection.inFlight() == 0) {
+               // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
+               // too many often-idle connections
+               available.addFirst(connection);
+            } else {
+               available.addLast(connection);
+            }
          }
       }
       if (afterRequest) {
@@ -192,8 +194,23 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void pulse() {
+      assert executor().inEventLoop();
       if (trace) {
          log.trace("Pulse to {} ({} waiting)", authority, waiting.size());
+      }
+      // session terminated, there is nothing that we can do
+      if (!shouldPulse) {
+         blockedSessions.decrementUsed(waiting.size());
+         assert blockedSessions.current() == 0;
+         waiting.clear();
+         // make the connections available again
+         for (HttpConnection conn : connections) {
+            if (!available.contains(conn)) {
+               release(conn, true, false);
+            }
+         }
+         shouldPulse = true;
+         return;
       }
       ConnectionConsumer consumer = waiting.poll();
       if (consumer != null) {
@@ -357,5 +374,10 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
             conn.context().flush();
          }
       });
+   }
+
+   @Override
+   public void onSessionTryTerminate() {
+      this.shouldPulse = false;
    }
 }

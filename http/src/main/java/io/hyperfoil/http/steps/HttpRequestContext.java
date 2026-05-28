@@ -34,10 +34,12 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
 
    @Override
    public void accept(HttpConnection connection) {
-      assert request.session.executor().inEventLoop();
-      this.connection = connection;
-      this.ready = true;
-      this.request.session.proceed();
+      if (request != null) {
+         assert request.session.executor().inEventLoop();
+         this.connection = connection;
+         this.ready = true;
+         this.request.session.proceed();
+      }
    }
 
    public void startWaiting() {
