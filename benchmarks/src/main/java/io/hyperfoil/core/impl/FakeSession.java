@@ -205,4 +205,9 @@ public class FakeSession implements Session {
    public void currentRequest(Request request) {
 
    }
+
+   @Override
+   public void tryTerminate() {
+
+   }
 }

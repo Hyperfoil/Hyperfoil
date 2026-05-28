@@ -124,6 +124,8 @@ public interface Session {
 
    void currentRequest(Request request);
 
+   void tryTerminate();
+
    enum VarType {
       OBJECT,
       INTEGER
@@ -152,6 +154,10 @@ public interface Session {
       }
 
       default void destroy() {
+      }
+
+      default void onSessionTryTerminate(Session session) {
+
       }
    }
 

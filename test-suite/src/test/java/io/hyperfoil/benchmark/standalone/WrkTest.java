@@ -129,13 +129,17 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       Wrk2.Wrk2Command wrk2Command = (Wrk2.Wrk2Command) processedCommand.getCommand();
       WrkAbstract.WrkCommandResult wrkCommandResult = wrk2Command.getWrkCommandResult();
 
-      // At 20K rate with 10 connections against /unpredictable, the test phase runs but
-      // all sessions block waiting for connections and time out — no test-phase stats are produced.
-      // The command returns FAILURE because it cannot find test-phase statistics to print.
-      assertEquals(CommandResult.FAILURE.getResultValue(), result);
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
       assertFalse(wrkCommandResult.getRequestStatisticsResponse().statistics.isEmpty());
+
+      boolean failedSLA = false;
       for (RequestStats requestStats : wrkCommandResult.getRequestStatisticsResponse().statistics) {
-         assertFalse(requestStats.failedSLAs.isEmpty());
+         failedSLA = !requestStats.failedSLAs.isEmpty();
+         if (failedSLA) {
+            break;
+         }
       }
+      // we are expecting at least one failed SLA because of the high rate
+      assertTrue(failedSLA);
    }
 }

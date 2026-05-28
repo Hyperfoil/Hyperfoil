@@ -34,6 +34,16 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
    protected final Logger log = LogManager.getLogger(getClass());
 
    @Test
+   public void wrk2SuperSlowServer() throws URISyntaxException {
+      String url = "localhost:" + httpServer.actualPort() + "/500ms";
+      BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 20, url, 50000, 2, 10, 2);
+      Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
+      Assertions.assertTrue(phaseStats.containsKey("calibration"), "Stats must have values for the 'calibration' phase");
+      Assertions.assertTrue(phaseStats.containsKey("test"), "Stats must have values for the 'test' phase");
+      System.out.println(phaseStats);
+   }
+
+   @Test
    public void testWrk() throws URISyntaxException {
 
       String url = "localhost:" + httpServer.actualPort() + "/highway";
