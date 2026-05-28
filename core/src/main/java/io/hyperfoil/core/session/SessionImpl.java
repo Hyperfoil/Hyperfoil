@@ -541,6 +541,14 @@ class SessionImpl implements Session {
    }
 
    @Override
+   public void tryTerminate() {
+      for (int i = 0; i < allResources.size(); i++) {
+         Resource r = allResources.get(i);
+         r.onSessionTryTerminate(this);
+      }
+   }
+
+   @Override
    public String toString() {
       StringBuilder sb = new StringBuilder("#").append(uniqueId)
             .append(" (").append(phase != null ? phase.definition().name : null).append(") ")
