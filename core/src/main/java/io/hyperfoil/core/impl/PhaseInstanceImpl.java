@@ -1,5 +1,6 @@
 package io.hyperfoil.core.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,8 @@ import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.session.Session;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 
 public abstract class PhaseInstanceImpl implements PhaseInstance {
    protected static final Logger log = LogManager.getLogger(PhaseInstanceImpl.class);
@@ -137,16 +140,39 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       if (activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          setTerminated();
       } else if (sessionList != null && status == Status.TERMINATING) {
-         // We need to force blocked sessions to check the termination status
-         //noinspection SynchronizeOnNonFinalField
+         List<Future<Void>> proceedFutures = new ArrayList<>();
          synchronized (sessionList) {
             for (int i = 0; i < sessionList.size(); i++) {
                Session session = sessionList.get(i);
                if (session.isActive()) {
-                  session.proceed();
+                  if (session.executor().inEventLoop()) {
+                     session.proceed();
+                  } else {
+                     Promise<Void> promise = Promise.promise();
+                     session.executor().execute(() -> {
+                        try {
+                           session.proceed();
+                           promise.complete();
+                        } catch (Throwable t) {
+                           promise.fail(t);
+                        }
+                     });
+                     proceedFutures.add(promise.future());
+                  }
                }
             }
          }
+
+         Future<Void> proceedPhaseComplete = proceedFutures.isEmpty() ? Future.succeededFuture()
+               : Future.all(proceedFutures).mapEmpty();
+
+         proceedPhaseComplete.onComplete(result -> {
+            if (result.succeeded()) {
+               log.debug("All sessions terminated for phase '{}'.", def.name);
+            } else {
+               log.error("Failed to terminate all sessions for phase '{}'", def.name, result.cause());
+            }
+         });
       }
    }
 
