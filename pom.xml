@@ -112,7 +112,7 @@
         <version.maven.gpg>3.2.8</version.maven.gpg>
         <version.maven-core>3.9.16</version.maven-core>
         <version.maven-plugin-annotations>3.15.2</version.maven-plugin-annotations>
-        <version.maven-surefire-plugin>3.5.5</version.maven-surefire-plugin>
+        <version.maven-surefire-plugin>3.5.6</version.maven-surefire-plugin>
         <version.antrun.plugin>3.2.0</version.antrun.plugin>
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
         <version.buildnumber.plugin>3.3.0</version.buildnumber.plugin>
