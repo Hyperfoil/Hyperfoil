@@ -96,8 +96,8 @@ public class RandomCsvRowStep implements Step {
          }
          assert next == srcIndex.length;
 
-         try (InputStream inputStream = Locator.current().benchmark().data().readFile(file)) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+         try (InputStream inputStream = Locator.current().benchmark().data().readFile(file);
+               BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             ArrayList<String[]> records = new ArrayList<>();
             String line;
             ArrayList<String> currentRecord = new ArrayList<>();
