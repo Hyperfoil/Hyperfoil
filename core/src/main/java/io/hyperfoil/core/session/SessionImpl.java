@@ -453,6 +453,7 @@ class SessionImpl implements Session {
 
    @Override
    public void proceed() {
+      assert executor.inEventLoop();
       if (!scheduled) {
          scheduled = true;
          executor.execute(runTask);
