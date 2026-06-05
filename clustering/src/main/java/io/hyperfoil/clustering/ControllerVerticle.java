@@ -808,11 +808,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
    private void persistRun(Run run) {
       vertx.<Void> executeBlocking(() -> {
+
+         boolean hasError = false;
+
          try {
             CsvWriter.writeCsv(run.dir.resolve("stats"), run.statisticsStore());
          } catch (IOException e) {
             log.error("Failed to persist statistics", e);
-            throw new RuntimeException(e);
+            hasError = true;
          }
 
          JsonObject info = new JsonObject()
@@ -838,7 +841,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             Files.writeString(run.dir.resolve("info.json"), info.encodePrettily());
          } catch (IOException e) {
             log.error("Cannot write info file", e);
-            throw new RuntimeException(e);
+            hasError = true;
          }
          try (FileOutputStream stream = new FileOutputStream(run.dir.resolve(DEFAULT_STATS_JSON).toFile())) {
             JsonFactory jfactory = new JsonFactory();
@@ -850,7 +853,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.close();
          } catch (IOException e) {
             log.error("Cannot write to {}", DEFAULT_STATS_JSON, e);
-            throw new RuntimeException(e);
+            hasError = true;
          }
          // combine shared and benchmark-private hooks
          List<RunHook> hooks = loadHooks("post");
@@ -875,7 +878,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             Files.writeString(run.dir.resolve("hooks.json"), hookResults.encodePrettily());
          } catch (IOException e) {
             log.error("Cannot write hook results", e);
-            throw new RuntimeException(e);
+            hasError = true;
+         }
+
+         if (hasError) {
+            throw new RuntimeException("One or more errors occurred while persisting the run.");
          }
 
          return null;
