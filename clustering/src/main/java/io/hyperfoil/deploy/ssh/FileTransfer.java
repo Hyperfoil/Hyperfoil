@@ -93,7 +93,7 @@ public class FileTransfer implements AutoCloseable {
          for (String l : local) {
             try (InputStream in = new FileInputStream(l);
                   OutputStream out = sftpClient.write(remote + "/" + new File(l).getName())) {
-               byte[] buffer = new byte[8192];
+               byte[] buffer = new byte[32768];
                int len;
                while ((len = in.read(buffer)) != -1) {
                   out.write(buffer, 0, len);
