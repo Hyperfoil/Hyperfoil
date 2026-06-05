@@ -41,8 +41,8 @@ import io.hyperfoil.internal.Properties;
  * - io.hyperfoil.file.transfer.client (default: scp) - set to "scp" or "sftp"
  * <p>
  * Example usage:
- * mvn test -Dtest=FileTransferPerformanceTest -Dio.hyperfoil.file.transfer.client=scp
- * mvn test -Dtest=FileTransferPerformanceTest -Dio.hyperfoil.file.transfer.client=sftp
+ * mvn test -Dtest=FileTransferTest -Dio.hyperfoil.file.transfer.client=scp
+ * mvn test -Dtest=FileTransferTest -Dio.hyperfoil.file.transfer.client=sftp
  */
 @Tag("io.hyperfoil.test.Benchmark")
 public class FileTransferTest {
