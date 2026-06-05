@@ -91,6 +91,9 @@ public class FileTransferTest {
       if (client != null) {
          client.stop();
       }
+
+      cleanupFolder(tempDir);
+      cleanupFolder(remoteDir);
    }
 
    @Test
@@ -182,6 +185,18 @@ public class FileTransferTest {
                "File should exist in remote directory: " + sourceFile.getName());
          assertEquals(sourceFile.length(), Files.size(remotePath),
                "File size should match: " + sourceFile);
+      }
+   }
+
+   private void cleanupFolder(Path folder) throws IOException {
+      try (var files = Files.list(folder)) {
+         files.forEach(p -> {
+            try {
+               Files.deleteIfExists(p);
+            } catch (IOException e) {
+               log.warn("Failed to clean up {}", p, e);
+            }
+         });
       }
    }
 }
