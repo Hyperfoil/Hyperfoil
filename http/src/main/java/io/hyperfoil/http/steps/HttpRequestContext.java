@@ -39,6 +39,8 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
          this.connection = connection;
          this.ready = true;
          this.request.session.proceed();
+      } else {
+         this.ready = false;
       }
    }
 
@@ -53,6 +55,11 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
          long blockedTime = System.nanoTime() - waitTimestamp;
          request.statistics().incrementBlockedTime(request.startTimestampMillis(), blockedTime);
       }
+   }
+
+   @Override
+   public boolean isValid() {
+      return ready;
    }
 
    public static final class Key implements Session.ResourceKey<HttpRequestContext> {
