@@ -149,7 +149,8 @@ public class RestClient implements Client, Closeable {
       MultipartForm multipart = MultipartForm.create();
       multipart.textFileUpload("benchmark", "benchmark.yaml", Buffer.buffer(yaml), "text/vnd.yaml");
       for (var entry : otherFiles.entrySet()) {
-         multipart.binaryFileUpload(entry.getKey(), entry.getKey(), BufferInternal.buffer(Unpooled.wrappedBuffer(entry.getValue())),
+         multipart.binaryFileUpload(entry.getKey(), entry.getKey(),
+               BufferInternal.buffer(Unpooled.wrappedBuffer(entry.getValue())),
                "application/octet-stream");
       }
       return multipartUpload(prevVersion, storedFilesBenchmark, multipart);

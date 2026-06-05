@@ -6,8 +6,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLException;
 
-import io.netty.buffer.Unpooled;
-import io.vertx.core.internal.buffer.BufferInternal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +29,12 @@ import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 

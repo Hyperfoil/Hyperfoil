@@ -23,6 +23,7 @@ import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
+import io.hyperfoil.internal.Properties;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -40,7 +41,7 @@ public class CertificatesTest {
    @BeforeAll
    public static void setupPooledBuffers() {
       // Disable endpoint identification for tests with self-signed certificates
-      System.setProperty("io.hyperfoil.http.disableEndpointIdentification", "true");
+      System.setProperty(Properties.DISABLE_ENDPOINT_IDENTIFICATION, Boolean.TRUE.toString());
    }
 
    @Test

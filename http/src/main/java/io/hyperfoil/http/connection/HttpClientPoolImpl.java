@@ -40,6 +40,7 @@ import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.config.ConnectionPoolConfig;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.impl.Util;
+import io.hyperfoil.internal.Properties;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -199,7 +200,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
       // Disable endpoint identification when using InsecureTrustManagerFactory or when the system
       // property is set (for testing with self-signed certificates that don't have proper SANs)
       if (trustManagerFactory == InsecureTrustManagerFactory.INSTANCE ||
-            Boolean.getBoolean("io.hyperfoil.http.disableEndpointIdentification")) {
+            Properties.getBoolean(Properties.DISABLE_ENDPOINT_IDENTIFICATION)) {
          builder.endpointIdentificationAlgorithm(null);
       }
 
