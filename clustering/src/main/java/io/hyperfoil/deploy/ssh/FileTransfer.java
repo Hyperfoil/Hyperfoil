@@ -19,16 +19,19 @@ import io.hyperfoil.internal.Properties;
 
 public class FileTransfer implements AutoCloseable {
 
+   public static final String PROTOCOL_SCP = "scp";
+   public static final String PROTOCOL_SFTP = "sftp";
+
    private static final Logger log = LogManager.getLogger(FileTransfer.class);
 
    private IFileTransfer client;
 
    FileTransfer(ClientSession session) throws Exception {
-      String fileTransferClient = Properties.get(Properties.FILE_TRANSFER_CLIENT, "scp");
+      String fileTransferClient = Properties.get(Properties.FILE_TRANSFER_CLIENT, PROTOCOL_SCP);
       log.info("Using {} protocol for file transfer", fileTransferClient);
-      if ("scp".equals(fileTransferClient)) {
+      if (PROTOCOL_SCP.equals(fileTransferClient)) {
          this.client = new Scp(session);
-      } else if ("sftp".equals(fileTransferClient)) {
+      } else if (PROTOCOL_SFTP.equals(fileTransferClient)) {
          this.client = new Sftp(session);
       } else {
          throw new IllegalArgumentException("Invalid file transfer client. You provided: " + fileTransferClient);
@@ -89,10 +92,25 @@ public class FileTransfer implements AutoCloseable {
       }
 
       @Override
-      public void upload(List<String> local, String remote) throws IOException {
-         for (String l : local) {
-            try (InputStream in = new FileInputStream(l);
-                  OutputStream out = sftpClient.write(remote + "/" + new File(l).getName())) {
+      public void upload(List<String> localFiles, String remote) throws IOException {
+         for (String localFile : localFiles) {
+
+            String localFileName = new File(localFile).getName();
+
+            String targetPath;
+            if (remote.endsWith(localFileName)) {
+               // Scenario 1: remote is already an exact file path (e.g., /dir/agentlib/log4j2.xml)
+               targetPath = remote;
+            } else if (remote.endsWith(File.separator)) {
+               // Scenario 2: remote is a directory path ending with a slash (e.g., /dir/agentlib/)
+               targetPath = remote + localFileName;
+            } else {
+               // Scenario 3: remote is a directory path without a trailing slash (e.g., /dir/agentlib)
+               targetPath = remote + File.separator + localFileName;
+            }
+
+            try (InputStream in = new FileInputStream(localFile);
+                  OutputStream out = sftpClient.write(targetPath)) {
                byte[] buffer = new byte[32768];
                int len;
                while ((len = in.read(buffer)) != -1) {
