@@ -29,8 +29,6 @@ import io.vertx.ext.web.client.HttpResponse;
 
 public class RunRefImpl implements Client.RunRef {
 
-   private static final DatabindCodec CODEC = new DatabindCodec();
-
    private static final TypeReference<Map<String, Map<String, Client.MinMax>>> STATS_MAP_TYPE = new TypeReference<>() {
    };
    private static final TypeReference<Map<String, Map<String, String>>> AGENT_CPU_TYPE = new TypeReference<>() {
@@ -86,14 +84,14 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> sessionStatsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/recent").send().onComplete(handler), 200,
-            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
+            response -> decode(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
    public Map<String, Map<String, Client.MinMax>> sessionStatsTotal() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/total").send().onComplete(handler), 200,
-            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
+            response -> decode(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
@@ -115,14 +113,14 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> connectionStatsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/recent").send().onComplete(handler), 200,
-            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
+            response -> decode(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
    public Map<String, Map<String, Client.MinMax>> connectionStatsTotal() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/total").send().onComplete(handler), 200,
-            response -> CODEC.fromBuffer(response.body(), STATS_MAP_TYPE));
+            response -> decode(response.body(), STATS_MAP_TYPE));
    }
 
    @Override
@@ -186,7 +184,7 @@ public class RunRefImpl implements Client.RunRef {
             .addQueryParam("stepId", String.valueOf(stepId))
             .addQueryParam("metric", metric)
             .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send().onComplete(handler), 200,
-            response -> CODEC.fromBuffer(response.body(), new TypeReference<>() {
+            response -> decode(response.body(), new TypeReference<>() {
             }));
    }
 
@@ -211,6 +209,14 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, String>> agentCpu() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/agentCpu").send().onComplete(handler), 200,
-            response -> CODEC.fromBuffer(response.body(), AGENT_CPU_TYPE));
+            response -> decode(response.body(), AGENT_CPU_TYPE));
+   }
+
+   private <T> T decode(Buffer buffer, TypeReference<T> type) {
+      try {
+         return DatabindCodec.mapper().readValue(buffer.getBytes(), type);
+      } catch (java.io.IOException e) {
+         throw new RuntimeException("Failed to decode JSON", e);
+      }
    }
 }
