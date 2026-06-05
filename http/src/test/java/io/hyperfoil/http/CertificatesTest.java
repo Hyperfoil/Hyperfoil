@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import javax.net.ssl.SSLException;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,11 @@ public class CertificatesTest {
    public static void setupPooledBuffers() {
       // Disable endpoint identification for tests with self-signed certificates
       System.setProperty(Properties.DISABLE_ENDPOINT_IDENTIFICATION, Boolean.TRUE.toString());
+   }
+
+   @AfterAll
+   public static void restoreEndpointIdentification() {
+      System.clearProperty(Properties.DISABLE_ENDPOINT_IDENTIFICATION);
    }
 
    @Test
