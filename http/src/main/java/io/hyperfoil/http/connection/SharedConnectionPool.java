@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -200,10 +201,25 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
       }
       // session terminated, there is nothing that we can do
       if (!shouldPulse) {
-         blockedSessions.decrementUsed(waiting.size());
-         assert blockedSessions.current() == 0;
-         waiting.clear();
-         // make the connections available again
+
+         int removedCount = 0;
+         Iterator<ConnectionConsumer> iterator = waiting.iterator();
+         while (iterator.hasNext()) {
+            ConnectionConsumer consumer = iterator.next();
+            // allow valid consumer still being executed
+            if (!consumer.isValid()) {
+               iterator.remove();
+               removedCount++;
+            }
+         }
+
+         blockedSessions.decrementUsed(removedCount);
+
+         if (blockedSessions.current() > 0) {
+            this.pulse();
+            return;
+         }
+
          for (HttpConnection conn : connections) {
             if (!available.contains(conn)) {
                release(conn, true, false);
