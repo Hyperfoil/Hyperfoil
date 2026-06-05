@@ -41,6 +41,9 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
          this.request.session.proceed();
       } else {
          this.ready = false;
+         if (connection != null) {
+            connection.pool().release(connection, true, true);
+         }
       }
    }
 
