@@ -79,7 +79,6 @@ public class MemoryUsageTest {
             context.failNow(e);
          }
       };
-      // Create Vertx with pooled buffers enabled for Vert.x 5
       VertxOptions vertxOptions = new VertxOptions();
       Vertx.builder().with(vertxOptions).build().createHttpServer(serverOptions)
             .requestHandler(ctx -> ctx.response()
