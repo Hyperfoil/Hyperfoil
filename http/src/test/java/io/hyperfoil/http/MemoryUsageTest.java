@@ -23,7 +23,7 @@ import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.ByteBufAllocatorMetricProvider;
 import io.netty.buffer.Unpooled;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -109,8 +109,8 @@ public class MemoryUsageTest {
                ByteBufAllocator alloc = data.alloc();
                if (!data.isDirect()) {
                   context.failNow("Expecting to use direct buffers");
-               } else if (alloc instanceof PooledByteBufAllocator) {
-                  long usedMemory = ((PooledByteBufAllocator) alloc).metric().usedDirectMemory();
+               } else if (alloc instanceof ByteBufAllocatorMetricProvider) {
+                  long usedMemory = ((ByteBufAllocatorMetricProvider) alloc).metric().usedDirectMemory();
                   if (usedMemory < 0) {
                      context.failNow("Cannot fetch direct memory stats");
                   }

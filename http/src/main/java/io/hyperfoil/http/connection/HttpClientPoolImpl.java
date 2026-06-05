@@ -348,8 +348,6 @@ public class HttpClientPoolImpl implements HttpClientPool {
       bootstrap.group(pool.executor());
       bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
       bootstrap.option(ChannelOption.SO_REUSEADDR, true);
-      // Use pooled allocator for Vert.x 5 compatibility
-      bootstrap.option(ChannelOption.ALLOCATOR, io.netty.buffer.PooledByteBufAllocator.DEFAULT);
 
       bootstrap.handler(new HttpChannelInitializer(this, handler));
 
