@@ -36,6 +36,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.netty.buffer.Unpooled;
+import io.vertx.core.internal.buffer.BufferInternal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.infinispan.commons.util.FileLookupFactory;
@@ -527,7 +529,7 @@ class ControllerServer implements ApiService {
          byte[] bytes = Util.serialize(benchmark);
          ctx.response()
                .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_SERIALIZED)
-               .end(Buffer.buffer(bytes));
+               .end(BufferInternal.buffer(Unpooled.wrappedBuffer(bytes)));
       } catch (IOException e) {
          log.error("Failed to serialize", e);
          ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end("Error encoding benchmark.");
@@ -672,7 +674,7 @@ class ControllerServer implements ApiService {
          response.write(HttpHeaders.CONTENT_TYPE + ": application/octet-stream\n");
          response.write(HttpHeaders.CONTENT_LENGTH + ": " + file.getValue().length + "\n");
          response.write(HttpHeaders.CONTENT_DISPOSITION + ": form-data; name=\"file\"; filename=\"" + file.getKey() + "\"\n\n");
-         response.write(Buffer.buffer(file.getValue()));
+         response.write(BufferInternal.buffer(Unpooled.wrappedBuffer(file.getValue())));
          response.write("\n--" + boundary);
       }
       response.write("--");
@@ -864,7 +866,7 @@ class ControllerServer implements ApiService {
          controller.listSessions(run, inactive,
                (agent, session) -> {
                   String line = agent.name + ": " + session + "\n";
-                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+                  ctx.response().write(BufferInternal.buffer(Unpooled.wrappedBuffer(line.getBytes(StandardCharsets.UTF_8))));
                },
                commonListingHandler(ctx.response()));
       });
@@ -919,7 +921,7 @@ class ControllerServer implements ApiService {
          controller.listConnections(run,
                (agent, connection) -> {
                   String line = agent.name + ": " + connection + "\n";
-                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+                  ctx.response().write(BufferInternal.buffer(Unpooled.wrappedBuffer(line.getBytes(StandardCharsets.UTF_8))));
                },
                commonListingHandler(ctx.response()));
       });

@@ -6,6 +6,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLException;
 
+import io.netty.buffer.Unpooled;
+import io.vertx.core.internal.buffer.BufferInternal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -83,7 +85,7 @@ public class MemoryUsageTest {
       Vertx.builder().with(vertxOptions).build().createHttpServer(serverOptions)
             .requestHandler(ctx -> ctx.response()
                   .putHeader(HttpHeaders.CACHE_CONTROL, "no-store")
-                  .end(Buffer.buffer(new byte[4 * 1024 * 1024])))
+                  .end(BufferInternal.buffer(Unpooled.wrappedBuffer(new byte[4 * 1024 * 1024]))))
             .listen(0, "localhost").onComplete(context.succeeding(handler));
    }
 

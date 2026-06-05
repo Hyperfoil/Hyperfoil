@@ -25,6 +25,7 @@ import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Version;
 import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -32,6 +33,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -129,7 +131,7 @@ public class RestClient implements Client, Closeable {
                   request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
                }
                request.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
-                     .sendBuffer(Buffer.buffer(bytes)).onComplete(handler);
+                     .sendBuffer(BufferInternal.buffer(Unpooled.wrappedBuffer(bytes))).onComplete(handler);
             }, 0,
             response -> {
                if (response.statusCode() == 204) {
@@ -147,7 +149,7 @@ public class RestClient implements Client, Closeable {
       MultipartForm multipart = MultipartForm.create();
       multipart.textFileUpload("benchmark", "benchmark.yaml", Buffer.buffer(yaml), "text/vnd.yaml");
       for (var entry : otherFiles.entrySet()) {
-         multipart.binaryFileUpload(entry.getKey(), entry.getKey(), Buffer.buffer(entry.getValue()),
+         multipart.binaryFileUpload(entry.getKey(), entry.getKey(), BufferInternal.buffer(Unpooled.wrappedBuffer(entry.getValue())),
                "application/octet-stream");
       }
       return multipartUpload(prevVersion, storedFilesBenchmark, multipart);

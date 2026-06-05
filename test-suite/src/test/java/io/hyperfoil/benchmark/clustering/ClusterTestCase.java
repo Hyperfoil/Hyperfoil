@@ -13,6 +13,8 @@ import java.io.Serializable;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import io.netty.buffer.Unpooled;
+import io.vertx.core.internal.buffer.BufferInternal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -106,7 +108,7 @@ public class ClusterTestCase extends BaseClusteredTest {
          Promise<HttpResponse<Buffer>> uploadPromise = Promise.promise();
          client.post("/benchmark")
                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
-               .sendBuffer(Buffer.buffer(serialize(testBenchmark(AGENTS, httpServer.actualPort()))))
+               .sendBuffer(BufferInternal.buffer(Unpooled.wrappedBuffer(serialize(testBenchmark(AGENTS, httpServer.actualPort())))))
                .onComplete(ctx.succeeding(uploadPromise::complete));
 
          Promise<HttpResponse<Buffer>> benchmarkPromise = Promise.promise();

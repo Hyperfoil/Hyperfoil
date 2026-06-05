@@ -6,6 +6,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLException;
 
+import io.netty.buffer.Unpooled;
+import io.vertx.core.internal.buffer.BufferInternal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,7 +55,7 @@ public class BigResponseParsingTest extends VertxBaseTest {
    }
 
    private void sendChunk(HttpServerRequest req, AtomicInteger counter) {
-      req.response().write(Buffer.buffer(new byte[10000])).onComplete(result -> {
+      req.response().write(BufferInternal.buffer(Unpooled.wrappedBuffer(new byte[10000]))).onComplete(result -> {
          if (counter.addAndGet(-10000) == 0) {
             req.response().end();
          } else {
