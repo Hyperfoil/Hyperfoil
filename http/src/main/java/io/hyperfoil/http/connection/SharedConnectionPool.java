@@ -378,6 +378,9 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void onSessionTryTerminate() {
+      if (!executor().inEventLoop()) {
+         executor().execute(this::onSessionTryTerminate);
+      }
       this.shouldPulse = false;
    }
 }
