@@ -125,45 +125,6 @@
         <impsort-maven-plugin.version>1.13.0</impsort-maven-plugin.version>
     </properties>
 
-    <developers>
-        <developer>
-            <name>Ståle Pedersen</name>
-            <email>spederse@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>John O'Hara</name>
-            <email>johara@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Radim Vansa</name>
-            <email>rvansa@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Will Reichert</name>
-            <email>wreicher@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Jeremy Whiting</name>
-            <email>jwhiting@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Jesper Pedersen</name>
-            <email>jpederse@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-    </developers>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
