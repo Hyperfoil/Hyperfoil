@@ -40,14 +40,14 @@ public class BaseClientTest extends VertxBaseTest {
          JksOptions keyStoreOptions = new JksOptions().setPath("keystore.jks").setPassword("test123");
          HttpServerOptions httpServerOptions = new HttpServerOptions()
                .setSsl(true)
-               .setKeyStoreOptions(keyStoreOptions)
+               .setKeyCertOptions(keyStoreOptions)
                .setUseAlpn(true)
                .setAlpnVersions(serverVersions);
          httpServer = vertx.createHttpServer(httpServerOptions);
-         httpServer.requestHandler(requestHandler).listen(0, "localhost", listenHandler);
+         httpServer.requestHandler(requestHandler).listen(0, "localhost").onComplete(listenHandler);
       } else {
          httpServer = vertx.createHttpServer();
-         httpServer.requestHandler(requestHandler).listen(0, "localhost", listenHandler);
+         httpServer.requestHandler(requestHandler).listen(0, "localhost").onComplete(listenHandler);
       }
    }
 

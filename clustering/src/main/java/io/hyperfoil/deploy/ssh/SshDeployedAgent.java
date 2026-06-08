@@ -85,12 +85,12 @@ public class SshDeployedAgent implements DeployedAgent {
             shellChannel.close();
          }
       } catch (IOException e) {
-         log.error("Failed closing shell", e);
+         log.error("Failed closing shell for agent: {}", name, e);
       }
       try {
          session.close();
       } catch (IOException e) {
-         log.error("Failed closing SSH session", e);
+         log.error("Failed closing SSH session for agent: {}", name, e);
       }
    }
 

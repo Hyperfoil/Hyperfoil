@@ -65,9 +65,9 @@ import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -77,6 +77,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.impl.NoStackTraceThrowable;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -165,33 +166,35 @@ class ControllerServer implements ApiService {
       int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT,
             controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
       WebCLI webCLI = new WebCLI(controller.getVertx());
-      httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
-            .webSocketHandler(webCLI)
-            .listen(controllerPort, controllerHost, serverResult -> {
-               if (serverResult.succeeded()) {
-                  String host = controllerHost;
-                  // Can't advertise 0.0.0.0 as
-                  if (host.equals("0.0.0.0")) {
-                     try {
-                        host = InetAddress.getLocalHost().getHostName();
-                     } catch (UnknownHostException e) {
-                        host = "localhost";
-                     }
-                  }
-                  if (CONTROLLER_EXTERNAL_URI == null) {
-                     baseURL = (options.isSsl() ? "https://" : "http://") + host + ":" + serverResult.result().actualPort();
-                  } else {
-                     baseURL = CONTROLLER_EXTERNAL_URI;
-                  }
-                  webCLI.setConnectionOptions(host, serverResult.result().actualPort(), options.isSsl());
-                  log.info("Hyperfoil controller listening on {}", baseURL);
+      httpServer = controller.getVertx().createHttpServer(options)
+            .requestHandler(router)
+            .webSocketHandler(webCLI);
+      httpServer.listen(controllerPort, controllerHost).onComplete(serverResult -> {
+         if (serverResult.succeeded()) {
+            String host = controllerHost;
+            // Can't advertise 0.0.0.0
+            if (host.equals("0.0.0.0")) {
+               try {
+                  host = InetAddress.getLocalHost().getHostName();
+               } catch (UnknownHostException e) {
+                  host = "localhost";
                }
-               countDown.handle(serverResult.mapEmpty());
-            });
+            }
+            if (CONTROLLER_EXTERNAL_URI == null) {
+               baseURL = (options.isSsl() ? "https://" : "http://") + host + ":" + serverResult.result().actualPort();
+            } else {
+               baseURL = CONTROLLER_EXTERNAL_URI;
+            }
+            webCLI.setConnectionOptions(host, serverResult.result().actualPort(), options.isSsl());
+            log.info("Hyperfoil controller listening on {}", baseURL);
+         }
+         // Note: serverResult.mapEmpty() still works exactly as before
+         countDown.handle(serverResult.mapEmpty());
+      });
    }
 
    void stop(Promise<Void> stopFuture) {
-      httpServer.close(result -> stopFuture.complete());
+      httpServer.close().onComplete(stopFuture);
    }
 
    @Override
@@ -312,7 +315,7 @@ class ControllerServer implements ApiService {
          return;
       }
       var loadDirPath = Paths.get(loadDirProperty).toAbsolutePath();
-      String body = ctx.getBodyAsString();
+      String body = ctx.body().asString();
       if (body == null || body.isEmpty()) {
          log.error("Benchmark is empty, load failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
@@ -369,7 +372,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
-      String source = ctx.getBodyAsString();
+      String source = ctx.body().asString();
       if (source == null || source.isEmpty()) {
          log.error("Benchmark is empty, upload failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
@@ -399,7 +402,7 @@ class ControllerServer implements ApiService {
       if (storedFilesBenchmark != null) {
          log.warn("Ignoring parameter useStoredData for serialized benchmark upload.");
       }
-      byte[] bytes = ctx.getBody().getBytes();
+      byte[] bytes = ctx.body().buffer().getBytes();
       try {
          Benchmark benchmark = Util.deserialize(bytes);
          addBenchmarkAndReply(ctx, benchmark, ifMatch);
@@ -526,7 +529,7 @@ class ControllerServer implements ApiService {
          byte[] bytes = Util.serialize(benchmark);
          ctx.response()
                .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_SERIALIZED)
-               .end(Buffer.buffer(bytes));
+               .end(BufferInternal.buffer(Unpooled.wrappedBuffer(bytes)));
       } catch (IOException e) {
          log.error("Failed to serialize", e);
          ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end("Error encoding benchmark.");
@@ -671,7 +674,7 @@ class ControllerServer implements ApiService {
          response.write(HttpHeaders.CONTENT_TYPE + ": application/octet-stream\n");
          response.write(HttpHeaders.CONTENT_LENGTH + ": " + file.getValue().length + "\n");
          response.write(HttpHeaders.CONTENT_DISPOSITION + ": form-data; name=\"file\"; filename=\"" + file.getKey() + "\"\n\n");
-         response.write(Buffer.buffer(file.getValue()));
+         response.write(BufferInternal.buffer(Unpooled.wrappedBuffer(file.getValue())));
          response.write("\n--" + boundary);
       }
       response.write("--");
@@ -863,7 +866,7 @@ class ControllerServer implements ApiService {
          controller.listSessions(run, inactive,
                (agent, session) -> {
                   String line = agent.name + ": " + session + "\n";
-                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+                  ctx.response().write(BufferInternal.buffer(Unpooled.wrappedBuffer(line.getBytes(StandardCharsets.UTF_8))));
                },
                commonListingHandler(ctx.response()));
       });
@@ -918,7 +921,7 @@ class ControllerServer implements ApiService {
          controller.listConnections(run,
                (agent, connection) -> {
                   String line = agent.name + ": " + connection + "\n";
-                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+                  ctx.response().write(BufferInternal.buffer(Unpooled.wrappedBuffer(line.getBytes(StandardCharsets.UTF_8))));
                },
                commonListingHandler(ctx.response()));
       });
@@ -1143,7 +1146,7 @@ class ControllerServer implements ApiService {
       //noinspection ResultOfMethodCallIgnored
       ctx.response()
             .putHeader(HttpHeaders.ETAG, etag)
-            .sendFile(tempFile.toString(), r -> tempFile.delete());
+            .sendFile(tempFile.toString()).onComplete(r -> tempFile.delete());
    }
 
    @Override
@@ -1199,14 +1202,13 @@ class ControllerServer implements ApiService {
             .collect(Collectors.toList());
       if (force) {
          // We don't allow concurrent runs ATM, but...
-         @SuppressWarnings("rawtypes")
-         List<Future> futures = new ArrayList<>();
+         List<Future<?>> futures = new ArrayList<>();
          for (Run run : runs) {
             Promise<Void> promise = Promise.promise();
             futures.add(promise.future());
             controller.kill(run, result -> promise.complete());
          }
-         CompositeFuture.all(futures).onComplete(nil -> {
+         Future.all(futures).onComplete(nil -> {
             ctx.response().end();
             controller.shutdown();
          });

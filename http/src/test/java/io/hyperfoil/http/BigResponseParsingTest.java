@@ -29,11 +29,12 @@ import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 
@@ -47,12 +48,13 @@ public class BigResponseParsingTest extends VertxBaseTest {
          AtomicInteger counter = new AtomicInteger(100000);
          req.response().putHeader("content-length", String.valueOf(counter.get()));
          sendChunk(req, counter);
-      }).listen(0, "localhost", ctx.succeedingThenComplete());
+      });
+      httpServer.listen(0, "localhost").onComplete(ctx.succeedingThenComplete());
       cleanup.add(httpServer::close);
    }
 
    private void sendChunk(HttpServerRequest req, AtomicInteger counter) {
-      req.response().write(Buffer.buffer(new byte[10000]), result -> {
+      req.response().write(BufferInternal.buffer(Unpooled.wrappedBuffer(new byte[10000]))).onComplete(result -> {
          if (counter.addAndGet(-10000) == 0) {
             req.response().end();
          } else {

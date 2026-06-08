@@ -23,14 +23,16 @@ import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.ByteBufAllocatorMetricProvider;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.core.net.JksOptions;
 import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
@@ -47,7 +49,7 @@ public class MemoryUsageTest {
    @Test
    public void testEncryptHttp1x(VertxTestContext context) {
       HttpServerOptions serverOptions = new HttpServerOptions().setSsl(true)
-            .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
+            .setKeyCertOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
             .setUseAlpn(true).setAlpnVersions(Collections.singletonList(HttpVersion.HTTP_1_1));
       test(context, serverOptions);
    }
@@ -55,7 +57,7 @@ public class MemoryUsageTest {
    @Test
    public void testEncryptHttp2(VertxTestContext context) {
       HttpServerOptions serverOptions = new HttpServerOptions().setSsl(true)
-            .setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
+            .setKeyCertOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"))
             .setUseAlpn(true).setAlpnVersions(Collections.singletonList(HttpVersion.HTTP_2));
       test(context, serverOptions);
    }
@@ -77,11 +79,12 @@ public class MemoryUsageTest {
             context.failNow(e);
          }
       };
-      Vertx.vertx().createHttpServer(serverOptions)
+      VertxOptions vertxOptions = new VertxOptions();
+      Vertx.builder().with(vertxOptions).build().createHttpServer(serverOptions)
             .requestHandler(ctx -> ctx.response()
                   .putHeader(HttpHeaders.CACHE_CONTROL, "no-store")
-                  .end(Buffer.buffer(new byte[4 * 1024 * 1024])))
-            .listen(0, "localhost", context.succeeding(handler));
+                  .end(BufferInternal.buffer(Unpooled.wrappedBuffer(new byte[4 * 1024 * 1024]))))
+            .listen(0, "localhost").onComplete(context.succeeding(handler));
    }
 
    private HttpClientPool client(Protocol protocol, int port) throws SSLException {
@@ -106,8 +109,8 @@ public class MemoryUsageTest {
                ByteBufAllocator alloc = data.alloc();
                if (!data.isDirect()) {
                   context.failNow("Expecting to use direct buffers");
-               } else if (alloc instanceof PooledByteBufAllocator) {
-                  long usedMemory = ((PooledByteBufAllocator) alloc).metric().usedDirectMemory();
+               } else if (alloc instanceof ByteBufAllocatorMetricProvider) {
+                  long usedMemory = ((ByteBufAllocatorMetricProvider) alloc).metric().usedDirectMemory();
                   if (usedMemory < 0) {
                      context.failNow("Cannot fetch direct memory stats");
                   }

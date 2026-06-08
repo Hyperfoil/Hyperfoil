@@ -16,6 +16,7 @@ public abstract class EventLoopFactory {
    public static final EventLoopFactory INSTANCE;
 
    static {
+
       String transport = Properties.get(Properties.NETTY_TRANSPORT, null);
       if (transport != null) {
          switch (transport.toLowerCase()) {
