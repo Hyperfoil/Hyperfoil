@@ -95,7 +95,7 @@
         <version.caffeine>2.8.4</version.caffeine>
         <version.rxjava>3.0.13</version.rxjava>
         <version.apache.sshd>2.17.1</version.apache.sshd>
-        <version.reactive-streams>1.0.3</version.reactive-streams>
+        <version.reactive-streams>1.0.4</version.reactive-streams>
         <version.jakarta.transaction>2.0.1</version.jakarta.transaction>
         <version.javax.transaction>1.3</version.javax.transaction>
         <!-- end version.infinispan -->
