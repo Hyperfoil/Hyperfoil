@@ -14,7 +14,6 @@
     <url>https://github.com/RedHatPerf/Hyperfoil</url>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <io.hyperfoil.clustered>true</io.hyperfoil.clustered>
         <io.hyperfoil.debug />
     </properties>

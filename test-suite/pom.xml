@@ -13,7 +13,6 @@
     <url>https://github.com/RedHatPerf/Hyperfoil</url>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.excluded.categories>io.hyperfoil.test.Benchmark</junit.excluded.categories>
         <module.skipCopyDependencies>true</module.skipCopyDependencies>
     </properties>
