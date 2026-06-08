@@ -91,7 +91,7 @@
         <version.vertx>5.0.12</version.vertx>
 
         <!-- version.infinispan must match what came from vertx-infinispan version -->
-        <version.infinispan>14.0.25.Final</version.infinispan>
+        <version.infinispan>16.2.1</version.infinispan>
         <version.caffeine>2.8.4</version.caffeine>
         <version.rxjava>3.0.13</version.rxjava>
         <version.apache.sshd>2.17.1</version.apache.sshd>
