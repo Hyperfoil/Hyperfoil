@@ -32,7 +32,6 @@ import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
-import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 
@@ -123,7 +122,7 @@ public class CertificatesTest {
                   .trustManager().storeFile("keystore.jks").password("test123").end()
                   .keyManager().storeFile("bad.jks").password("test123"));
             client.start(context
-                  .succeeding(nil -> sendPingAndFailIfReceiveAnyStatus(context, server, client, context.checkpoint())));
+                  .succeeding(nil -> sendPingAndFailIfReceiveAnyStatus(context, server, client)));
          } catch (SSLException e) {
             context.failNow(e);
          }
@@ -161,21 +160,18 @@ public class CertificatesTest {
    private void executeRequestAndStop(VertxTestContext context, HttpServer server, Consumer<HttpBuilder> configuration) {
       try {
          HttpClientPool client = client(server.actualPort(), configuration);
-         var checkpoint = context.checkpoint();
-         client.start(context.succeeding(nil -> sendPingAndReceiveStatus(context, server, client, checkpoint, 200)));
+         client.start(context.succeeding(nil -> sendPingAndReceiveStatus(context, server, client, 200)));
       } catch (SSLException e) {
          server.close();
          context.failNow(e);
       }
    }
 
-   private static void sendPingAndFailIfReceiveAnyStatus(VertxTestContext context, HttpServer server, HttpClientPool client,
-         Checkpoint checkpoint) {
-      sendPingAndReceiveStatus(context, server, client, checkpoint, null);
+   private static void sendPingAndFailIfReceiveAnyStatus(VertxTestContext context, HttpServer server, HttpClientPool client) {
+      sendPingAndReceiveStatus(context, server, client, null);
    }
 
    private static void sendPingAndReceiveStatus(VertxTestContext context, HttpServer server, HttpClientPool client,
-         Checkpoint checkpoint,
          Integer expectedStatus) {
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
@@ -193,7 +189,10 @@ public class CertificatesTest {
                client.shutdown();
                server.close();
                if (statusReceived.get() || expectedStatus == null) {
-                  checkpoint.flag();
+                  // We use completeNow() instead of a custom Checkpoint because Vert.x 5.1+
+                  // creates a strict default test context. Flagging a custom checkpoint leaves
+                  // the default context unsatisfied, causing a 30-second timeout.
+                  context.completeNow();
                } else {
                   context.failNow("Status was not received.");
                }

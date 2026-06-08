@@ -23,7 +23,9 @@ import org.apache.logging.log4j.message.FormattedMessage;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
+import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.manager.DefaultCacheManager;
+import org.infinispan.remoting.transport.Transport;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.JChannel;
 import org.jgroups.protocols.TP;
@@ -124,7 +126,8 @@ public class Hyperfoil {
    }
 
    private static void populateProperties(DefaultCacheManager dcm) {
-      JGroupsTransport transport = (JGroupsTransport) dcm.getTransport();
+      Transport baseTransport = GlobalComponentRegistry.componentOf(dcm, Transport.class);
+      JGroupsTransport transport = (JGroupsTransport) baseTransport;
       JChannel channel = transport.getChannel();
       TP tp = channel.getProtocolStack().getTransport();
       System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tp.getBindAddress().getHostAddress());
