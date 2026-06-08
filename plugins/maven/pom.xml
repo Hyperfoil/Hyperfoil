@@ -15,10 +15,6 @@
     <packaging>maven-plugin</packaging>
     <description>Hyperfoil maven runner</description>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <!-- This is an artificial dependency to force test-suite module from being the last module
              in the build reactor; test-suite does not produce any artifacts, and therefore we skip
