@@ -88,7 +88,7 @@
         <version.metainf-services>1.11</version.metainf-services>
         <version.slf4j>2.0.18</version.slf4j>
         <version.snakeyaml>2.6</version.snakeyaml>
-        <version.vertx>5.0.12</version.vertx>
+        <version.vertx>5.1.2</version.vertx>
 
         <!-- version.infinispan must match what came from vertx-infinispan version -->
         <version.infinispan>14.0.25.Final</version.infinispan>
