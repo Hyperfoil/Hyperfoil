@@ -78,10 +78,11 @@
         <!--
         version.infinispan and the following properties must match what came from vertx, and you must run the script.
         1) Update version.vertx
-        2) Run: check-vertx-dep.sh
-        3) Manually set the properties, build and test the project
+        2) Run: mvn clean install -DskipTests
+        3) Run: ./check-vertx-dep.sh
+        4) Manually set the properties, build and test the project
         -->
-        <version.vertx>5.1.1</version.vertx>
+        <version.vertx>5.1.2</version.vertx>
         <version.infinispan>15.2.4.Final</version.infinispan>
         <version.caffeine>3.2.1</version.caffeine>
         <version.rxjava>3.1.10</version.rxjava>
