@@ -60,11 +60,6 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
       }
    }
 
-   @Override
-   public boolean isValid() {
-      return ready;
-   }
-
    public static final class Key implements Session.ResourceKey<HttpRequestContext> {
    }
 }
