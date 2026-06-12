@@ -28,6 +28,7 @@ public class CpuWatchdog implements Runnable {
    private final Thread thread;
    private final BooleanSupplier warmupTest;
    private final int nCpu;
+   private final int arrayCapacity;
    private final long[] idleTime;
    private final long[] totalTime;
    private volatile boolean running = true;
@@ -51,20 +52,32 @@ public class CpuWatchdog implements Runnable {
                PROC_STAT, stat.exists(), stat.isFile(), stat.canRead());
          thread = null;
          nCpu = 0;
+         arrayCapacity = 0;
          idleTime = null;
          totalTime = null;
          return;
       }
       thread = new Thread(this, "cpu-watchdog");
       thread.setDaemon(true);
+
       AtomicInteger counter = new AtomicInteger();
-      if (readProcStat(ignored -> counter.incrementAndGet())) {
+      AtomicInteger maxCpuId = new AtomicInteger(-1);
+
+      if (readProcStat(parts -> {
+         counter.incrementAndGet();
+         int cpuId = Integer.parseInt(parts[0].substring(3));
+         if (cpuId > maxCpuId.get()) {
+            maxCpuId.set(cpuId);
+         }
+      })) {
          nCpu = counter.get();
+         arrayCapacity = maxCpuId.get() + 1; // Size needed to prevent OutOfBounds
       } else {
          nCpu = 0;
+         arrayCapacity = 0;
       }
-      idleTime = new long[nCpu];
-      totalTime = new long[nCpu];
+      idleTime = new long[arrayCapacity];
+      totalTime = new long[arrayCapacity];
    }
 
    public void run() {
@@ -164,7 +177,8 @@ public class CpuWatchdog implements Runnable {
    public synchronized void notifyPhaseStart(String name) {
       if (nCpu <= 0)
          return;
-      PhaseRecord record = new PhaseRecord(new long[nCpu], new long[nCpu]);
+      // FIX: Use arrayCapacity to accommodate non-contiguous IDs
+      PhaseRecord record = new PhaseRecord(new long[arrayCapacity], new long[arrayCapacity]);
       if (readProcStat(parts -> {
          String cpuStr = parts[0].substring(3);
          int cpuIndex = Integer.parseInt(cpuStr);

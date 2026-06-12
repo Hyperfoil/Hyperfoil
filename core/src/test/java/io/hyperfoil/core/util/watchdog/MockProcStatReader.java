@@ -11,16 +11,22 @@ public class MockProcStatReader implements ProcStatReader {
    @SafeVarargs
    public MockProcStatReader(List<String>... fileStates) {
       this.fileStates = new ArrayList<>();
-      // there is a read on the constructor for nCpu
-      this.fileStates.add(List.of(
-            "cpu  0 0 0 0 0 0 0 0 0 0",
-            "cpu0 0 0 0 0 0 0 0 0 0 0"));
-      for (List<String> fileState : fileStates) {
-         // if you need to test more, change the line above
-         if (fileState.size() != 2) {
-            throw new IllegalArgumentException("Mock currently only supports 1 CPU core.");
+
+      // Generate the initial read for the CpuWatchdog constructor dynamically
+      // based on the layout of the first provided state.
+      if (fileStates.length > 0) {
+         List<String> initialState = new ArrayList<>();
+         for (String line : fileStates[0]) {
+            if (line.startsWith("cpu")) {
+               String[] parts = line.split("\\s+");
+               initialState.add(parts[0] + " 0 0 0 0 0 0 0 0 0 0");
+            } else {
+               initialState.add(line);
+            }
          }
+         this.fileStates.add(initialState);
       }
+
       this.fileStates.addAll(List.of(fileStates));
    }
 
