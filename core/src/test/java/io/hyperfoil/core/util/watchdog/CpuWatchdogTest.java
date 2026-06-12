@@ -57,4 +57,27 @@ public class CpuWatchdogTest {
       t.join();
       assertTrue(errorTriggered.get(), "The watchdog should trigger an error when CPU load is genuinely high.");
    }
+
+   @Test
+   public void testNonContiguousCpuIdsTriggerOutOfBounds() {
+      AtomicBoolean errorTriggered = new AtomicBoolean(false);
+
+      // Simulate a system with 2 logical CPUs, but numbered 0 and 2 (CPU 1 missing)
+      MockProcStatReader mockReader = new MockProcStatReader(
+            List.of(
+                  "cpu  0 0 0 100 0 0 0 0 0 0",
+                  "cpu0 0 0 0 100 0 0 0 0 0 0",
+                  "cpu2 0 0 0 100 0 0 0 0 0 0"),
+            List.of(
+                  "cpu  0 0 0 110 0 0 0 0 0 0",
+                  "cpu0 0 0 0 110 0 0 0 0 0 0",
+                  "cpu2 0 0 0 110 0 0 0 0 0 0"));
+
+      CpuWatchdog watchdog = new CpuWatchdog(
+            err -> errorTriggered.set(true),
+            () -> true,
+            mockReader);
+
+      watchdog.notifyPhaseStart("test-phase");
+   }
 }
