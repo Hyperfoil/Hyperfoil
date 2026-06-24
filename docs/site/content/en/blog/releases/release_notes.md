@@ -5,6 +5,10 @@ type: docs
 weight: 1
 ---
 
+## 0.29.3 (2026-06-24)
+
+* Prevent CpuWatchdog crash on non-contiguous CPU IDs
+
 ## 0.29.2 (2026-05-18)
 
 * Fix wrk/wrk2 calibration SLA failure cancelling test phase
