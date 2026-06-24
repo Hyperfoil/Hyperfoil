@@ -90,7 +90,7 @@
         <version.wildfly-common>1.7.0.Final</version.wildfly-common>
         <!-- end vertx-infinispan -->
 
-        <version.aesh>3.12</version.aesh>
+        <version.aesh>3.15.1</version.aesh>
         <version.assertj>3.27.7</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
         <version.fabric8.kubernetes-client>7.7.0</version.fabric8.kubernetes-client>
