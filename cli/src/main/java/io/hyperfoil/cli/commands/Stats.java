@@ -36,6 +36,7 @@ public class Stats extends BaseRunIdCommand {
          .columnNanos("p99", r -> r.summary.percentileResponseTime.get(99d))
          .columnNanos("p99.9", r -> r.summary.percentileResponseTime.get(99.9))
          .columnNanos("p99.99", r -> r.summary.percentileResponseTime.get(99.99))
+         .columnInt("INVALID", r -> r.summary.invalid)
          .columnInt("TIMEOUTS", r -> r.summary.requestTimeouts)
          .columnInt("ERRORS", r -> r.summary.connectionErrors + r.summary.internalErrors)
          .columnNanos("BLOCKED", r -> r.summary.blockedTime);
