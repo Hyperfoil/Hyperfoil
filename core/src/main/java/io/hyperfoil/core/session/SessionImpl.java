@@ -64,6 +64,7 @@ class SessionImpl implements Session {
    private final Runnable deferredStart = this::deferredStart;
 
    private final Runnable runTask = this::run;
+   private Promise<Void> proceedPromise;
 
    SessionImpl(Scenario scenario, int threadId, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
@@ -243,15 +244,25 @@ class SessionImpl implements Session {
 
    private void run() {
       scheduled = false;
+      Promise<Void> currentPromise = proceedPromise;
+      proceedPromise = null;
       try {
          runSession();
+         if (currentPromise != null) {
+            currentPromise.tryComplete();
+         }
       } catch (SessionStopException e) {
          log.trace("#{} Session was stopped.", uniqueId);
-         // this one is OK
+         if (currentPromise != null) {
+            currentPromise.tryComplete();
+         }
       } catch (Throwable t) {
          log.error(new FormattedMessage("#{} Uncaught error", uniqueId), t);
          if (phase != null) {
             phase.fail(t);
+         }
+         if (currentPromise != null) {
+            currentPromise.tryFail(t);
          }
       }
    }
@@ -460,19 +471,11 @@ class SessionImpl implements Session {
       if (!scheduled) {
          scheduled = true;
          Promise<Void> promise = Promise.promise();
-
-         executor.execute(() -> {
-            try {
-               runTask.run();
-               promise.complete();
-            } catch (Throwable t) {
-               promise.fail(t);
-            }
-         });
-
+         proceedPromise = promise;
+         executor.execute(runTask);
          return promise.future();
       }
-      return Future.succeededFuture();
+      return proceedPromise != null ? proceedPromise.future() : Future.succeededFuture();
    }
 
    @Override
@@ -490,6 +493,10 @@ class SessionImpl implements Session {
       startTimestampMillis = -1;
       startNanoTime = -1;
       resetting = true;
+
+      scheduled = false;
+      proceedPromise = null;
+
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
