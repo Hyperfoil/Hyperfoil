@@ -28,6 +28,8 @@ import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.EventExecutor;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 
 class SessionImpl implements Session {
    private static final Logger log = LogManager.getLogger(SessionImpl.class);
@@ -452,12 +454,25 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void proceed() {
+   public Future<Void> proceed() {
       assert executor.inEventLoop();
+
       if (!scheduled) {
          scheduled = true;
-         executor.execute(runTask);
+         Promise<Void> promise = Promise.promise();
+
+         executor.execute(() -> {
+            try {
+               runTask.run();
+               promise.complete();
+            } catch (Throwable t) {
+               promise.fail(t);
+            }
+         });
+
+         return promise.future();
       }
+      return Future.succeededFuture();
    }
 
    @Override
