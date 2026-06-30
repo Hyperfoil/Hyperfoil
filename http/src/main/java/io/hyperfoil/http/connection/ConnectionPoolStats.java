@@ -10,7 +10,7 @@ import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.Watermarks;
 import io.hyperfoil.http.api.HttpConnection;
 
-class ConnectionPoolStats {
+public class ConnectionPoolStats {
    private static final Logger log = LogManager.getLogger(ConnectionPoolStats.class);
    protected final String authority;
    protected final Watermarks usedConnections = new Watermarks();
@@ -28,6 +28,10 @@ class ConnectionPoolStats {
 
    public void decrementInFlight() {
       inFlight.decrementUsed();
+   }
+
+   public int inFlightCount() {
+      return inFlight.current();
    }
 
    public void visitConnectionStats(ConnectionStatsConsumer consumer) {
