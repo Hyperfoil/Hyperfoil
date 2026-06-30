@@ -26,7 +26,7 @@ import io.vertx.core.Handler;
 /**
  * This instance is not thread-safe as it should be accessed only the {@link #executor()}.
  */
-class SharedConnectionPool extends ConnectionPoolStats implements HttpConnectionPool {
+public class SharedConnectionPool extends ConnectionPoolStats implements HttpConnectionPool {
    private static final Logger log = LogManager.getLogger(SharedConnectionPool.class);
    private static final boolean trace = log.isTraceEnabled();
    //TODO: configurable
