@@ -41,7 +41,11 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
          this.request.session.proceed();
       } else {
          this.ready = false;
-         if (connection != null) {
+         // Due to Hyperfoil's asynchronous nature, a connection created via `handleNewConnection` can trigger a `pulse`.
+         // During this pulse, a waiting consumer might call `accept` even in the termination phase.
+         // Since the connection is only attached to the pool during `HttpRequest.send()`,
+         // It is perfectly fine for the connection to not have an attached pool in this scenario.
+         if (connection != null && connection.pool() != null) {
             connection.pool().release(connection, true, true);
          }
       }
