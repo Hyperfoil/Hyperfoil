@@ -136,6 +136,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
+      assert executor().inEventLoop();
       if (trace) {
          log.trace("Release {} (became available={} after request={})", connection, becameAvailable, afterRequest);
       }
