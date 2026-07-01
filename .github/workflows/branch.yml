@@ -25,6 +25,9 @@ jobs:
           yq-version: v4.47.1     
       - name: Maven Version
         run: mvn --version
+      # Validate code formatting
+      - name: Validate code formatting
+        run: mvn -B formatter:validate impsort:check --file pom.xml
       # Retrieve current version from the root pom
       - name: Get versions
         run: |

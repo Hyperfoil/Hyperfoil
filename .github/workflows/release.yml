@@ -53,6 +53,9 @@ jobs:
         run: |
           git config --global user.email "rhappservicesperf@gmail.com"
           git config --global user.name "rh-appservices-perf"
+      # Validate code formatting
+      - name: Validate code formatting
+        run: mvn -B formatter:validate impsort:check --file pom.xml $NO_DOWNLOAD_MESSAGE
       # Build Hyperfoil and perform release
       - name: Build & Release to Maven
         run: |

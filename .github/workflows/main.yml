@@ -51,6 +51,9 @@ jobs:
           ssh-keyscan localhost >> ~/.ssh/known_hosts
           # Fix home dir permissions
           chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
+      # Validate code formatting
+      - name: Validate code formatting
+        run: mvn -B formatter:validate impsort:check --file pom.xml $NO_DOWNLOAD_MESSAGE
       # Run a full build with all tests
       - name: Build with Maven
         run: mvn clean -B package --file pom.xml -Pbenchmark -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
