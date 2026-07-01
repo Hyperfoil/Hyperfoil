@@ -26,7 +26,7 @@ import io.vertx.core.Handler;
 /**
  * This instance is not thread-safe as it should be accessed only the {@link #executor()}.
  */
-class SharedConnectionPool extends ConnectionPoolStats implements HttpConnectionPool {
+public class SharedConnectionPool extends ConnectionPoolStats implements HttpConnectionPool {
    private static final Logger log = LogManager.getLogger(SharedConnectionPool.class);
    private static final boolean trace = log.isTraceEnabled();
    //TODO: configurable
@@ -52,6 +52,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    private final Deque<ConnectionConsumer> waiting = new ArrayDeque<>();
    private ScheduledFuture<?> pulseFuture;
    private ScheduledFuture<?> keepAliveFuture;
+   private boolean shouldPulse = true;
 
    SharedConnectionPool(HttpClientPoolImpl clientPool, EventLoop eventLoop, ConnectionPoolConfig sizeConfig) {
       super(clientPool.authority);
@@ -135,17 +136,19 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
+      assert executor().inEventLoop();
       if (trace) {
          log.trace("Release {} (became available={} after request={})", connection, becameAvailable, afterRequest);
       }
       if (becameAvailable) {
-         assert !connection.isClosed();
-         if (connection.inFlight() == 0) {
-            // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
-            // too many often-idle connections
-            available.addFirst(connection);
-         } else {
-            available.addLast(connection);
+         if (!connection.isClosed()) {
+            if (connection.inFlight() == 0) {
+               // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
+               // too many often-idle connections
+               available.addFirst(connection);
+            } else {
+               available.addLast(connection);
+            }
          }
       }
       if (afterRequest) {
@@ -192,8 +195,25 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void pulse() {
+      assert executor().inEventLoop();
       if (trace) {
          log.trace("Pulse to {} ({} waiting)", authority, waiting.size());
+      }
+      // session terminated, there is nothing that we can do
+      if (!shouldPulse) {
+
+         blockedSessions.decrementUsed(waiting.size());
+         waiting.clear();
+
+         assert blockedSessions.current() == 0;
+
+         for (HttpConnection conn : connections) {
+            if (!available.contains(conn)) {
+               release(conn, true, false);
+            }
+         }
+         shouldPulse = true;
+         return;
       }
       ConnectionConsumer consumer = waiting.poll();
       if (consumer != null) {
@@ -357,5 +377,14 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
             conn.context().flush();
          }
       });
+   }
+
+   @Override
+   public void onSessionTryTerminate() {
+      if (!executor().inEventLoop()) {
+         executor().execute(this::onSessionTryTerminate);
+         return;
+      }
+      this.shouldPulse = false;
    }
 }

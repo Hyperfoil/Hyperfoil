@@ -9,6 +9,7 @@ import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.EventExecutor;
+import io.vertx.core.Future;
 
 public interface Session {
 
@@ -105,7 +106,7 @@ public interface Session {
    /**
     * Run anything that can be executed.
     */
-   void proceed();
+   Future<Void> proceed();
 
    void reset();
 
@@ -123,6 +124,8 @@ public interface Session {
    Request currentRequest();
 
    void currentRequest(Request request);
+
+   void tryTerminate();
 
    enum VarType {
       OBJECT,
@@ -152,6 +155,10 @@ public interface Session {
       }
 
       default void destroy() {
+      }
+
+      default void onSessionTryTerminate(Session session) {
+
       }
    }
 

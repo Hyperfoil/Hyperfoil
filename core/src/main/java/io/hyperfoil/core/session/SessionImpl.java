@@ -28,6 +28,8 @@ import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.EventExecutor;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 
 class SessionImpl implements Session {
    private static final Logger log = LogManager.getLogger(SessionImpl.class);
@@ -62,6 +64,7 @@ class SessionImpl implements Session {
    private final Runnable deferredStart = this::deferredStart;
 
    private final Runnable runTask = this::run;
+   private Promise<Void> proceedPromise;
 
    SessionImpl(Scenario scenario, int threadId, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
@@ -241,15 +244,25 @@ class SessionImpl implements Session {
 
    private void run() {
       scheduled = false;
+      Promise<Void> currentPromise = proceedPromise;
+      proceedPromise = null;
       try {
          runSession();
+         if (currentPromise != null) {
+            currentPromise.tryComplete();
+         }
       } catch (SessionStopException e) {
          log.trace("#{} Session was stopped.", uniqueId);
-         // this one is OK
+         if (currentPromise != null) {
+            currentPromise.tryComplete();
+         }
       } catch (Throwable t) {
          log.error(new FormattedMessage("#{} Uncaught error", uniqueId), t);
          if (phase != null) {
             phase.fail(t);
+         }
+         if (currentPromise != null) {
+            currentPromise.tryFail(t);
          }
       }
    }
@@ -452,12 +465,17 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void proceed() {
+   public Future<Void> proceed() {
       assert executor.inEventLoop();
+
       if (!scheduled) {
          scheduled = true;
+         Promise<Void> promise = Promise.promise();
+         proceedPromise = promise;
          executor.execute(runTask);
+         return promise.future();
       }
+      return proceedPromise != null ? proceedPromise.future() : Future.succeededFuture();
    }
 
    @Override
@@ -475,6 +493,10 @@ class SessionImpl implements Session {
       startTimestampMillis = -1;
       startNanoTime = -1;
       resetting = true;
+
+      scheduled = false;
+      proceedPromise = null;
+
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
@@ -538,6 +560,14 @@ class SessionImpl implements Session {
    @Override
    public void currentRequest(Request request) {
       this.currentRequest = request;
+   }
+
+   @Override
+   public void tryTerminate() {
+      for (int i = 0; i < allResources.size(); i++) {
+         Resource r = allResources.get(i);
+         r.onSessionTryTerminate(this);
+      }
    }
 
    @Override

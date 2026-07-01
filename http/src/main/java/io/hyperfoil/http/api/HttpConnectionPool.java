@@ -35,4 +35,8 @@ public interface HttpConnectionPool {
    void start(Handler<AsyncResult<Void>> handler);
 
    void shutdown();
+
+   default void onSessionTryTerminate() {
+
+   }
 }
