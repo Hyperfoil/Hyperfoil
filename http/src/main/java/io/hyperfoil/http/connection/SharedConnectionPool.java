@@ -88,7 +88,10 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
                   usedConnections.incrementUsed();
                }
                connection.onAcquire();
-
+               if (log.isDebugEnabled()) {
+                  log.debug("acquireNow: acquired {} to {}, inFlight={} (after), connection.inFlight={}",
+                        connection, authority, inFlight.current(), connection.inFlight());
+               }
                return connection;
             } else {
                availableClosed--;
@@ -105,6 +108,10 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
 
    @Override
    public void acquire(boolean exclusiveConnection, ConnectionConsumer consumer) {
+      if (log.isDebugEnabled()) {
+         log.debug("acquire: {} exclusiveConnection={}, waiting={}, available={}, inFlight={}",
+               authority, exclusiveConnection, waiting.size(), available.size(), inFlight.current());
+      }
       HttpConnection connection = acquireNow(exclusiveConnection);
       if (connection != null) {
          consumer.accept(connection);
@@ -139,6 +146,16 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
       assert executor().inEventLoop();
       if (trace) {
          log.trace("Release {} (became available={} after request={})", connection, becameAvailable, afterRequest);
+      }
+      if (log.isDebugEnabled()) {
+         boolean alreadyInAvailable = available.contains(connection);
+         log.debug(
+               "release: {} becameAvailable={}, afterRequest={}, connection.inFlight={}, inFlight={} (before), available={}, alreadyInAvailable={}",
+               connection, becameAvailable, afterRequest, connection.inFlight(), inFlight.current(), available.size(),
+               alreadyInAvailable);
+         if (becameAvailable && !connection.isClosed() && alreadyInAvailable) {
+            log.debug("release: DUPLICATE! {} already in available queue", connection);
+         }
       }
       if (becameAvailable) {
          if (!connection.isClosed()) {
@@ -199,8 +216,15 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
       if (trace) {
          log.trace("Pulse to {} ({} waiting)", authority, waiting.size());
       }
+      if (log.isDebugEnabled()) {
+         log.debug("pulse: {} shouldPulse={}, waiting={}, available={}, inFlight={}",
+               authority, shouldPulse, waiting.size(), available.size(), inFlight.current());
+      }
       // session terminated, there is nothing that we can do
       if (!shouldPulse) {
+         if (log.isDebugEnabled()) {
+            log.debug("pulse: session terminated, releasing all non-available connections, waiting={}", waiting.size());
+         }
 
          blockedSessions.decrementUsed(waiting.size());
          waiting.clear();
@@ -211,6 +235,9 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
             if (!available.contains(conn)) {
                release(conn, true, false);
             }
+         }
+         if (log.isDebugEnabled()) {
+            log.debug("pulse: after releasing all, inFlight={}, available={}", inFlight.current(), available.size());
          }
          shouldPulse = true;
          return;
@@ -246,6 +273,11 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
    @Override
    public Collection<HttpConnection> connections() {
       return connections;
+   }
+
+   /** Returns the current number of entries in the available deque (for testing). */
+   public int availableCount() {
+      return available.size();
    }
 
    private void checkCreateConnections() {
@@ -384,6 +416,10 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
       if (!executor().inEventLoop()) {
          executor().execute(this::onSessionTryTerminate);
          return;
+      }
+      if (log.isDebugEnabled()) {
+         log.debug("onSessionTryTerminate: {} inFlight={}, available={}, waiting={}",
+               authority, inFlight.current(), available.size(), waiting.size());
       }
       this.shouldPulse = false;
    }
