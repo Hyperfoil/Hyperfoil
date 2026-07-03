@@ -28,7 +28,6 @@ import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.EventExecutor;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
 class SessionImpl implements Session {
@@ -64,7 +63,7 @@ class SessionImpl implements Session {
    private final Runnable deferredStart = this::deferredStart;
 
    private final Runnable runTask = this::run;
-   private Promise<Void> proceedPromise;
+   private Promise<Void> proceedPromise; // non-null iff scheduled==true and a caller requested notification
 
    SessionImpl(Scenario scenario, int threadId, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
@@ -465,17 +464,30 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public Future<Void> proceed() {
+   public void proceed() {
       assert executor.inEventLoop();
-
       if (!scheduled) {
          scheduled = true;
-         Promise<Void> promise = Promise.promise();
+         executor.execute(runTask);
+      }
+   }
+
+   @Override
+   public void proceedAndAwait(Promise<Void> promise) {
+      assert executor.inEventLoop();
+      if (!scheduled) {
+         scheduled = true;
          proceedPromise = promise;
          executor.execute(runTask);
-         return promise.future();
+      } else {
+         // Already scheduled: chain onto the existing promise so this caller is also notified.
+         if (proceedPromise != null) {
+            proceedPromise.future().onComplete(promise);
+         } else {
+            // scheduled=true but no promise was registered — track this one now.
+            proceedPromise = promise;
+         }
       }
-      return proceedPromise != null ? proceedPromise.future() : Future.succeededFuture();
    }
 
    @Override

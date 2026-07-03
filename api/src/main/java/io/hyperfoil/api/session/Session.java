@@ -9,7 +9,7 @@ import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.EventExecutor;
-import io.vertx.core.Future;
+import io.vertx.core.Promise;
 
 public interface Session {
 
@@ -106,7 +106,17 @@ public interface Session {
    /**
     * Run anything that can be executed.
     */
-   Future<Void> proceed();
+   void proceed();
+
+   /**
+    * Like {@link #proceed()}, but completes {@code promise} when the scheduled run finishes
+    * (successfully, with a stop, or with a failure). Only used by phase termination logic;
+    * regular call sites should use {@link #proceed()}.
+    */
+   default void proceedAndAwait(Promise<Void> promise) {
+      proceed();
+      promise.complete();
+   }
 
    void reset();
 

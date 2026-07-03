@@ -88,6 +88,15 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
+   public void cancelAcquire() {
+   }
+
+   @Override
+   public int pendingRequestCount() {
+      return 0;
+   }
+
+   @Override
    public boolean isAvailable() {
       return false;
    }

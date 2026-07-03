@@ -14,7 +14,6 @@ import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.EventExecutor;
-import io.vertx.core.Future;
 
 public class FakeSession implements Session {
 
@@ -168,8 +167,7 @@ public class FakeSession implements Session {
    }
 
    @Override
-   public Future<Void> proceed() {
-      return Future.succeededFuture();
+   public void proceed() {
    }
 
    @Override
