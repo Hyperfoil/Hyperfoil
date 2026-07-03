@@ -147,18 +147,18 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
             for (int i = 0; i < sessionList.size(); i++) {
                Session session = sessionList.get(i);
                if (session.isActive()) {
+                  Promise<Void> promise = Promise.promise();
+                  proceedFutures.add(promise.future());
                   if (session.executor().inEventLoop()) {
-                     proceedFutures.add(session.proceed());
+                     session.proceedAndAwait(promise);
                   } else {
-                     Promise<Void> promise = Promise.promise();
                      session.executor().execute(() -> {
                         try {
-                           session.proceed().onComplete(promise);
+                           session.proceedAndAwait(promise);
                         } catch (Throwable t) {
                            promise.fail(t);
                         }
                      });
-                     proceedFutures.add(promise.future());
                   }
                }
             }

@@ -294,6 +294,17 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
+   public void cancelAcquire() {
+      assert aboutToSend > 0;
+      aboutToSend--;
+   }
+
+   @Override
+   public int pendingRequestCount() {
+      return inflights.size();
+   }
+
+   @Override
    public boolean isAvailable() {
       // Having pool not attached implies that the connection is not taken out of the pool
       // and therefore it's fully available

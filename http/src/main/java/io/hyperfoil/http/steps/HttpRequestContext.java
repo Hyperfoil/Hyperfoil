@@ -44,9 +44,12 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
          // Due to Hyperfoil's asynchronous nature, a connection created via `handleNewConnection` can trigger a `pulse`.
          // During this pulse, a waiting consumer might call `accept` even in the termination phase.
          // Since the connection is only attached to the pool during `HttpRequest.send()`,
-         // It is perfectly fine for the connection to not have an attached pool in this scenario.
+         // it is perfectly fine for the connection to not have an attached pool in this scenario.
+         // No HTTP request was ever sent: undo the onAcquire() slot and return the connection
+         // without recording an afterRequest event (which would corrupt the inFlight counter).
          if (connection != null && connection.pool() != null) {
-            connection.pool().release(connection, true, true);
+            connection.cancelAcquire();
+            connection.pool().release(connection, true, false);
          }
       }
    }

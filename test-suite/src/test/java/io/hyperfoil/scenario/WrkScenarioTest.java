@@ -40,7 +40,6 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
       Assertions.assertTrue(phaseStats.containsKey("calibration"), "Stats must have values for the 'calibration' phase");
       Assertions.assertTrue(phaseStats.containsKey("test"), "Stats must have values for the 'test' phase");
-      System.out.println(phaseStats);
    }
 
    @Test
