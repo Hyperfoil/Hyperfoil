@@ -63,7 +63,7 @@ public abstract class BaseStandaloneCommand {
          cr = runtime.build();
          try {
             // start the local in-vm controller server
-            cr.executeCommand("start-local --quiet");
+            cr.executeCommand(startLocalCommand());
             // As -H option could contain a whitespace we have to either escape the space or quote the argument.
             // However, quoting would not work well if the argument contains a quote.
             String optionsCollected = Stream.of(args).map(arg -> arg.replaceAll(" ", "\\\\ ")).collect(Collectors.joining(" "));
@@ -89,6 +89,10 @@ public abstract class BaseStandaloneCommand {
       }
 
       return result == null ? CommandResult.FAILURE.getResultValue() : result.getResultValue();
+   }
+
+   protected String startLocalCommand() {
+      return "start-local --quiet";
    }
 
    /**

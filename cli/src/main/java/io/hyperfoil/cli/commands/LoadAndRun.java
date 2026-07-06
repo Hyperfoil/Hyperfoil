@@ -1,6 +1,8 @@
 package io.hyperfoil.cli.commands;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
@@ -12,9 +14,18 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 public class LoadAndRun extends BaseStandaloneCommand {
 
    private static final String CMD = "run";
+   private static final String CLUSTERED = "--clustered";
+
+   private final boolean clustered;
+
+   public LoadAndRun(boolean clustered) {
+      this.clustered = clustered;
+   }
 
    public static void main(String[] args) {
-      LoadAndRun lr = new LoadAndRun();
+      boolean clustered = Arrays.asList(args).contains(CLUSTERED);
+      args = Stream.of(args).filter(s -> !CLUSTERED.equals(s)).toArray(String[]::new);
+      LoadAndRun lr = new LoadAndRun(clustered);
       lr.exec(args);
    }
 
@@ -31,6 +42,14 @@ public class LoadAndRun extends BaseStandaloneCommand {
    @Override
    protected String getCommandName() {
       return CMD;
+   }
+
+   @Override
+   protected String startLocalCommand() {
+      if (!clustered)
+         return super.startLocalCommand();
+
+      return super.startLocalCommand() + " " + CLUSTERED;
    }
 
    @CommandDefinition(name = "run", description = "Load and start a benchmark on Hyperfoil controller server, the argument can be the benchmark definition directly.")

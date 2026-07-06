@@ -1,0 +1,16 @@
+name: clustered-test
+agents:
+  agent0: localhost
+http:
+  host: http://localhost
+  port: !param SERVER_PORT
+phases:
+- test:
+    atOnce:
+      users: 1
+      duration: 1s
+      scenario:
+        initialSequences:
+        - test:
+          - httpRequest:
+              GET: /
