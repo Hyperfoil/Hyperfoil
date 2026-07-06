@@ -23,6 +23,6 @@ public interface Controller {
    void stop();
 
    interface Factory {
-      Controller start(Path rootDir);
+      Controller start(Path rootDir, boolean clustered);
    }
 }
