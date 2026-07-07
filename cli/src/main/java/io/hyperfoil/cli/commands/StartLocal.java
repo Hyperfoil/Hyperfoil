@@ -31,6 +31,9 @@ public class StartLocal extends ServerCommand {
    @Option(shortName = 'q', description = "Do not print anything on output in this command.", hasValue = false)
    private boolean quiet;
 
+   @Option(name = "clustered", description = "Whether this node will manage a clustered benchmark", hasValue = false)
+   private boolean clustered;
+
    @Argument(description = "Root directory used for the controller.")
    private Resource rootDir;
 
@@ -66,7 +69,7 @@ public class StartLocal extends ServerCommand {
             System.setProperty(Properties.CONTROLLER_LOG_LEVEL, logLevel);
          }
          reconfigureLogging(invocation);
-         Controller controller = factory.start(rootDir == null ? null : ((FileResource) rootDir).getFile().toPath());
+         Controller controller = factory.start(rootDir == null ? null : ((FileResource) rootDir).getFile().toPath(), clustered);
          ctx.setLocalControllerHost(controller.host());
          ctx.setLocalControllerPort(controller.port());
          if (!quiet) {
