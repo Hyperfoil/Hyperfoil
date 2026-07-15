@@ -103,7 +103,7 @@
         <version.metainf-services>1.11</version.metainf-services>
         <version.slf4j>2.0.18</version.slf4j>
         <version.snakeyaml>2.6</version.snakeyaml>
-        <version.apache.sshd>2.18.0</version.apache.sshd>
+        <version.apache.sshd>2.19.0</version.apache.sshd>
         <version.jboss-logging>3.6.3.Final</version.jboss-logging>
         <version.jctools>4.0.6</version.jctools>
         <version.sonatype.central>0.11.0</version.sonatype.central>
