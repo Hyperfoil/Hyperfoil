@@ -39,4 +39,8 @@ public interface HttpConnectionPool {
    default void onSessionTryTerminate() {
 
    }
+
+   default void cancelAcquire(HttpConnection connection) {
+
+   }
 }

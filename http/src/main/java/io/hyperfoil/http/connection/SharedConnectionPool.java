@@ -272,9 +272,7 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
                // Passing afterRequest=true here would be semantically wrong: it signals a completed
                // HTTP request, which never happened, and would incorrectly trigger any per-request
                // hooks (stats, pendingDrainConnections removal, etc.) inside release().
-               conn.cancelAcquire(); // conn.aboutToSend-- → conn.inFlight() now 0
-               inFlight.decrementUsed(); // undo the acquireNow() increment; not a completed request
-               release(conn, true, false); // afterRequest=false: no HTTP request ever took place
+               cancelAcquire(conn);
             } else {
                release(conn, true, false);
             }
@@ -322,6 +320,14 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
    /** Returns the current number of entries in the available deque (for testing). */
    public int availableCount() {
       return available.size();
+   }
+
+   @Override
+   public void cancelAcquire(HttpConnection connection) {
+      assert executor().inEventLoop();
+      connection.cancelAcquire();
+      inFlight.decrementUsed();
+      release(connection, true, false);
    }
 
    private void checkCreateConnections() {
