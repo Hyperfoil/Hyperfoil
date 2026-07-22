@@ -34,10 +34,23 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
 
    @Override
    public void accept(HttpConnection connection) {
-      assert request.session.executor().inEventLoop();
-      this.connection = connection;
-      this.ready = true;
-      this.request.session.proceed();
+      if (request != null) {
+         assert request.session.executor().inEventLoop();
+         this.connection = connection;
+         this.ready = true;
+         this.request.session.proceed();
+      } else {
+         this.ready = false;
+         // Due to Hyperfoil's asynchronous nature, a connection created via `handleNewConnection` can trigger a `pulse`.
+         // During this pulse, a waiting consumer might call `accept` even in the termination phase.
+         // Since the connection is only attached to the pool during `HttpRequest.send()`,
+         // it is perfectly fine for the connection to not have an attached pool in this scenario.
+         // No HTTP request was ever sent: undo the onAcquire() slot and return the connection
+         // without recording an afterRequest event (which would corrupt the inFlight counter).
+         if (connection != null && connection.pool() != null) {
+            connection.pool().cancelAcquire(connection);
+         }
+      }
    }
 
    public void startWaiting() {

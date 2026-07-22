@@ -141,32 +141,34 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          setTerminated();
       } else if (sessionList != null && status == Status.TERMINATING) {
          List<Future<Void>> proceedFutures = new ArrayList<>();
+         List<Session> sessionsToTerminate;
          synchronized (sessionList) {
+            sessionsToTerminate = new ArrayList<>(sessionList);
             for (int i = 0; i < sessionList.size(); i++) {
                Session session = sessionList.get(i);
                if (session.isActive()) {
+                  Promise<Void> promise = Promise.promise();
+                  proceedFutures.add(promise.future());
                   if (session.executor().inEventLoop()) {
-                     session.proceed();
+                     session.proceedAndAwait(promise);
                   } else {
-                     Promise<Void> promise = Promise.promise();
                      session.executor().execute(() -> {
                         try {
-                           session.proceed();
-                           promise.complete();
+                           session.proceedAndAwait(promise);
                         } catch (Throwable t) {
                            promise.fail(t);
                         }
                      });
-                     proceedFutures.add(promise.future());
                   }
                }
             }
          }
-
          Future<Void> proceedPhaseComplete = proceedFutures.isEmpty() ? Future.succeededFuture()
                : Future.all(proceedFutures).mapEmpty();
-
          proceedPhaseComplete.onComplete(result -> {
+            for (Session session : sessionsToTerminate) {
+               session.tryTerminate();
+            }
             if (result.succeeded()) {
                log.debug("All sessions terminated for phase '{}'.", def.name);
             } else {

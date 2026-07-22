@@ -4,7 +4,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
@@ -26,7 +28,7 @@ import io.vertx.core.Handler;
 /**
  * This instance is not thread-safe as it should be accessed only the {@link #executor()}.
  */
-class SharedConnectionPool extends ConnectionPoolStats implements HttpConnectionPool {
+public class SharedConnectionPool extends ConnectionPoolStats implements HttpConnectionPool {
    private static final Logger log = LogManager.getLogger(SharedConnectionPool.class);
    private static final boolean trace = log.isTraceEnabled();
    //TODO: configurable
@@ -52,6 +54,13 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    private final Deque<ConnectionConsumer> waiting = new ArrayDeque<>();
    private ScheduledFuture<?> pulseFuture;
    private ScheduledFuture<?> keepAliveFuture;
+   private boolean shouldPulse = true;
+   /**
+    * Connections that were in-flight when a !shouldPulse drain ran and were therefore skipped.
+    * shouldPulse is only restored to true once all of them have finished their current request
+    * and called release() with afterRequest=true.
+    */
+   private final Set<HttpConnection> pendingDrainConnections = new HashSet<>();
 
    SharedConnectionPool(HttpClientPoolImpl clientPool, EventLoop eventLoop, ConnectionPoolConfig sizeConfig) {
       super(clientPool.authority);
@@ -87,7 +96,10 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
                   usedConnections.incrementUsed();
                }
                connection.onAcquire();
-
+               if (log.isDebugEnabled()) {
+                  log.debug("acquireNow: acquired {} to {}, inFlight={} (after), connection.inFlight={}",
+                        connection, authority, inFlight.current(), connection.inFlight());
+               }
                return connection;
             } else {
                availableClosed--;
@@ -104,6 +116,10 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void acquire(boolean exclusiveConnection, ConnectionConsumer consumer) {
+      if (log.isDebugEnabled()) {
+         log.debug("acquire: {} exclusiveConnection={}, waiting={}, available={}, inFlight={}",
+               authority, exclusiveConnection, waiting.size(), available.size(), inFlight.current());
+      }
       HttpConnection connection = acquireNow(exclusiveConnection);
       if (connection != null) {
          consumer.accept(connection);
@@ -135,21 +151,40 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
+      assert executor().inEventLoop();
       if (trace) {
          log.trace("Release {} (became available={} after request={})", connection, becameAvailable, afterRequest);
       }
+      if (log.isDebugEnabled()) {
+         boolean alreadyInAvailable = available.contains(connection);
+         log.debug(
+               "release: {} becameAvailable={}, afterRequest={}, connection.inFlight={}, inFlight={} (before), available={}, alreadyInAvailable={}",
+               connection, becameAvailable, afterRequest, connection.inFlight(), inFlight.current(), available.size(),
+               alreadyInAvailable);
+      }
       if (becameAvailable) {
-         assert !connection.isClosed();
-         if (connection.inFlight() == 0) {
-            // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
-            // too many often-idle connections
-            available.addFirst(connection);
-         } else {
-            available.addLast(connection);
+         if (!connection.isClosed()) {
+            if (connection.inFlight() == 0) {
+               // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
+               // too many often-idle connections
+               assert !available.contains(connection);
+               available.addFirst(connection);
+            } else {
+               assert !available.contains(connection);
+               available.addLast(connection);
+            }
          }
       }
       if (afterRequest) {
          inFlight.decrementUsed();
+         // Only relevant during drain: if this connection was deferred, remove it from the pending set.
+         if (!shouldPulse && pendingDrainConnections.remove(connection) && pendingDrainConnections.isEmpty()) {
+            shouldPulse = true;
+            // Drain any sessions that queued up while we were waiting for in-flight connections.
+            if (!waiting.isEmpty()) {
+               pulse();
+            }
+         }
       }
       if (connection.inFlight() == 0) {
          usedConnections.decrementUsed();
@@ -192,8 +227,62 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void pulse() {
+      assert executor().inEventLoop();
       if (trace) {
          log.trace("Pulse to {} ({} waiting)", authority, waiting.size());
+      }
+      if (log.isDebugEnabled()) {
+         log.debug("pulse: {} shouldPulse={}, waiting={}, available={}, inFlight={}",
+               authority, shouldPulse, waiting.size(), available.size(), inFlight.current());
+      }
+      // session terminated, there is nothing that we can do
+      if (!shouldPulse) {
+         // If we are already waiting for in-flight connections to drain, do not re-enter the drain
+         // setup — release() will restore shouldPulse once the last pending connection returns.
+         if (!pendingDrainConnections.isEmpty()) {
+            return;
+         }
+
+         if (log.isDebugEnabled()) {
+            log.debug("pulse: session terminated, releasing all non-available connections, waiting={}", waiting.size());
+         }
+
+         blockedSessions.decrementUsed(waiting.size());
+         waiting.clear();
+
+         assert blockedSessions.current() == 0;
+
+         for (HttpConnection conn : connections) {
+            // The following if/else block explicitly maps out the connection's lifecycle history,
+            // making edge cases easier to trace and debug.
+
+            // Only add to available if not already there and not still in-flight:
+            // in-flight connections will add themselves via releasePoolAndPulse() once
+            // their response arrives, so forcing becameAvailable=true here would create a duplicate.
+            if (available.contains(conn)) {
+               // already in the queue, skip
+            } else if (conn.pendingRequestCount() > 0) {
+               // Real HTTP requests are on the wire — wait for the server response.
+               pendingDrainConnections.add(conn);
+            } else if (conn.inFlight() > 0) {
+               // Only aboutToSend > 0: the consumer that acquired this connection is gone (session was
+               // reset before it could call request()). No HTTP request was ever sent, so this is NOT
+               // an afterRequest event. We manually undo the pool-level inFlight increment that
+               // acquireNow() made, then return the connection as available with afterRequest=false.
+               // Passing afterRequest=true here would be semantically wrong: it signals a completed
+               // HTTP request, which never happened, and would incorrectly trigger any per-request
+               // hooks (stats, pendingDrainConnections removal, etc.) inside release().
+               cancelAcquire(conn);
+            } else {
+               release(conn, true, false);
+            }
+         }
+         if (pendingDrainConnections.isEmpty()) {
+            // No in-flight connections to wait for — restore immediately.
+            shouldPulse = true;
+         }
+         // else: shouldPulse stays false until release() drains pendingDrainConnections
+         return;
       }
       ConnectionConsumer consumer = waiting.poll();
       if (consumer != null) {
@@ -226,6 +315,19 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    @Override
    public Collection<HttpConnection> connections() {
       return connections;
+   }
+
+   /** Returns the current number of entries in the available deque (for testing). */
+   public int availableCount() {
+      return available.size();
+   }
+
+   @Override
+   public void cancelAcquire(HttpConnection connection) {
+      assert executor().inEventLoop();
+      connection.cancelAcquire();
+      inFlight.decrementUsed();
+      release(connection, true, false);
    }
 
    private void checkCreateConnections() {
@@ -357,5 +459,18 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
             conn.context().flush();
          }
       });
+   }
+
+   @Override
+   public void onSessionTryTerminate() {
+      if (!executor().inEventLoop()) {
+         executor().execute(this::onSessionTryTerminate);
+         return;
+      }
+      if (log.isDebugEnabled()) {
+         log.debug("onSessionTryTerminate: {} inFlight={}, available={}, waiting={}",
+               authority, inFlight.current(), available.size(), waiting.size());
+      }
+      this.shouldPulse = false;
    }
 }

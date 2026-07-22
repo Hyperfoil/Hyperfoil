@@ -88,6 +88,17 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    @Override
+   public void cancelAcquire() {
+      assert aboutToSend > 0;
+      aboutToSend--;
+   }
+
+   @Override
+   public int pendingRequestCount() {
+      return streams.size();
+   }
+
+   @Override
    public boolean isAvailable() {
       return inFlight() < maxStreams;
    }

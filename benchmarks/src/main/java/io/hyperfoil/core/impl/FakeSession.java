@@ -168,7 +168,6 @@ public class FakeSession implements Session {
 
    @Override
    public void proceed() {
-
    }
 
    @Override
@@ -203,6 +202,11 @@ public class FakeSession implements Session {
 
    @Override
    public void currentRequest(Request request) {
+
+   }
+
+   @Override
+   public void tryTerminate() {
 
    }
 }

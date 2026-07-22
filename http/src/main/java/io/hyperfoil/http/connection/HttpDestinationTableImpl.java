@@ -2,8 +2,10 @@ package io.hyperfoil.http.connection;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -76,5 +78,13 @@ public class HttpDestinationTableImpl implements HttpDestinationTable {
 
    public Iterable<Map.Entry<String, HttpConnectionPool>> iterable() {
       return byAuthority.entrySet();
+   }
+
+   @Override
+   public void onSessionTryTerminate(Session session) {
+      // avoid duplicated call to onSessionTryTerminate
+      Set<HttpConnectionPool> pools = new HashSet<>(byAuthority.values());
+      pools.addAll(byName.values());
+      pools.forEach(HttpConnectionPool::onSessionTryTerminate);
    }
 }

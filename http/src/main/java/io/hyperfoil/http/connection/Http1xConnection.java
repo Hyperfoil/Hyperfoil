@@ -211,7 +211,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (pool != null) {
          // Note: the pool might be already released if the completion handler
          // invoked another request which was served from cache.
-         pool.release(this, inFlight() == pipeliningLimit - 1 && !isClosed(), true);
+         boolean becameAvailable = inFlight() == pipeliningLimit - 1 && !isClosed();
+         if (log.isDebugEnabled()) {
+            log.debug("releasePoolAndPulse: {} inFlight={}, becameAvailable={}", this, inFlight(), becameAvailable);
+         }
+         pool.release(this, becameAvailable, true);
          pool.pulse();
       }
    }
@@ -287,6 +291,17 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public void onAcquire() {
       aboutToSend++;
+   }
+
+   @Override
+   public void cancelAcquire() {
+      assert aboutToSend > 0;
+      aboutToSend--;
+   }
+
+   @Override
+   public int pendingRequestCount() {
+      return inflights.size();
    }
 
    @Override
