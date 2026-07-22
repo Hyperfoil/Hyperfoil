@@ -48,8 +48,7 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
          // No HTTP request was ever sent: undo the onAcquire() slot and return the connection
          // without recording an afterRequest event (which would corrupt the inFlight counter).
          if (connection != null && connection.pool() != null) {
-            connection.cancelAcquire();
-            connection.pool().release(connection, true, false);
+            connection.pool().cancelAcquire(connection);
          }
       }
    }

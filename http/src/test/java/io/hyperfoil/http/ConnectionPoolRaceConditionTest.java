@@ -237,6 +237,50 @@ public class ConnectionPoolRaceConditionTest extends VertxBaseTest {
       });
    }
 
+   @Test
+   public void testAcceptNullRequestLeaksPoolInFlight(VertxTestContext ctx) {
+      var checkpoint = ctx.checkpoint();
+
+      getClientPool(ctx).onComplete(result -> {
+         if (result.failed())
+            return;
+         HttpClientPool client = result.result();
+
+         SharedConnectionPool pool = (SharedConnectionPool) client.next();
+         pool.executor().execute(() -> {
+            Session session = SessionFactory.forTesting();
+            HttpRunData.initForTesting(session);
+
+            // Acquire the only connection so the pool is exhausted
+            pool.acquire(false, (HttpConnection firstConn) -> {
+
+               // Mimic real-world initialization where the connection has been attached to a pool
+               firstConn.attach(pool);
+
+               // Put a consumer in the waiting queue that mimics
+               // HttpRequestContext.accept() when request==null
+               pool.acquire(false, (HttpConnection conn) -> {
+                  if (conn != null && conn.pool() != null) {
+                     conn.pool().cancelAcquire(conn);
+                  }
+
+                  ctx.verify(() -> {
+                     assertThat(pool.inFlightCount())
+                           .as("pool inFlight should be 0 — cancelAcquire undoes conn-level but not pool-level")
+                           .isEqualTo(0);
+                  });
+                  checkpoint.flag();
+               });
+
+               // Release firstConn to trigger pulse() which pops the waiting consumer
+               firstConn.cancelAcquire();
+               pool.release(firstConn, true, true);
+               pool.pulse();
+            });
+         });
+      });
+   }
+
    private Future<HttpClientPool> getClientPool(VertxTestContext ctx) {
       Http http = HttpBuilder.forTesting().protocol(Protocol.HTTP)
             .host("localhost").port(httpServer.actualPort())
