@@ -4,6 +4,9 @@ import org.kohsuke.MetaInfServices;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
+import io.hyperfoil.api.config.StartTimeSource;
+import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
@@ -42,12 +45,12 @@ public class HttpStats implements StatsExtension {
    public int status_other;
    public int cacheHits;
 
-   public static void addStatus(Statistics statistics, long timestamp, int status) {
-      statistics.update(HTTP, timestamp, HttpStats::new, HttpStats.ADD_STATUS, status);
+   public static void addStatus(Statistics statistics, Request request, int status) {
+      statistics.update(HTTP, request, HttpStats::new, HttpStats.ADD_STATUS, status, request.session);
    }
 
-   public static void addCacheHit(Statistics statistics, long timestamp) {
-      statistics.update(HTTP, timestamp, HttpStats::new, HttpStats.ADD_CACHE_HIT, 1);
+   public static void addCacheHit(Statistics statistics, StartTimeSource source, Session session) {
+      statistics.update(HTTP, source, HttpStats::new, HttpStats.ADD_CACHE_HIT, 1, session);
    }
 
    public static HttpStats get(StatisticsSnapshot snapshot) {

@@ -10,8 +10,8 @@ import io.hyperfoil.http.api.HttpRequest;
 public class CountHeadersHandler implements HeaderHandler {
    @Override
    public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
-      request.statistics().update("countHeaders", request.startTimestampMillis(),
-            Counters::new, Counters::increment, header);
+      request.statistics().update("countHeaders", request,
+            Counters::new, Counters::increment, header, request.session);
    }
 
    /**

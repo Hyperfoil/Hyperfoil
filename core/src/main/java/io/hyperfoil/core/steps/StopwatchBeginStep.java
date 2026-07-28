@@ -16,7 +16,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class StopwatchBeginStep implements Step, ResourceUtilizer, StartTimeSource {
+public class StopwatchBeginStep implements Step, ResourceUtilizer {
    private final ObjectAccess key;
 
    public StopwatchBeginStep(ObjectAccess key) {
@@ -28,7 +28,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer, StartTimeSour
       // Setting timestamp only when it's set allows looping into stopwatch
       if (!key.isSet(session)) {
          StartTime startTime = (StartTime) key.activate(session);
-         long[] createTimestamp = createStartTimestamp(session);
+         long[] createTimestamp = startTime.createStartTimestamp(session);
          startTime.timestampMillis = createTimestamp[0];
          startTime.timestampNanos = createTimestamp[1];
       }
@@ -41,9 +41,19 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer, StartTimeSour
       key.unset(session);
    }
 
-   static class StartTime {
+   static class StartTime implements StartTimeSource {
       long timestampMillis;
       long timestampNanos;
+
+      @Override
+      public long getStartTimestampMillis(Session session) {
+         return this.timestampMillis;
+      }
+
+      @Override
+      public long getStartTimestampNanos(Session session) {
+         return this.timestampNanos;
+      }
    }
 
    /**

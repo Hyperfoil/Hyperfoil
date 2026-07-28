@@ -2,9 +2,10 @@ package io.hyperfoil.hotrod.resource;
 
 import java.util.concurrent.CompletableFuture;
 
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.session.Session;
 
-public class HotRodResource implements Session.Resource {
+public class HotRodResource implements Session.Resource, StartTimeSource {
 
    private long startTimestampNanos;
    private long startTimestampMillis;
@@ -26,6 +27,16 @@ public class HotRodResource implements Session.Resource {
 
    public long getStartTimestampNanos() {
       return startTimestampNanos;
+   }
+
+   @Override
+   public long getStartTimestampMillis(Session session) {
+      return this.getStartTimestampMillis();
+   }
+
+   @Override
+   public long getStartTimestampNanos(Session session) {
+      return this.getStartTimestampNanos();
    }
 
    public static class Key implements Session.ResourceKey<HotRodResource> {

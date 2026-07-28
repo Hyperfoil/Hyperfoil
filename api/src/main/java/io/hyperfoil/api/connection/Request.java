@@ -47,7 +47,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       timeoutFuture = null;
       if (status != Status.COMPLETED) {
          result = Result.TIMED_OUT;
-         statistics.incrementTimeouts(startTimestampMillis);
+         statistics.incrementTimeouts(this, session);
          if (connection == null) {
             log.warn("#{} connection is already null", uniqueId);
          } else {
@@ -140,7 +140,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void recordResponse(long endTimestampNanos) {
-      statistics.recordResponse(startTimestampMillis, endTimestampNanos - startTimestampNanos);
+      statistics.recordResponse(this, endTimestampNanos - startTimestampNanos, session);
    }
 
    public long startTimestampMillis() {

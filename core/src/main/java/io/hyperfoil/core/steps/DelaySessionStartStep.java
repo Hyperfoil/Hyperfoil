@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.config.Model;
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -69,7 +70,8 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       session.declareResource(KEY, Holder::new, true);
    }
 
-   public static class Holder implements Session.Resource {
+   // TODO investigate Holder. Why have StartTimeSource ?
+   public static class Holder implements Session.Resource, StartTimeSource {
       public int iteration = 0;
       public long startTimeWithOffset = Long.MIN_VALUE;
       public double period;
@@ -86,6 +88,16 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
             future.cancel(false);
             future = null;
          }
+      }
+
+      @Override
+      public long getStartTimestampMillis(Session session) {
+         return this.lastStartTime();
+      }
+
+      @Override
+      public long getStartTimestampNanos(Session session) {
+         return 0;
       }
    }
 }

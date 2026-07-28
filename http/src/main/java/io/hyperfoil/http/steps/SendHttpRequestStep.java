@@ -62,7 +62,7 @@ public class SendHttpRequestStep extends StatisticsStep implements SLA.Provider 
       request.send(context.connection, headerAppenders, injectHostHeader, bodyGenerator);
       // We don't need the context anymore and we need to reset it (in case the step is repeated).
       context.reset();
-      request.statistics().incrementRequests(request.startTimestampMillis());
+      request.statistics().incrementRequests(request, session);
 
       if (request.isCompleted()) {
          // When the request handlers call Session.stop() due to a failure it does not make sense to continue
