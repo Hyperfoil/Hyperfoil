@@ -987,13 +987,13 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
          DelaySessionStartStep.Holder holder = session.getResource(DelaySessionStartStep.KEY);
          long startTimeMs = holder.lastStartTime();
-         statistics.incrementRequests(startTimeMs);
+         statistics.incrementRequests(holder, session);
          if (request.cacheControl.wasCached) {
-            HttpStats.addCacheHit(statistics, startTimeMs);
+            HttpStats.addCacheHit(statistics, holder, session);
          } else {
             long now = System.currentTimeMillis();
             log.trace("#{} Session start {}, now {}, diff {}", session.uniqueId(), startTimeMs, now, now - startTimeMs);
-            statistics.recordResponse(startTimeMs, TimeUnit.MILLISECONDS.toNanos(now - startTimeMs));
+            statistics.recordResponse(holder, TimeUnit.MILLISECONDS.toNanos(now - startTimeMs), session);
          }
       }
 

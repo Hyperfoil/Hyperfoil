@@ -107,7 +107,7 @@ public class HttpRequest extends Request {
    }
 
    public void handleCached() {
-      HttpStats.addCacheHit(statistics(), startTimestampMillis());
+      HttpStats.addCacheHit(statistics(), this, this.session);
       enter();
       try {
          handlers.handleEnd(this, false);
@@ -148,4 +148,13 @@ public class HttpRequest extends Request {
       return this.cacheControl != null;
    }
 
+   @Override
+   public long getStartTimestampMillis(Session session) {
+      return this.startTimestampMillis();
+   }
+
+   @Override
+   public long getStartTimestampNanos(Session session) {
+      return this.startTimestampNanos();
+   }
 }

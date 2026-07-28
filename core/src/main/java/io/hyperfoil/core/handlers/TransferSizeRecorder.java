@@ -21,13 +21,13 @@ public class TransferSizeRecorder implements RawBytesHandler {
    @Override
    public void onRequest(Request request, ByteBuf buf, int offset, int length) {
       Statistics statistics = request.statistics();
-      statistics.update(key, request.startTimestampMillis(), Stats::new, (s, l) -> s.sent += l, length);
+      statistics.update(key, request, Stats::new, (s, l) -> s.sent += l, length, request.session);
    }
 
    @Override
    public void onResponse(Request request, ByteBuf buf, int offset, int length, boolean isLastPart) {
       Statistics statistics = request.statistics();
-      statistics.update(key, request.startTimestampMillis(), Stats::new, (s, l) -> s.received += l, length);
+      statistics.update(key, request, Stats::new, (s, l) -> s.received += l, length, request.session);
    }
 
    /**
