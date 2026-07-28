@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -13,7 +14,7 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ScheduledFuture;
 
-public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
+public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>>, StartTimeSource {
    private static final Logger log = LogManager.getLogger(Request.class);
    private static final GenericFutureListener<Future<Object>> FAILURE_LISTENER = future -> {
       if (!future.isSuccess() && !future.isCancelled()) {
@@ -65,15 +66,9 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
 
    public void start(SequenceInstance sequence, Statistics statistics, boolean useSessionStartTime) {
       if (useSessionStartTime) {
-         long sessionStartTime = session.scheduledStartTimestamp();
-         long sessionStartNanoTime = session.scheduledStartNanoTime();
-         if (sessionStartTime == -1 || sessionStartNanoTime == -1) {
-            startTimestampMillis = System.currentTimeMillis();
-            startTimestampNanos = System.nanoTime();
-         } else {
-            startTimestampMillis = sessionStartTime;
-            startTimestampNanos = sessionStartNanoTime;
-         }
+         long[] createTimestamp = createStartTimestamp(session);
+         startTimestampMillis = createTimestamp[0];
+         startTimestampNanos = createTimestamp[1];
       } else {
          startTimestampMillis = System.currentTimeMillis();
          startTimestampNanos = System.nanoTime();
