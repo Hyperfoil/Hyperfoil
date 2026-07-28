@@ -8,6 +8,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.ObjectAccess;
@@ -15,7 +16,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class StopwatchBeginStep implements Step, ResourceUtilizer {
+public class StopwatchBeginStep implements Step, ResourceUtilizer, StartTimeSource {
    private final ObjectAccess key;
 
    public StopwatchBeginStep(ObjectAccess key) {
@@ -27,8 +28,9 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       // Setting timestamp only when it's set allows looping into stopwatch
       if (!key.isSet(session)) {
          StartTime startTime = (StartTime) key.activate(session);
-         startTime.timestampMillis = System.currentTimeMillis();
-         startTime.timestampNanos = System.nanoTime();
+         long[] createTimestamp = createStartTimestamp(session);
+         startTime.timestampMillis = createTimestamp[0];
+         startTime.timestampNanos = createTimestamp[1];
       }
       return true;
    }

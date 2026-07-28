@@ -6,6 +6,7 @@ import java.util.concurrent.TimeoutException;
 import org.infinispan.client.hotrod.exceptions.HotRodTimeoutException;
 
 import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -17,7 +18,7 @@ import io.hyperfoil.hotrod.api.HotRodRemoteCachePool;
 import io.hyperfoil.hotrod.connection.HotRodRemoteCachePoolImpl;
 import io.hyperfoil.hotrod.resource.HotRodResource;
 
-public class HotRodRequestStep extends StatisticsStep implements ResourceUtilizer, SLA.Provider {
+public class HotRodRequestStep extends StatisticsStep implements ResourceUtilizer, SLA.Provider, StartTimeSource {
 
    final HotRodResource.Key futureWrapperKey;
    final SerializableFunction<Session, HotRodOperation> operation;
@@ -61,8 +62,10 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       String metric = metricSelector.apply(null, cacheName);
       Statistics statistics = session.statistics(id(), metric);
 
-      long startTimestampMs = System.currentTimeMillis();
-      long startTimestampNanos = System.nanoTime();
+      long[] createTimestamp = createStartTimestamp(session);
+      long startTimestampMs = createTimestamp[0];
+      long startTimestampNanos = createTimestamp[1];
+
       CompletableFuture future;
       if (HotRodOperation.PUT.equals(operation)) {
          future = remoteCache.putAsync(key, value);
