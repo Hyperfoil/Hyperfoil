@@ -43,6 +43,8 @@ import org.aesh.command.option.Option;
 import org.aesh.command.option.OptionGroup;
 import org.aesh.command.option.OptionList;
 import org.aesh.terminal.utils.ANSI;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
@@ -58,6 +60,8 @@ import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.impl.Util;
 
 public abstract class WrkAbstract extends BaseStandaloneCommand {
+
+   private static final Logger log = LogManager.getLogger(WrkAbstract.class);
 
    @Override
    protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
@@ -250,6 +254,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
       private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series,
             CommandInvocation invocation) {
+         log.debug("series size {} with {}", series.size(), Arrays.toString(series.toArray()));
          TransferSizeRecorder.Stats transferStats = (TransferSizeRecorder.Stats) stats.extensions.get("transfer");
          HttpStats httpStats = HttpStats.get(stats);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;

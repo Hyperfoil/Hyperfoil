@@ -18,8 +18,8 @@
         <Logger name="io.vertx" level="INFO"/>
         <Logger name="io.netty" level="INFO"/>
 
-        <Root level="INFO">
-            <AppenderRef ref="STDOUT" level="INFO"/>
+        <Root level="DEBUG">
+            <AppenderRef ref="STDOUT" level="DEBUG"/>
 
             <AppenderRef ref="FILE" level="INFO"/>
         </Root>

@@ -68,6 +68,7 @@ final class Data {
          if (mergedSequenceId < 0) {
             continue;
          }
+         log.debug("Merging sequence {}", mergedSequenceId);
          mergeSnapshots(mergedSequenceId);
       }
       return true;
@@ -83,7 +84,9 @@ final class Data {
                   .add(snapshot.summary(StatisticsStore.PERCENTILES));
          }
       }
-      if (!sum.isEmpty()) {
+      boolean rule = !sum.isEmpty();
+      log.debug("will series add with rule={}", rule);
+      if (rule) {
          series.add(sum.summary(StatisticsStore.PERCENTILES));
       }
       for (Map.Entry<SLA, StatisticsStore.Window> entry : windowSlas.entrySet()) {
@@ -102,6 +105,7 @@ final class Data {
 
    void completePhase() {
       for (int i = Math.max(0, highestSequenceId - MERGE_DELAY); i <= highestSequenceId; ++i) {
+         log.debug("data complete phase {}", i);
          mergeSnapshots(i);
       }
       // Just sanity checks

@@ -1,5 +1,7 @@
 package io.hyperfoil.api.connection;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -69,6 +71,10 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       createStartTimestamp(session, useSessionStartTime, timestamps);
       startTimestampMillis = timestamps[0];
       startTimestampNanos = timestamps[1];
+
+      log.debug("request start time: {}",
+            new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date(startTimestampMillis)));
+
       this.sequence = sequence;
       // The reason for using separate sequence reference just for the sake of decrementing
       // its counter is that the request sequence might be overridden (wrapped) through
@@ -136,7 +142,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void recordResponse(long endTimestampNanos) {
-      statistics.recordResponse(this, endTimestampNanos - startTimestampNanos, session);
+      statistics.recordResponse(startTimestampMillis, endTimestampNanos - startTimestampNanos);
    }
 
    public long startTimestampMillis() {

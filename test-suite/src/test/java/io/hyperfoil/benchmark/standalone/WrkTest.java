@@ -3,6 +3,7 @@ package io.hyperfoil.benchmark.standalone;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.io.CleanupMode.NEVER;
 
 import java.nio.file.Path;
 import java.util.UUID;
@@ -141,5 +142,30 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       }
       // we are expecting at least one failed SLA because of the high rate
       assertTrue(failedSLA);
+   }
+
+   @Test
+   public void testWrk2LocalServer(@TempDir(cleanup = NEVER) Path tempDir) throws CommandNotFoundException {
+      Wrk2 cmd = new Wrk2();
+      Path reportFile = tempDir.resolve(UUID.randomUUID() + ".html");
+      System.out.println(reportFile);
+      int result = cmd.exec(new String[] { "-t", "1", "-c", "5", "-d", "30s", "-R", "50000", "--timeout", "2s", "--output",
+            reportFile.toString(),
+            "localhost:8080/fruits" });
+
+      CommandContainer<HyperfoilCommandInvocation> commandContainer = cmd.getCommandRegistry().getCommand("wrk2", null);
+      ProcessedCommand processedCommand = commandContainer.getParser().getProcessedCommand();
+      Wrk2.Wrk2Command wrk2Command = (Wrk2.Wrk2Command) processedCommand.getCommand();
+      WrkAbstract.WrkCommandResult wrkCommandResult = wrk2Command.getWrkCommandResult();
+
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
+      assertFalse(wrkCommandResult.getRequestStatisticsResponse().statistics.isEmpty());
+
+      System.out.println("-----------------");
+      for (RequestStats requestStats : wrkCommandResult.getRequestStatisticsResponse().statistics) {
+         System.out.println(
+               requestStats.phase + " " + requestStats.summary.requestCount + " " + requestStats.summary.responseCount);
+      }
+      System.out.println("-----------------");
    }
 }

@@ -1,5 +1,7 @@
 package io.hyperfoil.api.statistics;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -81,6 +83,8 @@ public class Statistics {
       }
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
+         log.debug("get active statistic with {}",
+               new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date(startTimestamp)), startTimestamp);
          StatisticsSnapshot active = active(source, session);
          active.histogram.recordValue(responseTime);
          active.responseCount++;

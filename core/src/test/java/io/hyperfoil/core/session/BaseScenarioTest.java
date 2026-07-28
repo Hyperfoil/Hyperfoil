@@ -1,6 +1,7 @@
 package io.hyperfoil.core.session;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -58,6 +59,7 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
       private final Logger log = LogManager.getLogger(getClass());
 
       private final Map<String, Map<String, StatisticsSnapshot>> phaseStats = new HashMap<>();
+      private final Map<String, List<StatisticsSnapshot>> allStatsPerPhase = new HashMap<>();
 
       @Override
       public void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown) {
@@ -74,6 +76,12 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
             stats.put(metric, metricValue);
          }
          metricValue.add(snapshot);
+
+         if (allStatsPerPhase.containsKey(phase.name)) {
+            allStatsPerPhase.get(phase.name).add(snapshot);
+         } else {
+            allStatsPerPhase.put(phase.name, List.of(snapshot));
+         }
       }
 
       public Map<String, StatisticsSnapshot> firstPhaseStats() {
@@ -86,6 +94,10 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
 
       public Map<String, Map<String, StatisticsSnapshot>> phaseStats() {
          return phaseStats;
+      }
+
+      public Map<String, List<StatisticsSnapshot>> getAllStatsPerPhase() {
+         return this.allStatsPerPhase;
       }
    }
 }
