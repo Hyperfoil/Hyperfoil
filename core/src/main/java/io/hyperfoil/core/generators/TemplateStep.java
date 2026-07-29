@@ -72,5 +72,10 @@ public class TemplateStep implements Step {
          }
          return Collections.singletonList(new TemplateStep(new Pattern(pattern, false), SessionFactory.objectAccess(toVar)));
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }

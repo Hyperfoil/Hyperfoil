@@ -36,7 +36,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
    private StringGeneratorBuilder value;
 
    @Override
-   public void prepareBuild() {
+   public void doPrepareBuild() {
       if (metricSelector == null) {
          String sequenceName = Locator.current().sequence().name();
          metricSelector = new ProvidedMetricSelector(sequenceName);

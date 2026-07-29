@@ -125,5 +125,10 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
       public ListBuilder vars() {
          return vars::add;
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }

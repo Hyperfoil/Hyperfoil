@@ -64,5 +64,10 @@ public class RandomUUIDStep implements Step {
          }
          return Collections.singletonList(new RandomUUIDStep(SessionFactory.objectAccess(toVar)));
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }

@@ -30,5 +30,10 @@ public class NoopStep implements Step {
       public List<Step> build() {
          return Collections.singletonList(new NoopStep());
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }

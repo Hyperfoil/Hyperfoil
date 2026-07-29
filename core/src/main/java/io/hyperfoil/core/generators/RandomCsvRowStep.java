@@ -237,6 +237,11 @@ public class RandomCsvRowStep implements Step {
          return this;
       }
 
+      @Override
+      public void doPrepareBuild() {
+
+      }
+
       public class ColumnsBuilder extends PairBuilder.OfString {
          /**
           * Use 0-based column as the key and variable name as the value.
