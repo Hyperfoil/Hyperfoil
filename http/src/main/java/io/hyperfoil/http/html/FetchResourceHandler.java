@@ -150,6 +150,7 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
          return this;
       }
 
+      @Override
       public void prepareBuild() {
          queueKey = new Queue.Key();
          locationPoolKey = new LimitedPoolResource.Key<>();

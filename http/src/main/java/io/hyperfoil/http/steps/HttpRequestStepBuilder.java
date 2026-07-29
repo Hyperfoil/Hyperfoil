@@ -1057,6 +1057,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
          return parent;
       }
 
+      @Override
       public void prepareBuild() {
          if (encoding == null) {
             // ignore

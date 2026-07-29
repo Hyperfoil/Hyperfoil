@@ -94,6 +94,7 @@ public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> impl
       throw new NoSuchElementException("Not found: " + locator.step());
    }
 
+   @Override
    public void prepareBuild() {
       // We need to make a defensive copy as prepareBuild() may trigger modifications
       new ArrayList<>(steps).forEach(stepBuilder -> {

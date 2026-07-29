@@ -1,17 +1,17 @@
 package io.hyperfoil.http.config;
 
+import io.hyperfoil.api.config.Ergonomics;
 import io.hyperfoil.http.api.FollowRedirect;
 
 // Contrary to the builder - immutable instance model we're using for most configuration objects
 // we'll keep only single object for ergonomics as this is used only when the benchmark is being built.
-public class HttpErgonomics {
+public class HttpErgonomics extends Ergonomics {
    private final HttpPluginBuilder parent;
    private boolean repeatCookies = true;
    private boolean userAgentFromSession = true;
    private boolean autoRangeCheck = true;
    private boolean stopOnInvalid = true;
    private FollowRedirect followRedirect = FollowRedirect.NEVER;
-   private boolean compensateInternalLatency = false;
 
    public HttpErgonomics(HttpPluginBuilder parent) {
       this.parent = parent;
@@ -65,22 +65,6 @@ public class HttpErgonomics {
 
    public HttpErgonomics followRedirect(FollowRedirect followRedirect) {
       this.followRedirect = followRedirect;
-      return this;
-   }
-
-   public boolean compensateInternalLatency() {
-      return compensateInternalLatency;
-   }
-
-   /**
-    * When enabled, the first HTTP request in a root sequence of an open model phase will use the session's
-    * intended (scheduled) start time as the request start timestamp, compensating for internal coordinated omission.
-    *
-    * @param compensateInternalLatency Enable internal latency compensation?
-    * @return Self.
-    */
-   public HttpErgonomics compensateInternalLatency(boolean compensateInternalLatency) {
-      this.compensateInternalLatency = compensateInternalLatency;
       return this;
    }
 
