@@ -70,7 +70,6 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       session.declareResource(KEY, Holder::new, true);
    }
 
-   // TODO investigate Holder. Why have StartTimeSource ?
    public static class Holder implements Session.Resource, StartTimeSource {
       public int iteration = 0;
       public long startTimeWithOffset = Long.MIN_VALUE;
@@ -97,7 +96,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
 
       @Override
       public long getStartTimestampNanos(Session session) {
-         return 0;
+         throw new IllegalStateException("Not allowed to call this method");
       }
    }
 }
