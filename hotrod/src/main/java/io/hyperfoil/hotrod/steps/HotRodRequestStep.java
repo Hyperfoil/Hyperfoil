@@ -6,6 +6,7 @@ import java.util.concurrent.TimeoutException;
 import org.infinispan.client.hotrod.exceptions.HotRodTimeoutException;
 
 import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -17,7 +18,7 @@ import io.hyperfoil.hotrod.api.HotRodRemoteCachePool;
 import io.hyperfoil.hotrod.connection.HotRodRemoteCachePoolImpl;
 import io.hyperfoil.hotrod.resource.HotRodResource;
 
-public class HotRodRequestStep extends StatisticsStep implements ResourceUtilizer, SLA.Provider {
+public class HotRodRequestStep extends StatisticsStep implements ResourceUtilizer, SLA.Provider, StartTimeSource {
 
    final HotRodResource.Key futureWrapperKey;
    final SerializableFunction<Session, HotRodOperation> operation;
@@ -63,7 +64,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
 
       HotRodResource resource = session.getResource(futureWrapperKey);
 
-      long[] createTimestamp = resource.createStartTimestamp(session);
+      long[] createTimestamp = this.createStartTimestamp(session);
       long startTimestampMs = createTimestamp[0];
       long startTimestampNanos = createTimestamp[1];
 
@@ -77,7 +78,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       }
 
       resource.set(future, startTimestampNanos, startTimestampMs);
-      statistics.incrementRequests(resource, session);
+      statistics.incrementRequests(this, session);
 
       future.exceptionally(t -> {
          trackResponseError(session, metric, t);
@@ -97,20 +98,36 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
    }
 
    private void trackResponseError(Session session, String metric, Object ex) {
+      assert session.executor().inEventLoop();
       Statistics statistics = session.statistics(id(), metric);
       HotRodResource resource = session.getResource(futureWrapperKey);
       if (ex instanceof TimeoutException || ex instanceof HotRodTimeoutException) {
-         statistics.incrementTimeouts(resource, session);
+         statistics.incrementTimeouts(this, session);
       } else {
-         statistics.incrementConnectionErrors(resource, session);
+         statistics.incrementConnectionErrors(this, session);
       }
       session.stop();
    }
 
    private void trackResponseSuccess(Session session, String metric) {
+      assert session.executor().inEventLoop();
       HotRodResource resource = session.getResource(futureWrapperKey);
       long startTimestampNanos = resource.getStartTimestampNanos();
       Statistics statistics = session.statistics(id(), metric);
-      statistics.recordResponse(resource, System.nanoTime() - startTimestampNanos, session);
+      statistics.recordResponse(this, System.nanoTime() - startTimestampNanos, session);
+   }
+
+   @Override
+   public long getStartTimestampMillis(Session session) {
+      assert session.executor().inEventLoop();
+      HotRodResource resource = session.getResource(futureWrapperKey);
+      return resource.getStartTimestampMillis();
+   }
+
+   @Override
+   public long getStartTimestampNanos(Session session) {
+      assert session.executor().inEventLoop();
+      HotRodResource resource = session.getResource(futureWrapperKey);
+      return resource.getStartTimestampNanos();
    }
 }
