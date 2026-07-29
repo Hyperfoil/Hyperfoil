@@ -42,5 +42,10 @@ public class AwaitConditionStep implements Step {
          ReadAccess access = SessionFactory.readAccess(var);
          return Collections.singletonList(new AwaitConditionStep(s -> predicate.test(s, access)));
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }

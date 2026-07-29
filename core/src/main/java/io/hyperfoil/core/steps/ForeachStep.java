@@ -109,5 +109,10 @@ public class ForeachStep extends DependencyStep {
          return Collections.singletonList(new ForeachStep(dependencies(),
                SessionFactory.readAccess(fromVar), SessionFactory.intAccess(counterVar), this.sequence));
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }

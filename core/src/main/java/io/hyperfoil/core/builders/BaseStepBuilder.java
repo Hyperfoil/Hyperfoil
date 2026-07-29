@@ -7,6 +7,19 @@ import io.hyperfoil.api.config.StepBuilder;
 
 public abstract class BaseStepBuilder<T extends BaseStepBuilder<T>> implements StepBuilder<T> {
    private BaseSequenceBuilder<?> parent;
+   private boolean prepared = false;
+
+   @Override
+   public final void prepareBuild() {
+      if (prepared) {
+         return;
+      }
+      prepared = true;
+      doPrepareBuild();
+      StepBuilder.super.prepareBuild();
+   }
+
+   public abstract void doPrepareBuild();
 
    public T addTo(BaseSequenceBuilder<?> parent) {
       if (this.parent != null) {

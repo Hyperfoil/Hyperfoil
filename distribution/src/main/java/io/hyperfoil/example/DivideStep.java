@@ -113,5 +113,10 @@ public class DivideStep implements Step {
          return Collections.singletonList(new DivideStep(
                SessionFactory.readAccess(fromVar), SessionFactory.intAccess(toVar), divisor));
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }

@@ -542,7 +542,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    }
 
    @Override
-   public void prepareBuild() {
+   public void doPrepareBuild() {
       stepId = StatisticsStep.nextId();
       Locator locator = Locator.current();
 
@@ -574,12 +574,6 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
          String sequenceName = Locator.current().sequence().name();
          metricSelector = new ProvidedMetricSelector(sequenceName);
       }
-
-      if (compensation != null) {
-         compensation.prepareBuild();
-      }
-      compression.prepareBuild();
-      handler.prepareBuild();
 
       // We insert the AfterSyncRequestStep only after preparing all the handlers to ensure
       // that this is added immediately after the SendHttpRequestStep, in case some of the handlers
@@ -880,7 +874,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       }
    }
 
-   public static class CompensationBuilder {
+   public static class CompensationBuilder implements BuilderBase<CompensationBuilder> {
       private static final String DELAY_SESSION_START = "__delay-session-start";
       private final HttpRequestStepBuilder parent;
       public SerializableBiFunction<String, String, String> metricSelector;

@@ -71,5 +71,10 @@ public class AwaitDelayStep implements Step {
       public List<Step> build() {
          return Collections.singletonList(new AwaitDelayStep(SessionFactory.readAccess(key)));
       }
+
+      @Override
+      public void doPrepareBuild() {
+
+      }
    }
 }
