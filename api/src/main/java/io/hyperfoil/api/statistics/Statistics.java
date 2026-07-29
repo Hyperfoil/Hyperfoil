@@ -140,26 +140,18 @@ public class Statistics {
    }
 
    public <C extends StatsExtension> void update(String key, StartTimeSource source, Supplier<C> creator,
-         LongUpdater<C> updater,
-         long value, Session session) {
-      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
-      try {
-         StatisticsSnapshot active = active(source, session);
-         StatsExtension custom = active.extensions.get(key);
-         if (custom == null) {
-            custom = creator.get();
-            active.extensions.put(key, custom);
-         }
-         //noinspection unchecked
-         updater.update((C) custom, value);
-      } finally {
-         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
-      }
+         LongUpdater<C> updater, long value, Session session) {
+      executeUpdate(key, source, creator, session, custom -> updater.update(custom, value));
    }
 
    public <C extends StatsExtension> void update(String key, StartTimeSource source, Supplier<C> creator,
-         ObjectUpdater<C> updater,
-         Object value, Session session) {
+         ObjectUpdater<C> updater, Object value, Session session) {
+      executeUpdate(key, source, creator, session, custom -> updater.update(custom, value));
+   }
+
+   private <C extends StatsExtension> void executeUpdate(
+         String key, StartTimeSource source, Supplier<C> creator, Session session, Consumer<C> action) {
+
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          StatisticsSnapshot active = active(source, session);
@@ -168,8 +160,7 @@ public class Statistics {
             custom = creator.get();
             active.extensions.put(key, custom);
          }
-         //noinspection unchecked
-         updater.update((C) custom, value);
+         action.accept((C) custom);
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
