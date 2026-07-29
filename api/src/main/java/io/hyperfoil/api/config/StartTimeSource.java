@@ -22,9 +22,7 @@ public interface StartTimeSource {
       return new long[] { startTimestampMillis, startTimestampNanos };
    }
 
-   // TODO try to get rid of Session
    long getStartTimestampMillis(Session session);
 
-   // TODO try to get rid of Session
    long getStartTimestampNanos(Session session);
 }
