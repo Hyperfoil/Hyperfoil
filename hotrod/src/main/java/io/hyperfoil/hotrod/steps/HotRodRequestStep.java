@@ -26,13 +26,15 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
    final MetricSelector metricSelector;
    final SerializableFunction<Session, String> keyGenerator;
    final SerializableFunction<Session, String> valueGenerator;
+   final boolean useSessionStartTime;
 
    protected HotRodRequestStep(int id, HotRodResource.Key futureWrapperKey,
          SerializableFunction<Session, HotRodOperation> operation,
          SerializableFunction<Session, String> cacheName,
          MetricSelector metricSelector,
          SerializableFunction<Session, String> keyGenerator,
-         SerializableFunction<Session, String> valueGenerator) {
+         SerializableFunction<Session, String> valueGenerator,
+         boolean useSessionStartTime) {
       super(id);
       this.futureWrapperKey = futureWrapperKey;
       this.operation = operation;
@@ -40,6 +42,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       this.metricSelector = metricSelector;
       this.keyGenerator = keyGenerator;
       this.valueGenerator = valueGenerator;
+      this.useSessionStartTime = useSessionStartTime;
    }
 
    @Override
@@ -64,7 +67,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
 
       HotRodResource resource = session.getResource(futureWrapperKey);
 
-      long[] createTimestamp = this.createStartTimestamp(session);
+      long[] createTimestamp = this.createStartTimestamp(session, this.useSessionStartTime);
       long startTimestampMs = createTimestamp[0];
       long startTimestampNanos = createTimestamp[1];
 

@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import io.hyperfoil.impl.StepCatalogFactory;
 
-public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> implements BuilderBase<S> {
+public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> extends BaseBuilder implements BuilderBase<S> {
    private static final Map<Class<? extends Step.Catalog>, StepCatalogFactory> factories = new HashMap<>();
 
    protected final BaseSequenceBuilder<?> parent;
