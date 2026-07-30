@@ -20,6 +20,7 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.PluginBuilder;
 import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.api.config.ScenarioBuilder;
@@ -71,9 +72,9 @@ import io.netty.util.AsciiString;
 @MetaInfServices(StepBuilder.class)
 @Name("httpRequest")
 public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuilder> {
-   private static final Logger log = LogManager.getLogger(SendHttpRequestStep.class);
 
-   private int stepId = -1;
+   private static final Logger log = LogManager.getLogger(HttpRequestStepBuilder.class);
+
    private HttpMethod.Builder method;
    private StringGeneratorBuilder authority;
    private StringGeneratorBuilder endpoint;
@@ -88,7 +89,6 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    private SLABuilder.ListBuilder<HttpRequestStepBuilder> sla = null;
    private CompensationBuilder compensation;
    private CompressionBuilder compression = new CompressionBuilder(this);
-   private boolean useSessionStartTime = false;
 
    /**
     * HTTP method used for the request.
@@ -547,19 +547,14 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       Locator locator = Locator.current();
 
       HttpErgonomics ergonomics = locator.benchmark().plugin(HttpPluginBuilder.class).ergonomics();
-      if (ergonomics.compensateInternalLatency()) {
-         this.useSessionStartTime = locator.scenario().hasOpenModelPhase()
-               && locator.scenario().isFirstStepInInitialSequence(locator.sequence(), this);
-         if (log.isTraceEnabled()) {
-            traceCompensateInternalLatency(locator);
-         }
-      }
+
       if (ergonomics.repeatCookies()) {
          headerAppender(new CookieAppender());
       }
       if (ergonomics.userAgentFromSession()) {
          headerAppender(new UserAgentAppender());
       }
+
       BeforeSyncRequestStep beforeSyncRequestStep = null;
       if (sync) {
          // We need to perform this in prepareBuild() because the completion handlers must not be modified
@@ -581,6 +576,12 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       if (sync) {
          locator.sequence().insertAfter(locator).step(new AfterSyncRequestStep(beforeSyncRequestStep));
       }
+   }
+
+   @Override
+   @SuppressWarnings("rawtypes")
+   protected Class<? extends PluginBuilder> pluginClass() {
+      return HttpPluginBuilder.class;
    }
 
    @Override
@@ -667,26 +668,6 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    public interface BodyGeneratorBuilder extends BuilderBase<BodyGeneratorBuilder> {
       SerializableBiFunction<Session, Connection, ByteBuf> build();
-   }
-
-   private void traceCompensateInternalLatency(Locator locator) {
-      String sequenceName = locator.sequence().name();
-      if (this.useSessionStartTime) {
-         log.trace("compensateInternalLatency: using session start time for step {} in sequence {}", stepId, sequenceName);
-         return;
-      }
-      ScenarioBuilder scenario = locator.scenario();
-      if (!scenario.hasOpenModelPhase()) {
-         log.trace("compensateInternalLatency: step {} in sequence {} skipped - phase is not open model", stepId, sequenceName);
-      } else if (!scenario.isFirstStepInInitialSequence(locator.sequence(), this)) {
-         if (!scenario.isInitialSequence(locator.sequence())) {
-            log.trace("compensateInternalLatency: step {} in sequence {} skipped - not an initial sequence", stepId,
-                  sequenceName);
-         } else {
-            log.trace("compensateInternalLatency: step {} in sequence {} skipped - not the first step in the sequence", stepId,
-                  sequenceName);
-         }
-      }
    }
 
    private static class PrefixMetricSelector implements SerializableBiFunction<String, String, String> {
