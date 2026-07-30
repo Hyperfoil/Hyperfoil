@@ -142,7 +142,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void recordResponse(long endTimestampNanos) {
-      statistics.recordResponse(startTimestampMillis, endTimestampNanos - startTimestampNanos);
+      statistics.recordResponse(this, endTimestampNanos - startTimestampNanos, session);
    }
 
    public long startTimestampMillis() {

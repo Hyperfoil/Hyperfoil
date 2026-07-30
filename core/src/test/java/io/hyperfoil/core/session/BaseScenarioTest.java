@@ -1,5 +1,6 @@
 package io.hyperfoil.core.session;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,23 +66,15 @@ public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
       public void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown) {
          log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase.name, stepId, metric,
                snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
-         Map<String, StatisticsSnapshot> stats = phaseStats.get(phase.name);
-         if (stats == null) {
-            stats = new HashMap<>();
-            phaseStats.put(phase.name, stats);
-         }
-         StatisticsSnapshot metricValue = stats.get(metric);
-         if (metricValue == null) {
-            metricValue = new StatisticsSnapshot();
-            stats.put(metric, metricValue);
-         }
-         metricValue.add(snapshot);
 
-         if (allStatsPerPhase.containsKey(phase.name)) {
-            allStatsPerPhase.get(phase.name).add(snapshot);
-         } else {
-            allStatsPerPhase.put(phase.name, List.of(snapshot));
-         }
+         // Aggregate statistics per phase and metric
+         phaseStats.computeIfAbsent(phase.name, k -> new HashMap<>())
+               .computeIfAbsent(metric, k -> new StatisticsSnapshot())
+               .add(snapshot);
+
+         // Collect snapshot into a mutable list per phase
+         allStatsPerPhase.computeIfAbsent(phase.name, k -> new ArrayList<>())
+               .add(snapshot);
       }
 
       public Map<String, StatisticsSnapshot> firstPhaseStats() {
