@@ -7,24 +7,32 @@ import io.hyperfoil.api.session.Session;
  */
 public interface StartTimeSource {
 
-   default long[] createStartTimestamp(Session session, boolean useSessionStartTime) {
-      long startTimestampMillis;
-      long startTimestampNanos;
+   /**
+    * Populates the provided buffer with the start timestamp in milliseconds (index 0)
+    * and nanoseconds (index 1).
+    * <p>
+    * Both millisecond and nanosecond values are captured/retrieved together to ensure
+    * temporal consistency between the two units. Accepts a mutable {@code target} array
+    * to avoid object allocations on the heap, eliminating Garbage Collection (GC)
+    * pressure in high-throughput paths.
+    *
+    * @param session the session instance to read scheduled start times from
+    * @param useSessionStartTime whether to attempt using the session's scheduled timing
+    * @param target a pre-allocated {@code long[]} buffer to store [millis, nanos]
+    */
+   default void createStartTimestamp(Session session, boolean useSessionStartTime, long[] target) {
       if (useSessionStartTime) {
          long sessionStartTime = session.scheduledStartTimestamp();
          long sessionStartNanoTime = session.scheduledStartNanoTime();
-         if (sessionStartTime == -1 || sessionStartNanoTime == -1) {
-            startTimestampMillis = System.currentTimeMillis();
-            startTimestampNanos = System.nanoTime();
-         } else {
-            startTimestampMillis = sessionStartTime;
-            startTimestampNanos = sessionStartNanoTime;
+
+         if (sessionStartTime != -1 && sessionStartNanoTime != -1) {
+            target[0] = sessionStartTime;
+            target[1] = sessionStartNanoTime;
+            return;
          }
-      } else {
-         startTimestampMillis = System.currentTimeMillis();
-         startTimestampNanos = System.nanoTime();
       }
-      return new long[] { startTimestampMillis, startTimestampNanos };
+      target[0] = System.currentTimeMillis();
+      target[1] = System.nanoTime();
    }
 
    long getStartTimestampMillis(Session session);
