@@ -7,17 +7,22 @@ import io.hyperfoil.api.session.Session;
  */
 public interface StartTimeSource {
 
-   default long[] createStartTimestamp(Session session) {
-      long sessionStartTime = session.scheduledStartTimestamp();
-      long sessionStartNanoTime = session.scheduledStartNanoTime();
+   default long[] createStartTimestamp(Session session, boolean useSessionStartTime) {
       long startTimestampMillis;
       long startTimestampNanos;
-      if (sessionStartTime == -1 || sessionStartNanoTime == -1) {
+      if (useSessionStartTime) {
+         long sessionStartTime = session.scheduledStartTimestamp();
+         long sessionStartNanoTime = session.scheduledStartNanoTime();
+         if (sessionStartTime == -1 || sessionStartNanoTime == -1) {
+            startTimestampMillis = System.currentTimeMillis();
+            startTimestampNanos = System.nanoTime();
+         } else {
+            startTimestampMillis = sessionStartTime;
+            startTimestampNanos = sessionStartNanoTime;
+         }
+      } else {
          startTimestampMillis = System.currentTimeMillis();
          startTimestampNanos = System.nanoTime();
-      } else {
-         startTimestampMillis = sessionStartTime;
-         startTimestampNanos = sessionStartNanoTime;
       }
       return new long[] { startTimestampMillis, startTimestampNanos };
    }

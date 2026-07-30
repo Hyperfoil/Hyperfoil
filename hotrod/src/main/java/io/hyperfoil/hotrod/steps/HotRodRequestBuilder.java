@@ -50,7 +50,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
       SerializableFunction<Session, String> keyGenerator = this.key != null ? this.key.build() : null;
       SerializableFunction<Session, String> valueGenerator = this.value != null ? this.value.build() : null;
       HotRodRequestStep step = new HotRodRequestStep(stepId, key, operation.build(), cacheName.build(), metricSelector,
-            keyGenerator, valueGenerator);
+            keyGenerator, valueGenerator, this.useSessionStartTime);
       HotRodResponseStep secondHotRodStep = new HotRodResponseStep(key);
       return Arrays.asList(step, secondHotRodStep);
    }
