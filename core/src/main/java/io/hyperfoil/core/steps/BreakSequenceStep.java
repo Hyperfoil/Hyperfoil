@@ -87,11 +87,6 @@ public class BreakSequenceStep extends DependencyStep {
                : this.onBreak.stream().map(Action.Builder::build).toArray(Action[]::new);
          return Collections.singletonList(new BreakSequenceStep(dependencies(), condition, onBreak));
       }
-
-      @Override
-      public void doPrepareBuild() {
-
-      }
    }
 
 }

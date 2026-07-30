@@ -118,10 +118,5 @@ public class PollStep<T> implements Step {
          return Collections.singletonList(
                new PollStep<>(provider, SessionFactory.objectAccess(var), filter, recycler, periodMs, maxRetries));
       }
-
-      @Override
-      public void doPrepareBuild() {
-
-      }
    }
 }
