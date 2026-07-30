@@ -199,10 +199,5 @@ public class RandomItemStep implements Step {
          this.file = file;
          return this;
       }
-
-      @Override
-      public void doPrepareBuild() {
-
-      }
    }
 }

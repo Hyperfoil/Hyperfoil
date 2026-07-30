@@ -142,10 +142,5 @@ public class TimestampStep implements Step, ResourceUtilizer {
                pattern != null ? new FormatterKey() : null,
                pattern != null ? () -> new FormatterResource(myPattern, myLocaleCountry) : null));
       }
-
-      @Override
-      public void doPrepareBuild() {
-
-      }
    }
 }

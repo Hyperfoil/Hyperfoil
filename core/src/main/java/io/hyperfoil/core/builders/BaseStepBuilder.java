@@ -30,7 +30,9 @@ public abstract class BaseStepBuilder<T extends BaseStepBuilder<T>> extends Base
       return null;
    }
 
-   public abstract void doPrepareBuild();
+   protected void doPrepareBuild() {
+      // No-op by default. Subclasses can override if needed.
+   }
 
    public T addTo(BaseSequenceBuilder<?> parent) {
       if (this.parent != null) {

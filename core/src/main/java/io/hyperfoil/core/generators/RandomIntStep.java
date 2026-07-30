@@ -117,10 +117,5 @@ public class RandomIntStep implements Step {
          }
          return Collections.singletonList(new RandomIntStep(SessionFactory.intAccess(toVar), min.build(), max.build()));
       }
-
-      @Override
-      public void doPrepareBuild() {
-
-      }
    }
 }

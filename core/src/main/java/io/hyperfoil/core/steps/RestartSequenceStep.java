@@ -49,11 +49,6 @@ public class RestartSequenceStep implements Step {
       public List<Step> build() {
          return Collections.singletonList(new RestartSequenceStep(null));
       }
-
-      @Override
-      public void doPrepareBuild() {
-
-      }
    }
 
    public static class Trigger implements Session.Resource {
