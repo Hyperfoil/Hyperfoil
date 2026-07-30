@@ -12,13 +12,15 @@ import io.hyperfoil.api.config.PluginConfig;
 public class HotRodPluginBuilder extends PluginBuilder<HotRodErgonomics> {
    private final List<HotRodClusterBuilder> clusters = new ArrayList<>();
 
+   private final HotRodErgonomics ergonomics = new HotRodErgonomics(this);
+
    public HotRodPluginBuilder(BenchmarkBuilder parent) {
       super(parent);
    }
 
    @Override
    public HotRodErgonomics ergonomics() {
-      return null;
+      return ergonomics;
    }
 
    @Override
