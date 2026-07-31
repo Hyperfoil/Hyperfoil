@@ -253,21 +253,4 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
       log.info("Test duration: " + TimeUnit.MILLISECONDS.toSeconds(end - start) + "s");
       return statisticsConsumer;
    }
-
-   @Test
-   public void newIdea() throws URISyntaxException {
-      String url = "localhost:8080/fruits";
-      BaseScenarioTest.TestStatistics statisticsConsumer = runWrk2Scenario(6, 30, url, 50000, 2, 5, 1);
-      Map<String, Map<String, StatisticsSnapshot>> phaseStats = statisticsConsumer.phaseStats();
-      Assertions.assertTrue(phaseStats.containsKey("calibration"), "Stats must have values for the 'calibration' phase");
-      Assertions.assertTrue(phaseStats.containsKey("test"), "Stats must have values for the 'test' phase");
-      System.out.println("--------");
-      for (String phase : phaseStats.keySet()) {
-         System.out.println(phase + " " + phaseStats.get(phase).get("request").requestCount + " "
-               + phaseStats.get(phase).get("request").responseCount);
-         System.out.println(Arrays.toString(statisticsConsumer.getAllStatsPerPhase().get(phase).toArray()));
-         System.out.println();
-      }
-      System.out.println("--------");
-   }
 }

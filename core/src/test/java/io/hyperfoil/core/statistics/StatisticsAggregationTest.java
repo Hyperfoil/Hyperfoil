@@ -221,5 +221,10 @@ public class StatisticsAggregationTest {
       public long getStartTimestampNanos(Session session) {
          return 0;
       }
+
+      @Override
+      public long getFiredTimestampMillis(Session session) {
+         return 0;
+      }
    }
 }

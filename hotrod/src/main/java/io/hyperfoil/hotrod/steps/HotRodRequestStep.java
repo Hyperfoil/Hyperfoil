@@ -27,7 +27,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
    final SerializableFunction<Session, String> keyGenerator;
    final SerializableFunction<Session, String> valueGenerator;
    final boolean useSessionStartTime;
-   private final long[] timestamps = new long[2];
+   private final long[] timestamps = new long[3];
 
    protected HotRodRequestStep(int id, HotRodResource.Key futureWrapperKey,
          SerializableFunction<Session, HotRodOperation> operation,
@@ -69,8 +69,6 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       HotRodResource resource = session.getResource(futureWrapperKey);
 
       this.createStartTimestamp(session, this.useSessionStartTime, timestamps);
-      long startTimestampMs = timestamps[0];
-      long startTimestampNanos = timestamps[1];
 
       CompletableFuture future;
       if (HotRodOperation.PUT.equals(operation)) {
@@ -81,7 +79,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
          throw new IllegalArgumentException(String.format("HotRodOperation %s not implemented", operation));
       }
 
-      resource.set(future, startTimestampNanos, startTimestampMs);
+      resource.set(future, timestamps[1], timestamps[0], timestamps[2]);
       statistics.incrementRequests(this, session);
 
       future.exceptionally(t -> {
@@ -133,5 +131,12 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       assert session.executor().inEventLoop();
       HotRodResource resource = session.getResource(futureWrapperKey);
       return resource.getStartTimestampNanos();
+   }
+
+   @Override
+   public long getFiredTimestampMillis(Session session) {
+      assert session.executor().inEventLoop();
+      HotRodResource resource = session.getResource(futureWrapperKey);
+      return resource.getFiredTimestampMillis();
    }
 }

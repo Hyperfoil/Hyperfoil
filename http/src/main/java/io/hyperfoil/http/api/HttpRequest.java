@@ -157,4 +157,9 @@ public class HttpRequest extends Request {
    public long getStartTimestampNanos(Session session) {
       return this.startTimestampNanos();
    }
+
+   @Override
+   public long getFiredTimestampMillis(Session session) {
+      return this.firedTimestampMillis();
+   }
 }

@@ -98,5 +98,10 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       public long getStartTimestampNanos(Session session) {
          throw new IllegalStateException("Not allowed to call this method");
       }
+
+      @Override
+      public long getFiredTimestampMillis(Session session) {
+         return System.currentTimeMillis();
+      }
    }
 }
