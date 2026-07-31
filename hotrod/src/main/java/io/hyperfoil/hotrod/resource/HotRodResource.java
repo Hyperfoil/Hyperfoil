@@ -11,11 +11,10 @@ public class HotRodResource implements Session.Resource {
    private long firedTimestampMillis;
    private CompletableFuture future;
 
-   public void set(CompletableFuture future, long startTimestampNanos, long startTimestampMillis, long firedTimestampMillis) {
+   public void set(CompletableFuture future, long startTimestampNanos, long startTimestampMillis) {
       this.future = future;
       this.startTimestampNanos = startTimestampNanos;
       this.startTimestampMillis = startTimestampMillis;
-      this.firedTimestampMillis = firedTimestampMillis;
    }
 
    public boolean isComplete() {
@@ -32,6 +31,10 @@ public class HotRodResource implements Session.Resource {
 
    public long getFiredTimestampMillis() {
       return firedTimestampMillis;
+   }
+
+   public void setFiredTimestampMillis(long firedTimestampMillis) {
+      this.firedTimestampMillis = firedTimestampMillis;
    }
 
    public static class Key implements Session.ResourceKey<HotRodResource> {

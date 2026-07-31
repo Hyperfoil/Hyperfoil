@@ -25,7 +25,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    };
 
    public final Session session;
-   private final long[] timestamps = new long[3];
+   private final long[] timestamps = new long[2];
    private long startTimestampMillis;
    private long startTimestampNanos;
    private long firedTimestampMillis;
@@ -72,7 +72,6 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       createStartTimestamp(session, useSessionStartTime, timestamps);
       startTimestampMillis = timestamps[0];
       startTimestampNanos = timestamps[1];
-      firedTimestampMillis = timestamps[2];
 
       log.debug("request start time: {}",
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date(startTimestampMillis)));
@@ -157,6 +156,11 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
 
    public long firedTimestampMillis() {
       return this.firedTimestampMillis;
+   }
+
+   @Override
+   public void setFiredTimestampMillis(Session session) {
+      this.firedTimestampMillis = System.currentTimeMillis();
    }
 
    public void setTimeout(long timeout, TimeUnit timeUnit) {

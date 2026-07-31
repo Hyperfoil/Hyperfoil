@@ -134,7 +134,8 @@ public class Statistics {
    public void incrementBlockedTime(StartTimeSource source, long blockedTime, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(source, session);
+         // it can be or not fired. track always as intended time
+         StatisticsSnapshot active = active(source.getStartTimestampMillis(session));
          active.blockedTime += blockedTime;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
@@ -263,6 +264,10 @@ public class Statistics {
    private StatisticsSnapshot active(StartTimeSource source, Session session) {
       long recordTimestampMillis = source.getFiredTimestampMillis(session);
       assert recordTimestampMillis > 0;
+      return this.active(recordTimestampMillis);
+   }
+
+   private StatisticsSnapshot active(long recordTimestampMillis) {
       int index = (int) ((recordTimestampMillis - startTimestamp) / SAMPLING_PERIOD_MILLIS);
       String str = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date(recordTimestampMillis));
       log.debug("get active statistic with {} and index={}", str, index);
