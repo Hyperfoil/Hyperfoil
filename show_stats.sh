@@ -1,3 +1,5 @@
+echo "taskset -c 2-5 jbang /home/dlovison/github/Hyperfoil/Hyperfoil/MockHttpServer.java --port 8080 --think-time 2000 --threads 4"
+
 awk '
 $8 ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ { last_date = $8 }
 
