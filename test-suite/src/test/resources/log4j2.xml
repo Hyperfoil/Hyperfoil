@@ -13,7 +13,7 @@
 
     <Loggers>
         <Logger name="io.hyperfoil" level="TRACE"/>
-        <Logger name="org.jgroups" level="TRACE"/>
+        <Logger name="org.jgroups" level="INFO"/>
         <Logger name="org.infinispan" level="INFO"/>
         <Logger name="io.vertx" level="INFO"/>
         <Logger name="io.netty" level="INFO"/>
@@ -21,7 +21,7 @@
         <Root level="DEBUG">
             <AppenderRef ref="STDOUT" level="DEBUG"/>
 
-            <AppenderRef ref="FILE" level="INFO"/>
+            <AppenderRef ref="FILE" level="DEBUG"/>
         </Root>
     </Loggers>
 </Configuration>

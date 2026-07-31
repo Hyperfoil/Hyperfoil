@@ -83,8 +83,6 @@ public class Statistics {
       }
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         log.debug("get active statistic with {}",
-               new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date(startTimestamp)), startTimestamp);
          StatisticsSnapshot active = active(source, session);
          active.histogram.recordValue(responseTime);
          active.responseCount++;
@@ -263,15 +261,17 @@ public class Statistics {
    }
 
    private StatisticsSnapshot active(StartTimeSource source, Session session) {
-      long startTimestampMillis = source.getStartTimestampMillis(session);
-      assert startTimestampMillis > 0;
-      int index = (int) ((startTimestampMillis - startTimestamp) / SAMPLING_PERIOD_MILLIS);
+      long recordTimestampMillis = source.getFiredTimestampMillis(session);
+      assert recordTimestampMillis > 0;
+      int index = (int) ((recordTimestampMillis - startTimestamp) / SAMPLING_PERIOD_MILLIS);
+      String str = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date(recordTimestampMillis));
+      log.debug("get active statistic with {} and index={}", str, index);
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
       if (index >= active.length()) {
          active = resizeArray(active, index);
          this.active = active;
       } else if (index < 0) {
-         log.error("Record start timestamp {} predates statistics start {}", startTimestampMillis,
+         log.error("Record start timestamp {} predates statistics start {}", recordTimestampMillis,
                startTimestamp);
          index = 0;
       }
