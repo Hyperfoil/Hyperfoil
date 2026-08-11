@@ -90,7 +90,8 @@
         <version.wildfly-common>1.7.0.Final</version.wildfly-common>
         <!-- end vertx-infinispan -->
 
-        <version.aesh>3.16.2</version.aesh>
+        <version.aesh>3.16.8</version.aesh>
+        <version.aesh-readline>3.16.4</version.aesh-readline>
         <version.assertj>3.27.7</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
         <version.fabric8.kubernetes-client>7.8.0</version.fabric8.kubernetes-client>
@@ -327,7 +328,7 @@
             <dependency>
                 <groupId>org.aesh</groupId>
                 <artifactId>readline</artifactId>
-                <version>${version.aesh}</version>
+                <version>${version.aesh-readline}</version>
             </dependency>
 
             <dependency>
