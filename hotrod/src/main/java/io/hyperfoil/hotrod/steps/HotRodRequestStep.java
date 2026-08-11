@@ -27,7 +27,6 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
    final SerializableFunction<Session, String> keyGenerator;
    final SerializableFunction<Session, String> valueGenerator;
    final boolean useSessionStartTime;
-   private final long[] timestamps = new long[2];
 
    protected HotRodRequestStep(int id, HotRodResource.Key futureWrapperKey,
          SerializableFunction<Session, HotRodOperation> operation,
@@ -68,9 +67,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
 
       HotRodResource resource = session.getResource(futureWrapperKey);
 
-      this.createStartTimestamp(session, this.useSessionStartTime, timestamps);
-      long startTimestampMs = timestamps[0];
-      long startTimestampNanos = timestamps[1];
+      this.createStartTimestamp(session, this.useSessionStartTime, resource.timestamps);
 
       CompletableFuture future;
       if (HotRodOperation.PUT.equals(operation)) {
@@ -81,7 +78,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
          throw new IllegalArgumentException(String.format("HotRodOperation %s not implemented", operation));
       }
 
-      resource.set(future, startTimestampNanos, startTimestampMs);
+      resource.set(future);
       statistics.incrementRequests(this, session);
 
       future.exceptionally(t -> {

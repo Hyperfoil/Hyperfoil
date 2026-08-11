@@ -6,14 +6,11 @@ import io.hyperfoil.api.session.Session;
 
 public class HotRodResource implements Session.Resource {
 
-   private long startTimestampNanos;
-   private long startTimestampMillis;
+   public final long[] timestamps = new long[2];
    private CompletableFuture future;
 
-   public void set(CompletableFuture future, long startTimestampNanos, long startTimestampMillis) {
+   public void set(CompletableFuture future) {
       this.future = future;
-      this.startTimestampNanos = startTimestampNanos;
-      this.startTimestampMillis = startTimestampMillis;
    }
 
    public boolean isComplete() {
@@ -21,11 +18,11 @@ public class HotRodResource implements Session.Resource {
    }
 
    public long getStartTimestampMillis() {
-      return startTimestampMillis;
+      return timestamps[0];
    }
 
    public long getStartTimestampNanos() {
-      return startTimestampNanos;
+      return timestamps[1];
    }
 
    public static class Key implements Session.ResourceKey<HotRodResource> {
