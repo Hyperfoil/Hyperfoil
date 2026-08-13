@@ -21,6 +21,7 @@ public interface StartTimeSource {
     * @param target a pre-allocated {@code long[]} buffer to store [millis, nanos]
     */
    default void createStartTimestamp(Session session, boolean useSessionStartTime, long[] target) {
+      assert target.length == 2;
       if (useSessionStartTime) {
          long sessionStartTime = session.scheduledStartTimestamp();
          long sessionStartNanoTime = session.scheduledStartNanoTime();
@@ -38,4 +39,8 @@ public interface StartTimeSource {
    long getStartTimestampMillis(Session session);
 
    long getStartTimestampNanos(Session session);
+
+   long getFiredTimestampMillis(Session session);
+
+   void setFiredTimestampMillis(Session session);
 }

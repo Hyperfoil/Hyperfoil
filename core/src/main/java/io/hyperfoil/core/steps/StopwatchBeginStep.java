@@ -31,6 +31,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       if (!key.isSet(session)) {
          StartTime startTime = (StartTime) key.activate(session);
          startTime.createStartTimestamp(session, useSessionStartTime, startTime.timestamps);
+         startTime.firedTimestampMillis = System.currentTimeMillis();
       }
       return true;
    }
@@ -43,6 +44,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
 
    static class StartTime implements StartTimeSource {
       final long[] timestamps = new long[2];
+      long firedTimestampMillis;
 
       @Override
       public long getStartTimestampMillis(Session session) {
@@ -52,6 +54,16 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       @Override
       public long getStartTimestampNanos(Session session) {
          return this.timestamps[1];
+      }
+
+      @Override
+      public long getFiredTimestampMillis(Session session) {
+         return this.firedTimestampMillis;
+      }
+
+      @Override
+      public void setFiredTimestampMillis(Session session) {
+         this.firedTimestampMillis = System.currentTimeMillis();
       }
    }
 
