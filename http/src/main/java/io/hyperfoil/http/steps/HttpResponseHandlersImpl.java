@@ -128,7 +128,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
                break;
          }
 
-         HttpStats.addStatus(request.statistics(), request.startTimestampMillis(), status);
+         HttpStats.addStatus(request.statistics(), request, status);
          if (statusHandlers != null) {
             for (StatusHandler handler : statusHandlers) {
                handler.handleStatus(request, status);
@@ -149,7 +149,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          throw e;
       } catch (Throwable t) {
          log.error(new FormattedMessage("#{} Response status processing failed on {}", session.uniqueId(), this), t);
-         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.statistics().incrementInternalErrors(request, session);
          request.markInvalid();
          session.stop();
       }
@@ -187,7 +187,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          throw e;
       } catch (Throwable t) {
          log.error(new FormattedMessage("#{} Response header processing failed on {}", session.uniqueId(), this), t);
-         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.statistics().incrementInternalErrors(request, session);
          request.markInvalid();
          session.stop();
       }
@@ -212,7 +212,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
 
       try {
          if (request.isRunning()) {
-            request.statistics().incrementConnectionErrors(request.startTimestampMillis());
+            request.statistics().incrementConnectionErrors(request, session);
             request.setCompleting();
             if (completionHandlers != null) {
                for (Action handler : completionHandlers) {
@@ -226,7 +226,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          t.addSuppressed(throwable);
          log.error(new FormattedMessage("#{} Exception {} thrown while handling another exception: ", session.uniqueId(),
                throwable.toString()), t);
-         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.statistics().incrementInternalErrors(request, session);
          session.stop();
       } finally {
          request.setCompleted();
@@ -260,7 +260,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          throw e;
       } catch (Throwable t) {
          log.error(new FormattedMessage("#{} Response body processing failed on {}", session.uniqueId(), this), t);
-         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.statistics().incrementInternalErrors(request, session);
          request.markInvalid();
          session.stop();
       }
@@ -312,7 +312,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
       } catch (Throwable t) {
          log.error(new FormattedMessage("#{} Response completion failed on {}, stopping the session.",
                request.session.uniqueId(), this), t);
-         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.statistics().incrementInternalErrors(request, session);
          request.markInvalid();
          session.stop();
       } finally {
@@ -321,7 +321,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          // when cancelling all the request (including the current request) and we record the invalid
          // request directly there.
          if (executed && !request.isValid() && !request.isCompleted()) {
-            request.statistics().addInvalid(request.startTimestampMillis());
+            request.statistics().addInvalid(request, request.session);
          }
          request.setCompleted();
       }
@@ -523,6 +523,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          return this;
       }
 
+      @Override
       public void prepareBuild() {
          HttpErgonomics ergonomics = Locator.current().benchmark().plugin(HttpPluginBuilder.class).ergonomics();
          if (ergonomics.repeatCookies()) {

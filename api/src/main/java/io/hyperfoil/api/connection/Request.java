@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -13,7 +14,7 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ScheduledFuture;
 
-public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
+public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>>, StartTimeSource {
    private static final Logger log = LogManager.getLogger(Request.class);
    private static final GenericFutureListener<Future<Object>> FAILURE_LISTENER = future -> {
       if (!future.isSuccess() && !future.isCancelled()) {
@@ -22,6 +23,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    };
 
    public final Session session;
+   private final long[] timestamps = new long[2];
    private long startTimestampMillis;
    private long startTimestampNanos;
    private SequenceInstance sequence;
@@ -46,7 +48,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       timeoutFuture = null;
       if (status != Status.COMPLETED) {
          result = Result.TIMED_OUT;
-         statistics.incrementTimeouts(startTimestampMillis);
+         statistics.incrementTimeouts(this, session);
          if (connection == null) {
             log.warn("#{} connection is already null", uniqueId);
          } else {
@@ -64,20 +66,9 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void start(SequenceInstance sequence, Statistics statistics, boolean useSessionStartTime) {
-      if (useSessionStartTime) {
-         long sessionStartTime = session.scheduledStartTimestamp();
-         long sessionStartNanoTime = session.scheduledStartNanoTime();
-         if (sessionStartTime == -1 || sessionStartNanoTime == -1) {
-            startTimestampMillis = System.currentTimeMillis();
-            startTimestampNanos = System.nanoTime();
-         } else {
-            startTimestampMillis = sessionStartTime;
-            startTimestampNanos = sessionStartNanoTime;
-         }
-      } else {
-         startTimestampMillis = System.currentTimeMillis();
-         startTimestampNanos = System.nanoTime();
-      }
+      createStartTimestamp(session, useSessionStartTime, timestamps);
+      startTimestampMillis = timestamps[0];
+      startTimestampNanos = timestamps[1];
       this.sequence = sequence;
       // The reason for using separate sequence reference just for the sake of decrementing
       // its counter is that the request sequence might be overridden (wrapped) through
@@ -145,7 +136,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void recordResponse(long endTimestampNanos) {
-      statistics.recordResponse(startTimestampMillis, endTimestampNanos - startTimestampNanos);
+      statistics.recordResponse(this, endTimestampNanos - startTimestampNanos, session);
    }
 
    public long startTimestampMillis() {

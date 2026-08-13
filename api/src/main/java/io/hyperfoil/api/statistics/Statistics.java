@@ -11,6 +11,9 @@ import org.HdrHistogram.WriterReaderPhaser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.hyperfoil.api.config.StartTimeSource;
+import io.hyperfoil.api.session.Session;
+
 /**
  * This is a copy/subset of {@link SingleWriterRecorder} but uses {@link StatisticsSnapshot} instead of only
  * the histogram.
@@ -55,7 +58,7 @@ public class Statistics {
       highestTrackableValue = first.histogram.getHighestTrackableValue();
    }
 
-   public void recordResponse(long startTimestamp, long responseTime) {
+   public void recordResponse(StartTimeSource source, long responseTime, Session session) {
       if (responseTime > highestTrackableValue) {
          // we don't use auto-resize histograms
          long lastWarn = lastWarnThrottle.get();
@@ -78,7 +81,7 @@ public class Statistics {
       }
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(startTimestamp);
+         StatisticsSnapshot active = active(source, session);
          active.histogram.recordValue(responseTime);
          active.responseCount++;
       } finally {
@@ -86,94 +89,87 @@ public class Statistics {
       }
    }
 
-   public void incrementRequests(long timestamp) {
+   public void incrementRequests(StartTimeSource source, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(timestamp);
+         StatisticsSnapshot active = active(source, session);
          active.requestCount++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   public void incrementTimeouts(long timestamp) {
+   public void incrementTimeouts(StartTimeSource source, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(timestamp);
+         StatisticsSnapshot active = active(source, session);
          active.requestTimeouts++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   public void incrementConnectionErrors(long timestamp) {
+   public void incrementConnectionErrors(StartTimeSource source, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(timestamp);
+         StatisticsSnapshot active = active(source, session);
          active.connectionErrors++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   public void incrementInternalErrors(long timestamp) {
+   public void incrementInternalErrors(StartTimeSource source, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(timestamp);
+         StatisticsSnapshot active = active(source, session);
          active.internalErrors++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   public void incrementBlockedTime(long timestamp, long blockedTime) {
+   public void incrementBlockedTime(StartTimeSource source, long blockedTime, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(timestamp);
+         StatisticsSnapshot active = active(source, session);
          active.blockedTime += blockedTime;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, LongUpdater<C> updater,
-         long value) {
+   public <C extends StatsExtension> void update(String key, StartTimeSource source, Supplier<C> creator,
+         LongUpdater<C> updater, long value, Session session) {
+      executeUpdate(key, source, creator, session, custom -> updater.update(custom, value));
+   }
+
+   public <C extends StatsExtension> void update(String key, StartTimeSource source, Supplier<C> creator,
+         ObjectUpdater<C> updater, Object value, Session session) {
+      executeUpdate(key, source, creator, session, custom -> updater.update(custom, value));
+   }
+
+   private <C extends StatsExtension> void executeUpdate(
+         String key, StartTimeSource source, Supplier<C> creator, Session session, Consumer<C> action) {
+
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(timestamp);
+         StatisticsSnapshot active = active(source, session);
          StatsExtension custom = active.extensions.get(key);
          if (custom == null) {
             custom = creator.get();
             active.extensions.put(key, custom);
          }
-         //noinspection unchecked
-         updater.update((C) custom, value);
+         action.accept((C) custom);
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, ObjectUpdater<C> updater,
-         Object value) {
+   public void addInvalid(StartTimeSource source, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(timestamp);
-         StatsExtension custom = active.extensions.get(key);
-         if (custom == null) {
-            custom = creator.get();
-            active.extensions.put(key, custom);
-         }
-         //noinspection unchecked
-         updater.update((C) custom, value);
-      } finally {
-         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
-      }
-   }
-
-   public void addInvalid(long timestamp) {
-      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
-      try {
-         StatisticsSnapshot active = active(timestamp);
+         StatisticsSnapshot active = active(source, session);
          active.invalid++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
@@ -262,14 +258,17 @@ public class Statistics {
       }
    }
 
-   private StatisticsSnapshot active(long timestamp) {
-      int index = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
+   private StatisticsSnapshot active(StartTimeSource source, Session session) {
+      long startTimestampMillis = source.getStartTimestampMillis(session);
+      assert startTimestampMillis > 0;
+      int index = (int) ((startTimestampMillis - startTimestamp) / SAMPLING_PERIOD_MILLIS);
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
       if (index >= active.length()) {
          active = resizeArray(active, index);
          this.active = active;
       } else if (index < 0) {
-         log.error("Record start timestamp {} predates statistics start {}", timestamp, startTimestamp);
+         log.error("Record start timestamp {} predates statistics start {}", startTimestampMillis,
+               startTimestamp);
          index = 0;
       }
       StatisticsSnapshot snapshot = active.get(index);

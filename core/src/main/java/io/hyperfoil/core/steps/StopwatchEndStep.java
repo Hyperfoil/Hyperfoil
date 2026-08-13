@@ -19,8 +19,8 @@ public class StopwatchEndStep extends StatisticsStep {
       long now = System.nanoTime();
       StopwatchBeginStep.StartTime startTime = (StopwatchBeginStep.StartTime) key.getObject(session);
       Statistics statistics = session.statistics(id(), metrics);
-      statistics.incrementRequests(startTime.timestampMillis);
-      statistics.recordResponse(startTime.timestampMillis, now - startTime.timestampNanos);
+      statistics.incrementRequests(startTime, session);
+      statistics.recordResponse(startTime, now - startTime.getStartTimestampNanos(session), session);
       // TODO: record any request/response counts?
       return true;
    }

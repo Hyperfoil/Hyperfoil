@@ -208,7 +208,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public void prepareBuild() {
+      public void doPrepareBuild() {
          if (key == null) {
             throw new BenchmarkDefinitionException("Key was not defined.");
          }
@@ -275,7 +275,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public void prepareBuild() {
+      public void doPrepareBuild() {
          key = new Unique();
          if (Locator.current().sequence().rootSequence().concurrency() > 0) {
             keyAccess = SessionFactory.sequenceScopedObjectAccess(key);

@@ -261,6 +261,7 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
       return useHttpCache;
    }
 
+   @Override
    public void prepareBuild() {
    }
 

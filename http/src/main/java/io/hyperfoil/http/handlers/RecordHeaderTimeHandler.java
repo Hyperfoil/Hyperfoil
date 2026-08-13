@@ -48,8 +48,8 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       }
       Statistics statistics = request.session.statistics(stepId, this.statistics);
       // we need to set both requests and responses to calculate stats properly
-      statistics.incrementRequests(request.startTimestampMillis());
-      statistics.recordResponse(request.startTimestampMillis(), longValue);
+      statistics.incrementRequests(request, request.session);
+      statistics.recordResponse(request, longValue, request.session);
    }
 
    /**

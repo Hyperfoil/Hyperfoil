@@ -8,6 +8,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.StartTimeSource;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.ObjectAccess;
@@ -17,9 +18,11 @@ import io.hyperfoil.core.session.SessionFactory;
 
 public class StopwatchBeginStep implements Step, ResourceUtilizer {
    private final ObjectAccess key;
+   private final boolean useSessionStartTime;
 
-   public StopwatchBeginStep(ObjectAccess key) {
+   public StopwatchBeginStep(ObjectAccess key, boolean useSessionStartTime) {
       this.key = key;
+      this.useSessionStartTime = useSessionStartTime;
    }
 
    @Override
@@ -27,8 +30,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       // Setting timestamp only when it's set allows looping into stopwatch
       if (!key.isSet(session)) {
          StartTime startTime = (StartTime) key.activate(session);
-         startTime.timestampMillis = System.currentTimeMillis();
-         startTime.timestampNanos = System.nanoTime();
+         startTime.createStartTimestamp(session, useSessionStartTime, startTime.timestamps);
       }
       return true;
    }
@@ -39,9 +41,18 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       key.unset(session);
    }
 
-   static class StartTime {
-      long timestampMillis;
-      long timestampNanos;
+   static class StartTime implements StartTimeSource {
+      final long[] timestamps = new long[2];
+
+      @Override
+      public long getStartTimestampMillis(Session session) {
+         return this.timestamps[0];
+      }
+
+      @Override
+      public long getStartTimestampNanos(Session session) {
+         return this.timestamps[1];
+      }
    }
 
    /**
@@ -68,7 +79,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
          // .step() as that is going to be shadowed for each step in buildSteps()
          List<Step> steps = new ArrayList<>();
          Object key = new Object();
-         steps.add(new StopwatchBeginStep(SessionFactory.objectAccess(key)));
+         steps.add(new StopwatchBeginStep(SessionFactory.objectAccess(key), useSessionStartTime));
          steps.addAll(super.buildSteps());
          steps.add(new StopwatchEndStep(SessionFactory.readAccess(key), name()));
          return steps;

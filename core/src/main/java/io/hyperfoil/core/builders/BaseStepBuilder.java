@@ -2,11 +2,37 @@ package io.hyperfoil.core.builders;
 
 import java.util.Objects;
 
+import io.hyperfoil.api.config.BaseBuilder;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.PluginBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 
-public abstract class BaseStepBuilder<T extends BaseStepBuilder<T>> implements StepBuilder<T> {
+public abstract class BaseStepBuilder<T extends BaseStepBuilder<T>> extends BaseBuilder implements StepBuilder<T> {
+
    private BaseSequenceBuilder<?> parent;
+   private boolean prepared = false;
+
+   @Override
+   public final void prepareBuild() {
+      if (prepared) {
+         return;
+      }
+      prepared = true;
+
+      prepare(pluginClass(), this);
+
+      doPrepareBuild();
+      StepBuilder.super.prepareBuild();
+   }
+
+   @SuppressWarnings("rawtypes")
+   protected Class<? extends PluginBuilder> pluginClass() {
+      return null;
+   }
+
+   protected void doPrepareBuild() {
+      // No-op by default. Subclasses can override if needed.
+   }
 
    public T addTo(BaseSequenceBuilder<?> parent) {
       if (this.parent != null) {

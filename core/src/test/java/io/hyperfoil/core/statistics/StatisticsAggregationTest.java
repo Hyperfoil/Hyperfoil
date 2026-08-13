@@ -10,6 +10,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
 
+import io.hyperfoil.api.config.StartTimeSource;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 
 public class StatisticsAggregationTest {
@@ -89,7 +91,7 @@ public class StatisticsAggregationTest {
    public void testSingleEntryBeyondInitialArraySize() {
       long timestamp = baseTime + (20 * millis);
       Statistics stats = new Statistics(baseTime);
-      stats.recordResponse(timestamp, 100_000);
+      stats.recordResponse(new TestStartTimeSource(timestamp), 100_000, null);
       stats.end(timestamp + millis);
 
       Map<Long, Integer> statsPerTimestamp = new HashMap<>();
@@ -109,7 +111,7 @@ public class StatisticsAggregationTest {
       Statistics stats = new Statistics(baseTime);
 
       for (int i = 1; i <= 5; i++) {
-         stats.recordResponse(baseTime + (i * millis), 100_000);
+         stats.recordResponse(new TestStartTimeSource(baseTime + (i * millis)), 100_000, null);
       }
 
       // Last index withheld (phase not ended), so indices 1-4 published
@@ -124,7 +126,7 @@ public class StatisticsAggregationTest {
 
       // Record beyond initial array size, forcing resize
       for (int i = 20; i <= 25; i++) {
-         stats.recordResponse(baseTime + (i * millis), 100_000);
+         stats.recordResponse(new TestStartTimeSource(baseTime + (i * millis)), 100_000, null);
       }
 
       // Inactive resized before swap; indices 20-24 published (25 withheld)
@@ -163,7 +165,7 @@ public class StatisticsAggregationTest {
          long timestamp = entry.getKey();
          int count = entry.getValue();
          for (int i = 0; i < count; i++) {
-            stats.recordResponse(timestamp, 100_000);
+            stats.recordResponse(new TestStartTimeSource(timestamp), 100_000, null);
          }
          totalRecorded += count;
          end = timestamp + millis;
@@ -199,6 +201,25 @@ public class StatisticsAggregationTest {
          int value = entry.getValue();
          int stat = statsPerTimestamp.getOrDefault(timestamp, 0);
          assertEquals(value, stat, "Timestamp " + timestamp + ": value=" + value + " but Statistics=" + stat);
+      }
+   }
+
+   class TestStartTimeSource implements StartTimeSource {
+
+      private final long startTimestampMillis;
+
+      TestStartTimeSource(long startTimestampMillis) {
+         this.startTimestampMillis = startTimestampMillis;
+      }
+
+      @Override
+      public long getStartTimestampMillis(Session session) {
+         return this.startTimestampMillis;
+      }
+
+      @Override
+      public long getStartTimestampNanos(Session session) {
+         return 0;
       }
    }
 }

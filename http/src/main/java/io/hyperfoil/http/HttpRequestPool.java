@@ -50,7 +50,7 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
             // sending stats before recording the invalid request in HttpResponseHandlersImpl.handleEnd().
             // That's why we record it here instead and mark the request as completed (to recording the stats twice)
             if (!request.isValid()) {
-               request.statistics().addInvalid(request.startTimestampMillis());
+               request.statistics().addInvalid(request, request.session);
             }
             if (trace) {
                log.trace("Canceling request {} to {}", request, request.connection());

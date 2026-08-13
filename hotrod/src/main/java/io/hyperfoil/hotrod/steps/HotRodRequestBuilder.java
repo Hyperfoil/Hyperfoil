@@ -8,6 +8,7 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.PluginBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Session;
@@ -20,6 +21,7 @@ import io.hyperfoil.core.metric.ProvidedMetricSelector;
 import io.hyperfoil.core.steps.StatisticsStep;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.hotrod.api.HotRodOperation;
+import io.hyperfoil.hotrod.config.HotRodPluginBuilder;
 import io.hyperfoil.hotrod.resource.HotRodResource;
 
 /**
@@ -36,7 +38,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
    private StringGeneratorBuilder value;
 
    @Override
-   public void prepareBuild() {
+   public void doPrepareBuild() {
       if (metricSelector == null) {
          String sequenceName = Locator.current().sequence().name();
          metricSelector = new ProvidedMetricSelector(sequenceName);
@@ -50,7 +52,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
       SerializableFunction<Session, String> keyGenerator = this.key != null ? this.key.build() : null;
       SerializableFunction<Session, String> valueGenerator = this.value != null ? this.value.build() : null;
       HotRodRequestStep step = new HotRodRequestStep(stepId, key, operation.build(), cacheName.build(), metricSelector,
-            keyGenerator, valueGenerator);
+            keyGenerator, valueGenerator, this.useSessionStartTime);
       HotRodResponseStep secondHotRodStep = new HotRodResponseStep(key);
       return Arrays.asList(step, secondHotRodStep);
    }
@@ -185,5 +187,10 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
     */
    public HotRodRequestBuilder get(String cacheName) {
       return operation(HotRodOperation.GET).cacheName(cacheName);
+   }
+
+   @Override
+   protected Class<? extends PluginBuilder> pluginClass() {
+      return HotRodPluginBuilder.class;
    }
 }

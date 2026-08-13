@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import io.hyperfoil.impl.StepCatalogFactory;
 
-public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> implements BuilderBase<S> {
+public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> extends BaseBuilder implements BuilderBase<S> {
    private static final Map<Class<? extends Step.Catalog>, StepCatalogFactory> factories = new HashMap<>();
 
    protected final BaseSequenceBuilder<?> parent;
@@ -94,6 +94,7 @@ public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> impl
       throw new NoSuchElementException("Not found: " + locator.step());
    }
 
+   @Override
    public void prepareBuild() {
       // We need to make a defensive copy as prepareBuild() may trigger modifications
       new ArrayList<>(steps).forEach(stepBuilder -> {
