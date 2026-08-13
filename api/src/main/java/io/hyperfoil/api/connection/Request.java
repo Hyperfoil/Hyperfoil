@@ -26,6 +26,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    private final long[] timestamps = new long[2];
    private long startTimestampMillis;
    private long startTimestampNanos;
+   private long firedTimestampMillis;
    private SequenceInstance sequence;
    private SequenceInstance completionSequence;
    private Statistics statistics;
@@ -145,6 +146,15 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
 
    public long startTimestampNanos() {
       return startTimestampNanos;
+   }
+
+   public long firedTimestampMillis() {
+      return this.firedTimestampMillis;
+   }
+
+   @Override
+   public void setFiredTimestampMillis(Session session) {
+      this.firedTimestampMillis = System.currentTimeMillis();
    }
 
    public void setTimeout(long timeout, TimeUnit timeUnit) {

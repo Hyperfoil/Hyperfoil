@@ -76,6 +76,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       public double period;
       public ScheduledFuture<?> future;
       public PhaseInstance phase;
+      private long firedTimestampMillis;
 
       public long lastStartTime() {
          return startTimeWithOffset + (long) ((iteration - 1) * period);
@@ -97,6 +98,16 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       @Override
       public long getStartTimestampNanos(Session session) {
          throw new IllegalStateException("Not allowed to call this method");
+      }
+
+      @Override
+      public long getFiredTimestampMillis(Session session) {
+         return this.firedTimestampMillis;
+      }
+
+      @Override
+      public void setFiredTimestampMillis(Session session) {
+         this.firedTimestampMillis = System.currentTimeMillis();
       }
    }
 }
