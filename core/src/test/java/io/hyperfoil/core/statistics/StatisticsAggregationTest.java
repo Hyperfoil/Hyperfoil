@@ -207,9 +207,11 @@ public class StatisticsAggregationTest {
    class TestStartTimeSource implements StartTimeSource {
 
       private final long startTimestampMillis;
+      private final long firedTimestampMillis;
 
-      TestStartTimeSource(long startTimestampMillis) {
-         this.startTimestampMillis = startTimestampMillis;
+      TestStartTimeSource(long timestampMillis) {
+         this.startTimestampMillis = timestampMillis;
+         this.firedTimestampMillis = timestampMillis;
       }
 
       @Override
@@ -220,6 +222,16 @@ public class StatisticsAggregationTest {
       @Override
       public long getStartTimestampNanos(Session session) {
          return 0;
+      }
+
+      @Override
+      public long getFiredTimestampMillis(Session session) {
+         return this.firedTimestampMillis;
+      }
+
+      @Override
+      public void setFiredTimestampMillis(Session session) {
+         throw new UnsupportedOperationException("Use the constructor instead");
       }
    }
 }
