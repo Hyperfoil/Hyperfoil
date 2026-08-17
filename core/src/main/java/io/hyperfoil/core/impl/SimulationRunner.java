@@ -548,7 +548,7 @@ public class SimulationRunner {
       log.info("GC execution took {} ms", (System.currentTimeMillis() - actualGCRun));
    }
 
-   private void checkNativeTransportForSubMillisecondTiming() {
+   public boolean checkNativeTransportForSubMillisecondTiming() {
       boolean requiresSubMillisecondPrecision = false;
       double threshold = 1000.0;
       for (Phase phase : benchmark.phases()) {
@@ -590,6 +590,7 @@ public class SimulationRunner {
                   "Sub-millisecond rate detected but native epoll transport is unavailable. Timing precision may be limited to millisecond granularity.");
          }
       }
+      return requiresSubMillisecondPrecision;
    }
 
    private static class SharedResources {
