@@ -149,7 +149,7 @@ public class WrkTest extends BaseWrkBenchmarkTest {
    public void testWrk2ReqSec() throws CommandNotFoundException {
       int seconds = 5;
       Wrk2 cmd = new Wrk2();
-      int result = cmd.exec(new String[] { "-t", "1", "-c", "5", "-d", seconds + "s", "-R", "2000", "--timeout", "2s",
+      int result = cmd.exec(new String[] { "-t", "1", "-c", "5", "-d", seconds + "s", "-R", "1000", "--timeout", "1s",
             "localhost:" + httpServer.actualPort() + "/50ms" });
 
       CommandContainer<HyperfoilCommandInvocation> commandContainer = cmd.getCommandRegistry().getCommand("wrk2", null);
