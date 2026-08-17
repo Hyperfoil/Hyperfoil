@@ -60,6 +60,11 @@ public abstract class BaseWrkBenchmarkTest extends BaseBenchmarkTest {
             ctx.response().end("1s");
          });
       });
+      router.route("/50ms").handler(ctx -> {
+         ctx.vertx().setTimer(50, id -> {
+            ctx.response().end("50ms!");
+         });
+      });
       return router;
    }
 }

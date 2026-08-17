@@ -173,7 +173,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          boolean result = awaitBenchmarkResult(run, invocation);
 
          RequestStatisticsResponse total = run.statsTotal();
-         wrkCommandResult = new WrkCommandResult(run, total);
+         wrkCommandResult = new WrkCommandResult(run, total, run.series("test", 0, "request"));
 
          if (result) {
             if (output != null && !output.isBlank()) {
@@ -249,7 +249,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs);
 
       private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series,
-            CommandInvocation invocation) {
+                              CommandInvocation invocation) {
          TransferSizeRecorder.Stats transferStats = (TransferSizeRecorder.Stats) stats.extensions.get("transfer");
          HttpStats httpStats = HttpStats.get(stats);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
@@ -324,12 +324,14 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
    }
 
    public static class WrkCommandResult {
-      Client.RunRef run;
-      RequestStatisticsResponse requestStatisticsResponse;
+      final Client.RunRef run;
+      final RequestStatisticsResponse requestStatisticsResponse;
+      final List<StatisticsSummary> series;
 
-      public WrkCommandResult(Client.RunRef run, RequestStatisticsResponse requestStatisticsResponse) {
+      public WrkCommandResult(Client.RunRef run, RequestStatisticsResponse requestStatisticsResponse, List<StatisticsSummary> series) {
          this.run = run;
          this.requestStatisticsResponse = requestStatisticsResponse;
+         this.series = series;
       }
 
       public Client.RunRef getRun() {
@@ -338,6 +340,10 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
       public RequestStatisticsResponse getRequestStatisticsResponse() {
          return requestStatisticsResponse;
+      }
+
+      public List<StatisticsSummary> getSeries() {
+         return series;
       }
    }
 }
