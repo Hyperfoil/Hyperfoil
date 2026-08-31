@@ -173,7 +173,17 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          boolean result = awaitBenchmarkResult(run, invocation);
 
          RequestStatisticsResponse total = run.statsTotal();
-         wrkCommandResult = new WrkCommandResult(run, total, run.series("test", 0, "request"));
+
+         List<StatisticsSummary> seriesList = null;
+         if (total != null && total.statistics != null && !total.statistics.isEmpty()) {
+            io.hyperfoil.controller.model.RequestStats stat = total.statistics.stream()
+                  .filter(rs -> "test".equals(rs.phase))
+                  .findFirst()
+                  .orElse(total.statistics.iterator().next());
+            seriesList = run.series(stat.phase, stat.stepId, stat.metric);
+         }
+
+         wrkCommandResult = new WrkCommandResult(run, total, seriesList);
 
          if (result) {
             if (output != null && !output.isBlank()) {
