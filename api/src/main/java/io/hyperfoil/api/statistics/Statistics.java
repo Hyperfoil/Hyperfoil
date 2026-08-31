@@ -261,6 +261,10 @@ public class Statistics {
 
    private StatisticsSnapshot active(StartTimeSource source, Session session) {
       long recordTimestampMillis = source.getFiredTimestampMillis(session);
+      // Fallback: if request failed or timed out before begin called
+      if (recordTimestampMillis == 0) {
+         recordTimestampMillis = source.getStartTimestampMillis(session);
+      }
       assert recordTimestampMillis > 0;
       return this.active(recordTimestampMillis);
    }
