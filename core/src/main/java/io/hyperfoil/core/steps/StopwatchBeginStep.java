@@ -31,7 +31,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       if (!key.isSet(session)) {
          StartTime startTime = (StartTime) key.activate(session);
          startTime.createStartTimestamp(session, useSessionStartTime, startTime.timestamps);
-         startTime.firedTimestampMillis = System.currentTimeMillis();
+         startTime.setFiredTimestampMillis(session);
       }
       return true;
    }
