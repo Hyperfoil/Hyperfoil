@@ -59,6 +59,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       }
       holder.future = null;
       holder.iteration++;
+      holder.setFiredTimestampMillis(session);
       for (String sequence : sequences) {
          session.startSequence(sequence, false, Session.ConcurrencyPolicy.FAIL);
       }
