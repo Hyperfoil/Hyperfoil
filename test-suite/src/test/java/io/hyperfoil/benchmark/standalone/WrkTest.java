@@ -2,6 +2,7 @@ package io.hyperfoil.benchmark.standalone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
@@ -159,7 +160,7 @@ public class WrkTest extends BaseWrkBenchmarkTest {
 
       assertEquals(CommandResult.SUCCESS.getResultValue(), result);
       List<StatisticsSummary> series = wrkCommandResult.getSeries();
-      assert series != null;
+      assertNotNull(series, "Series list should not be null");
       int size = series.size();
       assertTrue(size >= (seconds - 1) && size <= (seconds + 1), "Expected ~" + seconds + " buckets, but got: " + size);
    }
