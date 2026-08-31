@@ -26,7 +26,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.model.RequestStats;
 
 @Tag("io.hyperfoil.test.Benchmark")
-// If you need to debug use "-Dio.hyperfoil.controller.log.level=debug" VM option
+// If you need to debug use "-Dio.hyperfoil.controller.log.level=debug" VM option and read the file /tmp/hyperfoil/hyperfoil.local.log
 public class WrkTest extends BaseWrkBenchmarkTest {
 
    @Test
