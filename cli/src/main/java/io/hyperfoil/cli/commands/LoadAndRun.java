@@ -7,7 +7,9 @@ import java.util.stream.Stream;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
+import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
+import org.aesh.io.Resource;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
@@ -39,7 +41,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
 
    @Override
    protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
-      return List.of(Upload.class, Wait.class, Stats.class, Report.class, Export.class);
+      return List.of(Upload.class, Wait.class, Stats.class, Report.class);
    }
 
    @Override
@@ -68,7 +70,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
       private boolean failOnErrors;
 
       @Option(name = "export", description = "Destination for exported final run statistics")
-      private String export;
+      private Resource export;
 
       @Option(name = "export-format", description = "Format for --export; supported formats are JSON and CSV", defaultValue = "JSON")
       private String exportFormat;
@@ -96,7 +98,18 @@ public class LoadAndRun extends BaseStandaloneCommand {
             invocation.println("Skipping report generation, consider providing --output to generate it.");
          }
          if (export != null) {
-            invocation.executeSwitchable("export -y --format " + exportFormat + " --destination " + export);
+            Export exportCommand = new Export();
+            exportCommand.destination = export;
+            exportCommand.format = exportFormat;
+            exportCommand.assumeYes = true;
+            try {
+               if (exportCommand.execute(invocation) == CommandResult.FAILURE) {
+                  throw new CommandException("Failed to export run statistics to " + export);
+               }
+            } catch (InterruptedException e) {
+               Thread.currentThread().interrupt();
+               throw new CommandException("Interrupted while exporting run statistics", e);
+            }
          }
          if (failOnErrors) {
             failOnErrors(invocation);
@@ -111,7 +124,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
          if (!"JSON".equals(exportFormat) && !"CSV".equals(exportFormat)) {
             throw new CommandException("Unknown export format '" + exportFormat + "'; use JSON or CSV");
          }
-         if (export.isBlank()) {
+         if (export.toString().isBlank()) {
             throw new CommandException("Export destination must not be empty");
          }
       }

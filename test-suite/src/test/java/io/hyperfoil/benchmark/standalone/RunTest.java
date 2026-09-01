@@ -65,7 +65,7 @@ public class RunTest extends BaseBenchmarkTest {
 
    @Test
    public void testRunExportsJson(@TempDir Path tempDir) throws IOException {
-      Path resultFile = tempDir.resolve("result.json");
+      Path resultFile = tempDir.resolve("result file.json");
       String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
 
       int result = new LoadAndRun(false)
@@ -74,6 +74,17 @@ public class RunTest extends BaseBenchmarkTest {
       assertEquals(CommandResult.SUCCESS.getResultValue(), result);
       assertTrue(Files.isRegularFile(resultFile));
       assertFalse(new JsonObject(Files.readString(resultFile)).isEmpty());
+   }
+
+   @Test
+   public void testRunFailsWhenExportCannotBeWritten(@TempDir Path tempDir) {
+      String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
+      Path resultFile = tempDir.resolve("missing").resolve("result.json");
+
+      int result = new LoadAndRun(false)
+            .exec(new String[] { "--export", resultFile.toString(), "-PSERVER_PORT=" + httpServer.actualPort(), benchmark });
+
+      assertEquals(CommandResult.FAILURE.getResultValue(), result);
    }
 
    @Test
