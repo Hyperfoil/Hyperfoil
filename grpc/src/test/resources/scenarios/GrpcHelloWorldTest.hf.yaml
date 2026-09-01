@@ -1,0 +1,24 @@
+name: grpc-hello-world
+grpc:
+  proto:
+    main: helloworld.proto
+  host: http://localhost:8080
+  sharedConnections: 2
+  maxStreams: 1
+usersPerSec: 1
+duration: 5s
+scenario:
+- example:
+  - randomInt:
+      min: 1
+      max: 100
+      toVar: offering
+  - grpcRequest:
+      call: helloworld.Greeter.SayHello
+      data: |
+        { 
+          "name": "World" 
+        }
+      metadata:
+          - x-grpc-test-echo-initial : test-initial-metadata
+          - x-grpc-offering : ${offering}
