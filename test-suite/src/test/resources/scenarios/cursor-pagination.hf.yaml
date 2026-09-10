@@ -1,0 +1,54 @@
+name: cursor-pagination
+http:
+  host: !concat [ "http://localhost:", !param PORT 8080 ]
+phases:
+- listPages:
+    atOnce:
+      users: 1
+      duration: 0
+      scenario:
+        initialSequences:
+        - walkPages:
+          - randomCsvRow:
+              file: scenarios/conversation-ids.csv
+              columns:
+                0: conversationId
+                1: ownerID
+          - httpRequest:
+              GET: /v1/conversations?mode=all&limit=20
+              headers:
+                X-API-Key: test-api-key
+                X-User-ID: ${ownerID}
+              metric: list-conversations-page
+              handler:
+                body:
+                  json:
+                    query: .afterCursor
+                    toVar: afterCursor
+                onCompletion:
+                  conditional:
+                    stringCondition:
+                      fromVar: afterCursor
+                      isSet: true
+                      length:
+                        greaterThan: 0
+                    actions:
+                    - newSequence: pageLoop
+        sequences:
+        - pageLoop:
+          - httpRequest:
+              GET: /v1/conversations?mode=all&limit=20&afterCursor=${afterCursor}
+              headers:
+                X-API-Key: test-api-key
+                X-User-ID: ${ownerID}
+              metric: list-conversations-page
+              handler:
+                body:
+                  json:
+                    query: .afterCursor
+                    toVar: afterCursor
+          - breakSequence:
+              stringCondition:
+                fromVar: afterCursor
+                isSet: false
+          - restartSequence
