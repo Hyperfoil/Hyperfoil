@@ -25,8 +25,8 @@ public class StatisticsSnapshot implements Serializable {
    public final Map<String, StatsExtension> extensions = new HashMap<>();
 
    public boolean isEmpty() {
-      return requestCount + responseCount + invalid + connectionErrors + requestTimeouts + internalErrors == 0 &&
-            extensions.values().stream().allMatch(StatsExtension::isNull);
+      return requestCount + responseCount + invalid + connectionErrors + requestTimeouts + internalErrors
+            + blockedTime == 0 && extensions.values().stream().allMatch(StatsExtension::isNull);
    }
 
    public void reset() {

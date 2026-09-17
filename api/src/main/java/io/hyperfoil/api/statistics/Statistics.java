@@ -132,8 +132,7 @@ public class Statistics {
    public void incrementBlockedTime(StartTimeSource source, long blockedTime, Session session) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         // it can be or not fired. track always as intended time
-         StatisticsSnapshot active = active(source.getStartTimestampMillis(session));
+         StatisticsSnapshot active = active(source, session);
          active.blockedTime += blockedTime;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
