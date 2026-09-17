@@ -70,6 +70,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       createStartTimestamp(session, useSessionStartTime, timestamps);
       startTimestampMillis = timestamps[0];
       startTimestampNanos = timestamps[1];
+      firedTimestampMillis = 0;
       this.sequence = sequence;
       // The reason for using separate sequence reference just for the sake of decrementing
       // its counter is that the request sequence might be overridden (wrapped) through
