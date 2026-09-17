@@ -22,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
-import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -206,7 +205,7 @@ public class K8sDeployer implements Deployer {
                .build());
          spec.withVolumes(new VolumeBuilder()
                .withName("log")
-               .withConfigMap(new ConfigMapVolumeSource(null, null, configMap, false))
+               .withNewConfigMap().withName(configMap).withOptional(false).endConfigMap()
                .build());
       }
 
