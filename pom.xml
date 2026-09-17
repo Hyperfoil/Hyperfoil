@@ -94,7 +94,7 @@
         <version.aesh-readline>3.17.1</version.aesh-readline>
         <version.assertj>3.27.7</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
-        <version.fabric8.kubernetes-client>7.8.0</version.fabric8.kubernetes-client>
+        <version.fabric8.kubernetes-client>7.9.0</version.fabric8.kubernetes-client>
         <version.jkube.maven-plugin>1.20.0</version.jkube.maven-plugin>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
         <version.javaparser>3.28.2</version.javaparser>
