@@ -90,8 +90,8 @@
         <version.wildfly-common>1.7.0.Final</version.wildfly-common>
         <!-- end vertx-infinispan -->
 
-        <version.aesh>3.17.4</version.aesh>
-        <version.aesh-readline>3.17.1</version.aesh-readline>
+        <version.aesh>3.18.0</version.aesh>
+        <version.aesh-readline>3.18.0</version.aesh-readline>
         <version.assertj>3.27.7</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
         <version.fabric8.kubernetes-client>7.8.0</version.fabric8.kubernetes-client>
@@ -435,7 +435,11 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <dependencyConvergence />
+                                <dependencyConvergence>
+                                    <excludes>
+                                        <exclude>org.aesh:*</exclude>
+                                    </excludes>
+                                </dependencyConvergence>
                                 <requireReleaseDeps>
                                     <excludes>io.hyperfoil:*</excludes>
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
