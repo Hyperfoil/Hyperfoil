@@ -435,7 +435,11 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <dependencyConvergence />
+                                <dependencyConvergence>
+                                    <excludes>
+                                        <exclude>org.aesh:*</exclude>
+                                    </excludes>
+                                </dependencyConvergence>
                                 <requireReleaseDeps>
                                     <excludes>io.hyperfoil:*</excludes>
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
