@@ -259,15 +259,23 @@ public class Statistics {
    }
 
    private StatisticsSnapshot active(StartTimeSource source, Session session) {
-      long startTimestampMillis = source.getStartTimestampMillis(session);
-      assert startTimestampMillis > 0;
-      int index = (int) ((startTimestampMillis - startTimestamp) / SAMPLING_PERIOD_MILLIS);
+      long recordTimestampMillis = source.getFiredTimestampMillis(session);
+      // Fallback: if request failed or timed out before begin called
+      if (recordTimestampMillis == 0) {
+         recordTimestampMillis = source.getStartTimestampMillis(session);
+      }
+      assert recordTimestampMillis > 0;
+      return this.active(recordTimestampMillis);
+   }
+
+   private StatisticsSnapshot active(long recordTimestampMillis) {
+      int index = (int) ((recordTimestampMillis - startTimestamp) / SAMPLING_PERIOD_MILLIS);
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
       if (index >= active.length()) {
          active = resizeArray(active, index);
          this.active = active;
       } else if (index < 0) {
-         log.error("Record start timestamp {} predates statistics start {}", startTimestampMillis,
+         log.error("Record start timestamp {} predates statistics start {}", recordTimestampMillis,
                startTimestamp);
          index = 0;
       }
