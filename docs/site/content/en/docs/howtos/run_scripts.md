@@ -30,6 +30,8 @@ suitable for further automation.
 and save an HTML report of the test results in the specified directory, making it easy to review
 performance data immediately after the benchmark completes.
 
+* Automation safeguards: `--fail-on-errors` returns a non-zero status for runtime, validation, SLA, or abnormal-termination errors, and
+`--export <path>` writes final statistics in JSON format by default. Use `--export-format CSV` for CSV output.
 
 ### Usage
 
@@ -43,6 +45,9 @@ Load and start a benchmark on Hyperfoil controller server, the argument can be t
 Options:
   -o, --output         Output destination path for the HTML report
   --print-stack-trace
+  --fail-on-errors     Fail when the run has runtime, validation, or SLA errors
+  --export             Destination for exported final run statistics
+  --export-format      Format for --export; supported formats are JSON and CSV (default: JSON)
   -d, --description    Run description
   -P, --param          Parameters in case the benchmark is a template. Can be set multiple times. Use `-PFOO=` to set the parameter to empty value and `-PFOO` to remove it and use default if available.
   -E, --empty-params   Template parameters that should be set to empty string.
@@ -61,6 +66,15 @@ From the unzipped Hyperfoil distribution, you can simply run the script using th
 For instance:
 ```bash
 ./distribution/bin/run.sh -o /tmp/reports /tmp/first-benchmark.yml
+```
+
+For unattended execution with isolated controller state and JSON results:
+
+```bash
+./distribution/bin/run.sh \
+  --fail-on-errors \
+  --export /tmp/hyperfoil-result.json \
+  /tmp/first-benchmark.yml
 ```
 
 A valid output will be something like:
