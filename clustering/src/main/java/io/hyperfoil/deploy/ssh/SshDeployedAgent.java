@@ -95,6 +95,7 @@ public class SshDeployedAgent implements DeployedAgent {
    }
 
    public void deploy(ClientSession session, Consumer<Throwable> exceptionHandler) {
+      log.debug("SSH agent assumes a POSIX-compatible shell");
       this.session = session;
       this.exceptionHandler = exceptionHandler;
 
@@ -151,7 +152,8 @@ public class SshDeployedAgent implements DeployedAgent {
             inStream.close();
          }
       });
-      runCommand("unset PROMPT_COMMAND; export PS1='" + PROMPT + "'", true);
+      // Utilize fresh `sh`, it'll skip any ANSI characters and update to PROMPT string without escaping characters.
+      runCommand("exec sh\nexport PS1='" + PROMPT + "'", true);
 
       runCommand("mkdir -p " + dir + AGENTLIB, true);
 
@@ -191,7 +193,7 @@ public class SshDeployedAgent implements DeployedAgent {
       if (!remoteMd5.isEmpty()) {
          StringBuilder rmCommand = new StringBuilder();
          // Drop those files that are not on classpath
-         rmCommand.append("rm --interactive=never ");
+         rmCommand.append("rm -f ");
          for (Map.Entry<String, String> entry : remoteMd5.entrySet()) {
             rmCommand.append(' ').append(dir).append(AGENTLIB).append('/').append(entry.getKey());
          }
@@ -227,8 +229,9 @@ public class SshDeployedAgent implements DeployedAgent {
       if (extras != null) {
          startAgentCommmand.append(" ").append(extras);
       }
-      startAgentCommmand.append(" io.hyperfoil.Hyperfoil\\$Agent &> ")
-            .append(dir).append(File.separatorChar).append("agent.").append(name).append(".log");
+      startAgentCommmand.append(" io.hyperfoil.Hyperfoil\\$Agent > ")
+            .append(dir).append(File.separatorChar).append("agent.").append(name).append(".log")
+            .append(" 2>&1");
       String startAgent = startAgentCommmand.toString();
       log.info("Starting agent {}", name);
       log.debug("Command: {}", startAgent);
