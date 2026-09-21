@@ -613,7 +613,17 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void handleAgentsStarted(Run run) {
       vertx.cancelTimer(run.deployTimerId);
 
-      log.info("Starting benchmark {} - run {}", run.benchmark.name(), run.id);
+      if (run.description != null && !run.description.isEmpty()) {
+         log.info("Starting benchmark {} - run {} (description: {})", run.benchmark.name(), run.id, run.description);
+      } else {
+         log.info("Starting benchmark {} - run {}", run.benchmark.name(), run.id);
+      }
+      Map<String, String> params = run.benchmark.params();
+      if (!params.isEmpty()) {
+         log.info("Run {} benchmark parameters: {}", run.id, params.entrySet().stream()
+               .map(e -> e.getKey() + "=" + e.getValue())
+               .collect(java.util.stream.Collectors.joining(", ")));
+      }
 
       for (AgentInfo agent : run.agents) {
          if (agent.status != AgentInfo.Status.REGISTERED) {
