@@ -21,6 +21,7 @@ public interface Properties {
    String CONTROLLER_PASSWORD = "io.hyperfoil.controller.password";
    String CONTROLLER_LOG = "io.hyperfoil.controller.log.file";
    String CONTROLLER_LOG_LEVEL = "io.hyperfoil.controller.log.level";
+   String CONTROLLER_MAX_BODY_SIZE = "io.hyperfoil.controller.max.body.size";
    String CONTROLLER_PORT = "io.hyperfoil.controller.port";
    String CPU_WATCHDOG_PERIOD = "io.hyperfoil.cpu.watchdog.period";
    String CPU_WATCHDOG_IDLE_THRESHOLD = "io.hyperfoil.cpu.watchdog.idle.threshold";

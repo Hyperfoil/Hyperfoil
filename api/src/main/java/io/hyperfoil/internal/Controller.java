@@ -15,6 +15,8 @@ public interface Controller {
    Path BENCHMARK_DIR = Properties.get(Properties.BENCHMARK_DIR, Paths::get, ROOT_DIR.resolve("benchmark"));
    Path HOOKS_DIR = ROOT_DIR.resolve("hooks");
    Path RUN_DIR = Properties.get(Properties.RUN_DIR, Paths::get, ROOT_DIR.resolve("run"));
+   /** Default for {@link Properties#CONTROLLER_MAX_BODY_SIZE}: maximum size of a REST request body in bytes. */
+   long DEFAULT_MAX_BODY_SIZE = 10 * 1024 * 1024;
 
    String host();
 

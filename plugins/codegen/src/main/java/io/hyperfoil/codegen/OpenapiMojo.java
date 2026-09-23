@@ -162,9 +162,10 @@ public class OpenapiMojo extends AbstractMojo {
       clazz.addField("Logger", "log", Modifier.Keyword.PRIVATE, Modifier.Keyword.STATIC, Modifier.Keyword.FINAL)
             .getVariable(0).setInitializer("LogManager.getLogger(ApiRouter.class)");
       ConstructorDeclaration ctor = clazz.addConstructor(Modifier.Keyword.PUBLIC);
-      BlockStmt ctorBody = ctor.addParameter("ApiService", "service").addParameter("Router", "router").getBody();
+      BlockStmt ctorBody = ctor.addParameter("ApiService", "service").addParameter("Router", "router")
+            .addParameter("BodyHandler", "bodyHandler").getBody();
       ctorBody.addStatement("this.service = service;");
-      ctorBody.addStatement("router.route().handler(BodyHandler.create(System.getProperty(\"java.io.tmpdir\")));");
+      ctorBody.addStatement("router.route().handler(bodyHandler);");
       ctorBody.addStatement("router.errorHandler(500, ctx -> {\n" +
             "            log.error(\"Error processing {} {}\", ctx.request().method(), ctx.request().uri(), ctx.failure());\n" +
             "        });");

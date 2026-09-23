@@ -86,6 +86,7 @@ import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 
@@ -159,7 +160,11 @@ class ControllerServer implements ApiService {
       router.route("/").handler(staticHandler);
       router.route("/web/*").handler(staticHandler);
       router.route("/favicon.ico").handler(FaviconHandler.create(controller.getVertx(), "webroot/favicon.ico"));
-      new ApiRouter(this, router);
+      BodyHandler bodyHandler = BodyHandler.create(System.getProperty("java.io.tmpdir"))
+            .setBodyLimit(maxBodySize(controller.getConfig()))
+            // uploads are copied into memory by the handlers, the temporary files are not needed afterwards
+            .setDeleteUploadedFilesOnEnd(true);
+      new ApiRouter(this, router, bodyHandler);
 
       String controllerHost = Properties.get(Properties.CONTROLLER_HOST,
             controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));
@@ -191,6 +196,22 @@ class ControllerServer implements ApiService {
          // Note: serverResult.mapEmpty() still works exactly as before
          countDown.handle(serverResult.mapEmpty());
       });
+   }
+
+   static long maxBodySize(JsonObject config) {
+      long maxBodySize;
+      try {
+         maxBodySize = Properties.getLong(Properties.CONTROLLER_MAX_BODY_SIZE,
+               config.getLong(Properties.CONTROLLER_MAX_BODY_SIZE, Controller.DEFAULT_MAX_BODY_SIZE));
+      } catch (NumberFormatException e) {
+         throw new IllegalArgumentException(
+               "Property " + Properties.CONTROLLER_MAX_BODY_SIZE + " must be a number of bytes, or -1 for no limit.", e);
+      }
+      if (maxBodySize != -1 && maxBodySize <= 0) {
+         throw new IllegalArgumentException("Property " + Properties.CONTROLLER_MAX_BODY_SIZE
+               + " must be positive, or -1 for no limit; was " + maxBodySize);
+      }
+      return maxBodySize;
    }
 
    void stop(Promise<Void> stopFuture) {

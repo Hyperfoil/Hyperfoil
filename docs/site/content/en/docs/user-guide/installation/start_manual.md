@@ -30,6 +30,7 @@ Below is the comprehensive list of all the properties Hyperfoil recognizes. All 
 | ----------------------------------------- | ------------------ | ---------------------------------------------------------------- |
 | io.hyperfoil.controller.host              | 0.0.0.0            | Host for Controller REST server                                  |
 | io.hyperfoil.controller.port              | 8090               | Port for Controller REST server                                  |
+| io.hyperfoil.controller.max.body.size     | 10485760 (10 MiB)  | Maximum Controller REST request body size in bytes; -1 disables the limit |
 | io.hyperfoil.rootdir                      | /tmp/hyperfoil     | Root directory for stored files                                  |
 | io.hyperfoil.benchmarkdir                 | _root_/benchmark   | Benchmark files (YAML and serialized)                            |
 | io.hyperfoil.rundir                       | _root_/run         | Run result files (configs, stats...)                             |
@@ -47,6 +48,8 @@ Below is the comprehensive list of all the properties Hyperfoil recognizes. All 
 | io.hyperfoil.controller.password          |                    | Password used for Basic authentication                           |
 | io.hyperfoil.controller.secured.via.proxy |                    | This must be set to `true` for Basic auth without TLS encryption |
 | io.hyperfoil.trigger.url                  |                    | See below                                                        |
+
+Benchmark registration includes the YAML and any attached data files in one request. For large payloads, increase `io.hyperfoil.controller.max.body.size` to cover the entire multipart request, including its framing. For example, `bin/controller.sh -Dio.hyperfoil.controller.max.body.size=268435456` allows requests up to 256 MiB. The equivalent environment variable is `IO_HYPERFOIL_CONTROLLER_MAX_BODY_SIZE`. Raising this limit does not increase the controller or agent heaps; size those separately for the benchmark data.
 
 If `io.hyperfoi.trigger.url` is set the controller does not start benchmark run right away after hitting `/benchmark/my-benchmark/start` ; instead it responds with status 301 and header Location set to concatenation of this string and `BENCHMARK=my-benchmark&RUN_ID=xxxx`. CLI interprets that response as a request to hit CI instance on this URL, assuming that CI will trigger a new job that will eventually call `/benchmark/my-benchmark/start?runId=xxxx` with header `x-trigger-job`. This is useful if the the CI has to synchronize Hyperfoil to other benchmarks that don't use this controller instance.
 

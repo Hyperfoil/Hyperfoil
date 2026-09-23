@@ -151,6 +151,16 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- Controller.ROOT_DIR is read once when the class loads, so it must be set before any test runs. -->
+                        <io.hyperfoil.rootdir>${project.build.directory}/hyperfoil-test-root</io.hyperfoil.rootdir>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>
