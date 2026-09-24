@@ -96,7 +96,8 @@ public class SLA implements Serializable {
          }
       }
       for (SLA.PercentileLimit limit : limits) {
-         long value = statistics.histogram.getValueAtPercentile(limit.percentile());
+         // SLA percentiles are configured as 0.0 - 1.0 but HdrHistogram expects 0 - 100
+         long value = statistics.histogram.getValueAtPercentile(limit.percentile() * 100);
          if (value >= limit.responseTime()) {
             return new SLA.Failure(this, phase, metric, statistics.clone(),
                   String.format("Response time at percentile %f exceeded: required %d, actual %d", limit.percentile,
