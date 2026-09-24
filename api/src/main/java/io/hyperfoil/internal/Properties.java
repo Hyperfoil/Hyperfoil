@@ -42,6 +42,7 @@ public interface Properties {
    String CLUSTER_JGROUPS_STACK = "io.hyperfoil.cluster.jgroups_stack";
    String REPORT_TEMPLATE = "io.hyperfoil.report.template";
    String DISABLE_ENDPOINT_IDENTIFICATION = "io.hyperfoil.disable.endpoint.identification";
+   String FILE_TRANSFER_CLIENT = "io.hyperfoil.file.transfer.client";
 
    static String get(String property, String def) {
       return get(property, Function.identity(), def);
