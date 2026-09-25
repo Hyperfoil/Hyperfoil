@@ -6,6 +6,7 @@ public interface Properties {
    String HYPERFOIL_STACKTRACE = "io.hyperfoil.stacktrace";
    String AGENT_DEBUG_PORT = "io.hyperfoil.agent.debug.port";
    String AGENT_DEBUG_SUSPEND = "io.hyperfoil.agent.debug.suspend";
+   String AGENT_INIT_TIMEOUT = "io.hyperfoil.agent.init.timeout";
    String AGENT_JAVA_EXECUTABLE = "io.hyperfoil.agent.java.executable";
    String AGENT_NAME = "io.hyperfoil.agent.name";
    String BENCHMARK_DIR = "io.hyperfoil.benchmarkdir";

@@ -35,6 +35,7 @@ Below is the comprehensive list of all the properties Hyperfoil recognizes. All 
 | io.hyperfoil.rundir                       | _root_/run         | Run result files (configs, stats...)                             |
 | io.hyperfoil.deployer                     | ssh                | Implementation for agents deployment                             |
 | io.hyperfoil.deployer.timeout             | 15000 ms           | Timeout for agents to start                                      |
+| io.hyperfoil.agent.init.timeout           | 120000 ms          | Timeout for each agent to initialize a benchmark, including session allocation and GC |
 | io.hyperfoil.agent.debug.port             |                    | If set, agent will be started with JVM debug port open           |
 | io.hyperfoil.agent.debug.suspend          | n                  | Suspend parameter for the debug port                             |
 | io.hyperfoil.controller.cluster.ip        | first non-loopback | Hostname/IP used for clustering with agents                      |
@@ -47,6 +48,11 @@ Below is the comprehensive list of all the properties Hyperfoil recognizes. All 
 | io.hyperfoil.controller.password          |                    | Password used for Basic authentication                           |
 | io.hyperfoil.controller.secured.via.proxy |                    | This must be set to `true` for Basic auth without TLS encryption |
 | io.hyperfoil.trigger.url                  |                    | See below                                                        |
+
+Set `io.hyperfoil.agent.init.timeout` on the controller JVM, for example
+`bin/controller.sh -Dio.hyperfoil.agent.init.timeout=180000` to allow three minutes.
+This timeout starts after agents have registered with the controller. It is separate
+from the agent deployment timeout and does not change HTTP request timeouts or benchmark SLAs.
 
 If `io.hyperfoi.trigger.url` is set the controller does not start benchmark run right away after hitting `/benchmark/my-benchmark/start` ; instead it responds with status 301 and header Location set to concatenation of this string and `BENCHMARK=my-benchmark&RUN_ID=xxxx`. CLI interprets that response as a request to hit CI instance on this URL, assuming that CI will trigger a new job that will eventually call `/benchmark/my-benchmark/start?runId=xxxx` with header `x-trigger-job`. This is useful if the the CI has to synchronize Hyperfoil to other benchmarks that don't use this controller instance.
 

@@ -73,6 +73,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.ReplyException;
@@ -620,8 +621,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("{} Agent {}({}) already initializing, status is {}!", run.id, agent.name, agent.deploymentId,
                   agent.status);
          } else {
+            // Session allocation and the initialization GC can exceed the event bus's default timeout.
             eb.request(agent.deploymentId,
-                  new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark))
+                  new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark),
+                  new DeliveryOptions().setSendTimeout(Controller.AGENT_INIT_TIMEOUT))
                   .onComplete(reply -> {
                      Throwable cause;
                      if (reply.failed()) {
