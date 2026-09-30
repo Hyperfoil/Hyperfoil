@@ -216,10 +216,15 @@ public class SshDeployedAgent implements DeployedAgent {
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
-      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_IP).append('=')
-            .append(Properties.get(Properties.CONTROLLER_CLUSTER_IP, ""));
-      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=')
-            .append(Properties.get(Properties.CONTROLLER_CLUSTER_PORT, ""));
+      appendPropertyIfSet(startAgentCommmand, Properties.CONTROLLER_CLUSTER_IP);
+      appendPropertyIfSet(startAgentCommmand, Properties.CONTROLLER_CLUSTER_PORT);
+      // The agent has to join the cluster this controller is in. Left behind, the agent defaults to
+      // "hyperfoil" while a controller started with a different name is somewhere else entirely: TCPPING
+      // still finds the controller, GMS then refuses the join, and the agents quietly form a cluster of
+      // their own until the run gives up with nothing but "Deployment timed out." to show for it.
+      // CLUSTER_JGROUPS_STACK and CLUSTER_NODE_NAME are deliberately not passed on: Hyperfoil.Agent picks
+      // its own stack, and a node name is per-process - sharing the controller's would collide.
+      appendPropertyIfSet(startAgentCommmand, Properties.CLUSTER_NAME);
       if (DEBUG_ADDRESS != null) {
          startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND)
                .append(",address=").append(DEBUG_ADDRESS);
@@ -236,6 +241,18 @@ public class SshDeployedAgent implements DeployedAgent {
       onPrompt(new StringBuilder(), new ByteArrayBuffer(),
             () -> exceptionHandler.accept(new BenchmarkExecutionException(
                   "Agent process terminated prematurely. Hint: type 'log " + name + "' to see agent output.")));
+   }
+
+   /**
+    * Passes a property down to the agent only when this JVM actually has it. An unset property used to be sent
+    * as an empty value, which the agent cannot tell from a real one: instead of its own "was not set"
+    * diagnostic, an empty host resolves to loopback and an empty port yields initial hosts of {@code host[]}.
+    */
+   private static void appendPropertyIfSet(StringBuilder command, String property) {
+      String value = Properties.get(property, null);
+      if (value != null) {
+         command.append(" -D").append(property).append('=').append(value);
+      }
    }
 
    private void onPrompt(StringBuilder sb, ByteArrayBuffer buffer, Runnable completion) {

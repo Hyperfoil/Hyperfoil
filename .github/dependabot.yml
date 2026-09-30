@@ -16,6 +16,4 @@ updates:
       - dependency
     ignore:
       - dependency-name: "org.infinispan:*"
-      - dependency-name: "com.github.ben-manes.caffeine:caffeine"
-      - dependency-name: "io.reactivex.rxjava3:rxjava"
-      - dependency-name: "org.wildfly.common:wildfly-common"
+      - dependency-name: "org.jgroups:jgroups"

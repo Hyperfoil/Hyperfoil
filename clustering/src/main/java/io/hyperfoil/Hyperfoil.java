@@ -3,11 +3,9 @@ package io.hyperfoil;
 import static io.hyperfoil.internal.Properties.CLUSTER_JGROUPS_STACK;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -20,20 +18,16 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.FormattedMessage;
-import org.infinispan.commons.util.FileLookupFactory;
-import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
-import org.infinispan.configuration.parsing.ParserRegistry;
-import org.infinispan.factories.GlobalComponentRegistry;
-import org.infinispan.manager.DefaultCacheManager;
-import org.infinispan.remoting.transport.Transport;
-import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.JChannel;
+import org.jgroups.PhysicalAddress;
 import org.jgroups.protocols.TP;
+import org.jgroups.stack.IpAddress;
 
 import io.hyperfoil.api.Version;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
 import io.hyperfoil.clustering.ControllerVerticle;
+import io.hyperfoil.clustering.jgroups.JGroupsClusterManager;
 import io.hyperfoil.internal.Properties;
 import io.netty.util.ResourceLeakDetector;
 import io.vertx.core.DeploymentOptions;
@@ -41,9 +35,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.internal.VertxInternal;
-import io.vertx.core.spi.cluster.ClusterManager;
-import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 public class Hyperfoil {
    static final Logger log = LogManager.getLogger(Hyperfoil.class);
@@ -112,27 +103,45 @@ public class Hyperfoil {
          log.error("Cannot lookup hostname", e);
          return Future.failedFuture("Cannot lookup hostname");
       }
-      DefaultCacheManager cacheManager = createCacheManager();
-      populateProperties(cacheManager);
+      // JChannel substitutes ${...} in the stack files from System.getProperty at parse time, so the properties
+      // set above take effect without being handed to the cluster manager explicitly.
+      JGroupsClusterManager clusterManager = new JGroupsClusterManager(
+            Properties.get(CLUSTER_JGROUPS_STACK, "jgroups-tcp.xml"),
+            Properties.get(Properties.CLUSTER_NAME, "hyperfoil"));
       return Vertx.builder()
             .with(options)
-            .withClusterManager(new InfinispanClusterManager(cacheManager))
+            .withClusterManager(clusterManager)
             .buildClustered()
             .onSuccess(vertx -> {
+               // Only now is the channel connected and its address known.
+               populateProperties(clusterManager.channel());
                Codecs.register(vertx);
                ensureNettyResourceLeakDetection();
             })
             .onFailure(error -> log.error("Cannot start Vert.x", error));
    }
 
-   private static void populateProperties(DefaultCacheManager dcm) {
-      Transport baseTransport = GlobalComponentRegistry.componentOf(dcm, Transport.class);
-      JGroupsTransport transport = (JGroupsTransport) baseTransport;
-      JChannel channel = transport.getChannel();
+   /**
+    * Publishes the address agents must dial back on. Agents read these as
+    * {@code jgroups.tcpping.initial_hosts}, so they have to be what the transport actually bound to: if 7800 was
+    * taken and TCP fell back to 7801, {@code getBindPort()} still reports the configured 7800.
+    */
+   private static void populateProperties(JChannel channel) {
       TP tp = channel.getProtocolStack().getTransport();
-      System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tp.getBindAddress().getHostAddress());
-      System.setProperty(Properties.CONTROLLER_CLUSTER_PORT, String.valueOf(tp.getBindPort()));
-      log.info("Using {}:{} as clustering address", tp.getBindAddress().getHostAddress(), tp.getBindPort());
+      InetAddress address;
+      int port;
+      PhysicalAddress bound = tp.getPhysicalAddressFromCache(channel.getAddress());
+      if (bound instanceof IpAddress ip) {
+         address = ip.getIpAddress();
+         port = ip.getPort();
+      } else {
+         log.warn("Cannot determine the bound address of {}, falling back to the configured one", channel.getAddress());
+         address = tp.getBindAddress();
+         port = tp.getBindPort();
+      }
+      System.setProperty(Properties.CONTROLLER_CLUSTER_IP, address.getHostAddress());
+      System.setProperty(Properties.CONTROLLER_CLUSTER_PORT, String.valueOf(port));
+      log.info("Using {}:{} as clustering address", address.getHostAddress(), port);
    }
 
    private static InetAddress getAddressWithBestMatch(InetAddress controllerAddress) {
@@ -172,26 +181,6 @@ public class Hyperfoil {
       return address;
    }
 
-   private static DefaultCacheManager createCacheManager() {
-      try {
-         String configFile = "infinispan.xml";
-         URL url = FileLookupFactory.newInstance().lookupFileLocation(configFile,
-               Thread.currentThread().getContextClassLoader());
-         if (url == null) {
-            throw new IOException("Cannot find " + configFile);
-         }
-         ConfigurationBuilderHolder holder = new ParserRegistry().parse(url);
-         holder.getGlobalConfigurationBuilder().transport().defaultTransport()
-               .withProperties(System.getProperties())
-               .initialClusterSize(1);
-         return new DefaultCacheManager(holder, true);
-      } catch (IOException e) {
-         log.error("Cannot load Infinispan configuration", e);
-         System.exit(1);
-         return null;
-      }
-   }
-
    static void deploy(Vertx vertx, Class<? extends Verticle> verticleClass) {
       log.info("Deploying {}...", verticleClass.getSimpleName());
       vertx.deployVerticle(verticleClass, new DeploymentOptions()).onComplete(event -> {
@@ -224,15 +213,8 @@ public class Hyperfoil {
    }
 
    public static Future<Void> shutdownVertx(Vertx vertx) {
-      ClusterManager clusterManager = ((VertxInternal) vertx).clusterManager();
-      DefaultCacheManager cacheManager = (DefaultCacheManager) ((InfinispanClusterManager) clusterManager).getCacheContainer();
-      return vertx.close().onComplete(result -> {
-         try {
-            cacheManager.close();
-         } catch (IOException e) {
-            log.error("Failed to close Infinispan cache manager", e);
-         }
-      });
+      // Closing Vert.x calls ClusterManager.leave(), which disconnects and closes the JGroups channel.
+      return vertx.close();
    }
 
    public static class Agent extends Hyperfoil {

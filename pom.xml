@@ -75,20 +75,11 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.release>21</maven.compiler.release>
 
-        <!--
-        version.infinispan and the following properties must match what came from vertx, and you must run the script.
-        1) Update version.vertx
-        2) Run: mvn clean install -DskipTests
-        3) Run: ./check-vertx-dep.sh
-        4) Manually set the properties version
-        5) Test: mvn clean install -Pbenchmark
-        -->
-        <version.vertx>5.1.8</version.vertx> <!-- never accept the dependabot PR, read the text above -->
+        <version.vertx>5.1.8</version.vertx>
+        <!-- Clustering talks to JGroups directly; see io.hyperfoil.clustering.jgroups.JGroupsClusterManager. -->
+        <version.jgroups>5.5.7.Final</version.jgroups>
+        <!-- Used by the hotrod module only. -->
         <version.infinispan>15.2.4.Final</version.infinispan>
-        <version.caffeine>3.2.1</version.caffeine>
-        <version.rxjava>3.1.10</version.rxjava>
-        <version.wildfly-common>1.7.0.Final</version.wildfly-common>
-        <!-- end vertx-infinispan -->
 
         <version.aesh>3.18.2</version.aesh>
         <version.aesh-readline>3.18.3</version.aesh-readline>
@@ -98,7 +89,6 @@
         <version.jkube.maven-plugin>1.20.0</version.jkube.maven-plugin>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
         <version.javaparser>3.28.2</version.javaparser>
-        <version.marshalling>2.3.0</version.marshalling>
         <version.junit-jupiter-api>6.1.3</version.junit-jupiter-api>
         <version.log4j2>2.26.1</version.log4j2>
         <version.metainf-services>1.11</version.metainf-services>
@@ -107,6 +97,7 @@
         <version.apache.sshd>2.20.0</version.apache.sshd>
         <version.jboss-logging>3.6.3.Final</version.jboss-logging>
         <version.jctools>4.0.7</version.jctools>
+        <version.testcontainers>2.0.5</version.testcontainers>
         <version.sonatype.central>0.11.0</version.sonatype.central>
         <version.maven.source>3.4.0</version.maven.source>
         <version.maven.javadoc>3.12.0</version.maven.javadoc>
@@ -128,17 +119,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>com.github.ben-manes.caffeine</groupId>
-                <artifactId>caffeine</artifactId>
-                <version>${version.caffeine}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.reactivex.rxjava3</groupId>
-                <artifactId>rxjava</artifactId>
-                <version>${version.rxjava}</version>
-            </dependency>
-
             <dependency>
                 <groupId>io.hyperfoil</groupId>
                 <artifactId>hyperfoil-api</artifactId>
@@ -261,6 +241,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jgroups</groupId>
+                <artifactId>jgroups</artifactId>
+                <version>${version.jgroups}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.infinispan</groupId>
                 <artifactId>infinispan-bom</artifactId>
                 <version>${version.infinispan}</version>
@@ -321,6 +307,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${version.testcontainers}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.aesh</groupId>
                 <artifactId>aesh</artifactId>
                 <version>${version.aesh}</version>
@@ -368,33 +360,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jboss.marshalling</groupId>
-                <artifactId>jboss-marshalling</artifactId>
-                <version>${version.marshalling}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jboss.marshalling</groupId>
-                <artifactId>jboss-marshalling-river</artifactId>
-                <version>${version.marshalling}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jboss.marshalling</groupId>
-                <artifactId>jboss-marshalling-serial</artifactId>
-                <version>${version.marshalling}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.jboss.logging</groupId>
                 <artifactId>jboss-logging</artifactId>
                 <version>${version.jboss-logging}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.wildfly.common</groupId>
-                <artifactId>wildfly-common</artifactId>
-                <version>${version.wildfly-common}</version>
             </dependency>
 
             <dependency>
@@ -403,11 +371,6 @@
                 <version>${version.jctools}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.github.ben-manes.caffeine</groupId>
-                <artifactId>caffeine</artifactId>
-                <version>${version.caffeine}</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-common</artifactId>

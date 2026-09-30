@@ -40,6 +40,9 @@ Below is the comprehensive list of all the properties Hyperfoil recognizes. All 
 | io.hyperfoil.agent.debug.suspend          | n                  | Suspend parameter for the debug port                             |
 | io.hyperfoil.controller.cluster.ip        | first non-loopback | Hostname/IP used for clustering with agents                      |
 | io.hyperfoil.controller.cluster.port      | 7800               | Default JGroups clustering port                                  |
+| io.hyperfoil.cluster.name                 | hyperfoil          | JGroups cluster name; change it to run several independent Hyperfoil clusters on one network |
+| io.hyperfoil.cluster.jgroups_stack        | jgroups-tcp.xml    | JGroups stack configuration; agents default to `jgroups-tcp-agent.xml` |
+| io.hyperfoil.cluster.node_name            | _hostname_-_random_| Logical node name in the cluster, used as the Vert.x node id     |
 | io.hyperfoil.controller.external.uri      |                    | Externally advertised URI of REST server                         |
 | io.hyperfoil.controller.keystore.path     |                    | File path to Java Keystore                                       |
 | io.hyperfoil.controller.keystore.password |                    | Java Keystore password                                           |

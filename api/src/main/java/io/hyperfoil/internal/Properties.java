@@ -41,6 +41,8 @@ public interface Properties {
    String CLI_REQUEST_TIMEOUT = "io.hyperfoil.cli.request.timeout";
    String GC_CHECK = "io.hyperfoil.gc.check.enabled";
    String CLUSTER_JGROUPS_STACK = "io.hyperfoil.cluster.jgroups_stack";
+   String CLUSTER_NAME = "io.hyperfoil.cluster.name";
+   String CLUSTER_NODE_NAME = "io.hyperfoil.cluster.node_name";
    String REPORT_TEMPLATE = "io.hyperfoil.report.template";
    String DISABLE_ENDPOINT_IDENTIFICATION = "io.hyperfoil.disable.endpoint.identification";
 
