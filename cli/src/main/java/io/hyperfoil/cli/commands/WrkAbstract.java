@@ -173,7 +173,17 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
          boolean result = awaitBenchmarkResult(run, invocation);
 
          RequestStatisticsResponse total = run.statsTotal();
-         wrkCommandResult = new WrkCommandResult(run, total);
+
+         List<StatisticsSummary> seriesList = null;
+         if (total != null && total.statistics != null && !total.statistics.isEmpty()) {
+            io.hyperfoil.controller.model.RequestStats stat = total.statistics.stream()
+                  .filter(rs -> "test".equals(rs.phase))
+                  .findFirst()
+                  .orElse(total.statistics.iterator().next());
+            seriesList = run.series(stat.phase, stat.stepId, stat.metric);
+         }
+
+         wrkCommandResult = new WrkCommandResult(run, total, seriesList);
 
          if (result) {
             if (output != null && !output.isBlank()) {
@@ -249,7 +259,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs);
 
       private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series,
-            CommandInvocation invocation) {
+                              CommandInvocation invocation) {
          TransferSizeRecorder.Stats transferStats = (TransferSizeRecorder.Stats) stats.extensions.get("transfer");
          HttpStats httpStats = HttpStats.get(stats);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
@@ -324,12 +334,14 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
    }
 
    public static class WrkCommandResult {
-      Client.RunRef run;
-      RequestStatisticsResponse requestStatisticsResponse;
+      final Client.RunRef run;
+      final RequestStatisticsResponse requestStatisticsResponse;
+      final List<StatisticsSummary> series;
 
-      public WrkCommandResult(Client.RunRef run, RequestStatisticsResponse requestStatisticsResponse) {
+      public WrkCommandResult(Client.RunRef run, RequestStatisticsResponse requestStatisticsResponse, List<StatisticsSummary> series) {
          this.run = run;
          this.requestStatisticsResponse = requestStatisticsResponse;
+         this.series = series;
       }
 
       public Client.RunRef getRun() {
@@ -338,6 +350,10 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
       public RequestStatisticsResponse getRequestStatisticsResponse() {
          return requestStatisticsResponse;
+      }
+
+      public List<StatisticsSummary> getSeries() {
+         return series;
       }
    }
 }

@@ -68,6 +68,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       HotRodResource resource = session.getResource(futureWrapperKey);
 
       this.createStartTimestamp(session, this.useSessionStartTime, resource.timestamps);
+      this.setFiredTimestampMillis(session);
 
       CompletableFuture future;
       if (HotRodOperation.PUT.equals(operation)) {
@@ -130,5 +131,19 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       assert session.executor().inEventLoop();
       HotRodResource resource = session.getResource(futureWrapperKey);
       return resource.getStartTimestampNanos();
+   }
+
+   @Override
+   public long getFiredTimestampMillis(Session session) {
+      assert session.executor().inEventLoop();
+      HotRodResource resource = session.getResource(futureWrapperKey);
+      return resource.getFiredTimestampMillis();
+   }
+
+   @Override
+   public void setFiredTimestampMillis(Session session) {
+      assert session.executor().inEventLoop();
+      HotRodResource resource = session.getResource(futureWrapperKey);
+      resource.setFiredTimestampMillis(System.currentTimeMillis());
    }
 }
