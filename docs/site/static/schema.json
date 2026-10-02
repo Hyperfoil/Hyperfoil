@@ -964,6 +964,9 @@
             "type" : "string"
           } ]
         },
+        "check" : {
+          "$ref" : "#/definitions/io.hyperfoil.core.handlers.CheckProcessor$Builder"
+        },
         "clearHttpCache" : {
           "$ref" : "#/definitions/io.hyperfoil.http.steps.ClearHttpCacheAction$Builder"
         },
@@ -2028,6 +2031,21 @@
           "type" : "boolean"
         },
         "toVar" : {
+          "type" : "string"
+        }
+      }
+    },
+    "io.hyperfoil.core.handlers.CheckProcessor$Builder" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "equalTo" : {
+          "type" : "string"
+        },
+        "json" : {
+          "type" : "string"
+        },
+        "regex" : {
           "type" : "string"
         }
       }

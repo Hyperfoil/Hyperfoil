@@ -34,3 +34,10 @@ phases:
                     min: 201
                     max: 259
                 - range: 200-210
+                body:
+                - check:
+                    equalTo: response body
+                - check:
+                    regex: ".*"
+                - check:
+                    json: '{"answer":42}'
