@@ -26,7 +26,19 @@
                     <groupId>jakarta.activation</groupId>
                     <artifactId>jakarta.activation-api</artifactId>
                 </exclusion>
+                <!-- Incompatible with the Vert.x version Hyperfoil pins; see kubernetes-httpclient-jdk below. -->
+                <exclusion>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>kubernetes-httpclient-vertx</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- Selected through the HttpClient.Factory service loader; nothing here references it at compile time. -->
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-httpclient-jdk</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -34,6 +46,52 @@
             <artifactId>metainf-services</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!--
+        The mock server runs an in-process API server in CRUD mode, so the pod K8sDeployer POSTs can be read
+        back and asserted on. No Docker, no cluster - these tests cover the pod spec, not pod behaviour.
+        -->
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-server-mock</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!--
+                        K8sDeployer reads the namespace into a static final at class-init. Setting it here rather
+                        than from a test keeps it independent of which test class loads the deployer first.
+                        -->
+                        <io.hyperfoil.deployer.k8s.namespace>hyperfoil-test</io.hyperfoil.deployer.k8s.namespace>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
