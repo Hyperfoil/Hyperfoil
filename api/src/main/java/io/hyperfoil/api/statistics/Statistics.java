@@ -39,10 +39,19 @@ public class Statistics {
    @SuppressWarnings("unused")
    private volatile int lowestActive2;
    private volatile int highestActive;
-   @SuppressWarnings("AtomicFieldUpdaterNotStaticFinal")
-   private volatile AtomicIntegerFieldUpdater<Statistics> lowestActiveUpdater = LU1;
-   private volatile AtomicReferenceArray<StatisticsSnapshot> active;
-   private AtomicReferenceArray<StatisticsSnapshot> inactive;
+   // Publish the buffer and its lowest-index tracker together. A writer must never use
+   // one buffer with the other buffer's tracker while the reader swaps them.
+   private volatile SnapshotBuffer active;
+   private SnapshotBuffer inactive;
+
+   private static class SnapshotBuffer {
+      volatile AtomicReferenceArray<StatisticsSnapshot> snapshots = new AtomicReferenceArray<>(16);
+      final AtomicIntegerFieldUpdater<Statistics> lowestActiveUpdater;
+
+      SnapshotBuffer(AtomicIntegerFieldUpdater<Statistics> lowestActiveUpdater) {
+         this.lowestActiveUpdater = lowestActiveUpdater;
+      }
+   }
 
    private long startTimestamp;
    private long endTimestamp = Long.MAX_VALUE;
@@ -50,11 +59,11 @@ public class Statistics {
 
    public Statistics(long startTimestamp) {
       this.startTimestamp = startTimestamp;
-      active = new AtomicReferenceArray<>(16);
-      inactive = new AtomicReferenceArray<>(16);
+      active = new SnapshotBuffer(LU1);
+      inactive = new SnapshotBuffer(LU2);
       StatisticsSnapshot first = new StatisticsSnapshot();
       first.sequenceId = 0;
-      active.set(0, first);
+      active.snapshots.set(0, first);
       highestTrackableValue = first.histogram.getHighestTrackableValue();
    }
 
@@ -180,21 +189,20 @@ public class Statistics {
       try {
          recordingPhaser.readerLock();
 
-         if (highestActive + 1 > inactive.length()) {
-            inactive = resizeArray(inactive, highestActive);
+         if (highestActive + 1 > inactive.snapshots.length()) {
+            inactive.snapshots = resizeArray(inactive.snapshots, highestActive);
          }
 
-         if (++numSamples >= inactive.length()) {
-            inactive = resizeArray(inactive, numSamples);
+         if (++numSamples >= inactive.snapshots.length()) {
+            inactive.snapshots = resizeArray(inactive.snapshots, numSamples);
          }
 
          // Swap active and inactive histograms:
-         final AtomicReferenceArray<StatisticsSnapshot> tempHistogram = inactive;
+         final SnapshotBuffer tempHistogram = inactive;
          inactive = active;
          active = tempHistogram;
 
-         AtomicIntegerFieldUpdater<Statistics> inactiveUpdater = lowestActiveUpdater;
-         lowestActiveUpdater = inactiveUpdater == LU1 ? LU2 : LU1;
+         AtomicIntegerFieldUpdater<Statistics> inactiveUpdater = inactive.lowestActiveUpdater;
 
          // Make sure we are not in the middle of recording a value on the previously active histogram:
 
@@ -207,16 +215,16 @@ public class Statistics {
          // If the statistics is not finished don't publish the last timestamp
          // as this might be shortened be the termination of the phase.
          if (endTimestamp != Long.MAX_VALUE) {
-            maxSamples = Math.min(inactive.length(), highestActive + 1);
+            maxSamples = Math.min(inactive.snapshots.length(), highestActive + 1);
          } else {
-            maxSamples = Math.min(inactive.length() - 1, highestActive);
+            maxSamples = Math.min(inactive.snapshots.length() - 1, highestActive);
          }
          // Make sure that few flips later we'll fetch the stats
          inactiveUpdater.set(this, maxSamples);
-         publish(inactive, maxSamples, consumer);
+         publish(inactive.snapshots, maxSamples, consumer);
          if (endTimestamp != Long.MAX_VALUE) {
             // all requests must be complete, let's scan the 'active' as well
-            publish(active, maxSamples, consumer);
+            publish(active.snapshots, maxSamples, consumer);
          }
       } finally {
          recordingPhaser.readerUnlock();
@@ -262,10 +270,11 @@ public class Statistics {
       long startTimestampMillis = source.getStartTimestampMillis(session);
       assert startTimestampMillis > 0;
       int index = (int) ((startTimestampMillis - startTimestamp) / SAMPLING_PERIOD_MILLIS);
-      AtomicReferenceArray<StatisticsSnapshot> active = this.active;
+      SnapshotBuffer buffer = this.active;
+      AtomicReferenceArray<StatisticsSnapshot> active = buffer.snapshots;
       if (index >= active.length()) {
          active = resizeArray(active, index);
-         this.active = active;
+         buffer.snapshots = active;
       } else if (index < 0) {
          log.error("Record start timestamp {} predates statistics start {}", startTimestampMillis,
                startTimestamp);
@@ -277,7 +286,7 @@ public class Statistics {
          snapshot.sequenceId = index;
          active.set(index, snapshot);
       }
-      lowestActiveUpdater.accumulateAndGet(this, index, Math::min);
+      buffer.lowestActiveUpdater.accumulateAndGet(this, index, Math::min);
       // Highest active is increasing monotonically and it is updated only by the event-loop thread;
       // therefore we don't have to use CAS operation
       if (index > highestActive) {
