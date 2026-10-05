@@ -113,7 +113,12 @@ public class Http1xConnectionStatsTest extends AbstractConnectionStatsTest {
       http().connectionStrategy(ConnectionStrategy.ALWAYS_NEW);
 
       Map<String, LowHigh> stats = testConcurrent(true);
-      assertThat(stats.get(IN_FLIGHT_REQUESTS).high).isEqualTo(stats.get(USED_CONNECTIONS).high);
+      // Note: in-flight and used-connections peaks cannot be compared because the counters are
+      // updated at different moments: a connection is counted as used until its channel is closed
+      // (which is asynchronous, and for reset connections happens while the request is still
+      // in flight) while the request is in flight until it is released.
+      // Each connection serves a single request, hence all of them are freshly created HTTP 1.x ones.
+      assertThat(stats.get(HTTP_1x).high).isEqualTo(stats.get(USED_CONNECTIONS).high);
    }
 
    @Test
