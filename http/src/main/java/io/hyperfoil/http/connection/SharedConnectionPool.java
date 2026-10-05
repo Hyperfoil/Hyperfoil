@@ -273,8 +273,23 @@ public class SharedConnectionPool extends ConnectionPoolStats implements HttpCon
                // HTTP request, which never happened, and would incorrectly trigger any per-request
                // hooks (stats, pendingDrainConnections removal, etc.) inside release().
                cancelAcquire(conn);
+            } else if (!conn.isClosed()) {
+               // Idle and not in the available queue, yet not closed either. The release() that made
+               // this connection idle always puts it back into the queue, so the only way to get here
+               // is the window between close() (which flips the status to CLOSING and cancels the
+               // requests) and the close future marking the connection CLOSED. Re-queue it directly:
+               // the connection is already accounted as unused, so going through release() would
+               // decrement usedConnections a second time.
+               assert !conn.isOpen() : "An open idle connection must be in the available queue: " + conn;
+               available.addFirst(conn);
             } else {
-               release(conn, true, false);
+               // Closed: the channel went down and cancelRequests() released the connection with
+               // afterRequest=true, which already settled inFlight and usedConnections, and left it out
+               // of the available queue on purpose - a dead connection must never be handed out again.
+               // So there is nothing left to do here. Releasing it once more (as this branch used to do)
+               // decremented usedConnections without a matching acquireNow() increment: the watermark
+               // went negative and the next acquireNow() tripped its own `assert used >= 0`, which
+               // failed the session and in turn the whole phase.
             }
          }
          if (pendingDrainConnections.isEmpty()) {

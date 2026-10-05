@@ -3,6 +3,8 @@ package io.hyperfoil.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLException;
 
@@ -29,6 +31,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxTestContext;
 
 public class ConnectionPoolRaceConditionTest extends VertxBaseTest {
@@ -281,10 +284,110 @@ public class ConnectionPoolRaceConditionTest extends VertxBaseTest {
       });
    }
 
+   @Test
+   @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+   public void testClosedConnectionNotReleasedTwiceByDrain(VertxTestContext ctx) {
+      var checkpoint = ctx.checkpoint();
+      // Without it the test could pass vacuously
+      AtomicInteger pendingStages = new AtomicInteger(2);
+      Promise<Void> drained = Promise.promise();
+
+      // Two connections so that closing one does not trigger the connections list cleanup
+      // (which kicks in once the number of closed connections reaches the pool maximum).
+      getClientPool(ctx, 2).onComplete(result -> {
+         if (result.failed())
+            return;
+         HttpClientPool client = result.result();
+
+         SharedConnectionPool pool = (SharedConnectionPool) client.next();
+         pool.executor().execute(() -> {
+            Session session = SessionFactory.forTesting();
+            HttpRunData.initForTesting(session);
+            HttpRequest request = HttpRequestPool.get(session).acquire();
+            request.method = HttpMethod.GET;
+            request.path = "/";
+
+            HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting().build();
+            request.start(pool, handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
+
+            // Step 1: Session gets C (acquireNow)
+            pool.acquire(false, (HttpConnection conn) -> {
+
+               // Step 2: Request is sent, C is busy
+               request.send(conn, null, true, null);
+
+               // The pool registered its own close listener when the connection was created, so ours
+               // runs after it and sees the connection already marked as closed.
+               conn.context().channel().closeFuture().addListener(v -> pool.executor().execute(() -> {
+                  ctx.verify(() -> {
+                     assertThat(conn.isClosed()).as("connection must be marked closed").isTrue();
+                     assertThat(conn.inFlight()).as("cancelRequests() must have cleared the in-flight request")
+                           .isEqualTo(0);
+                     assertThat(conn.pendingRequestCount()).as("no request may be left on the wire").isEqualTo(0);
+                     assertThat(pool.connections()).as("the drain only sees connections tracked by the pool")
+                           .contains(conn);
+                     assertThat(pool.availableCount())
+                           .as("only the untouched sibling connection may be queued, so conn is not in the deque")
+                           .isEqualTo(1);
+
+                     // Step 3 (Verification): cancelRequests() already called release(C). usedConnections is now 0.
+                     assertThat(pool.usedConnectionsCount())
+                           .as("cancelRequests() already returned the closed connection accounting to 0")
+                           .isEqualTo(0);
+                     pendingStages.decrementAndGet();
+                  });
+
+                  int availableBefore = pool.availableCount();
+                  try {
+                     // Step 4: Phase ends -> drain sees C is not in available queue.
+                     // Without the fix, this calls release(C) again and crashes on assert used >= 0 (Watermarks.decrementUsed).
+                     pool.onSessionTryTerminate();
+                     pool.pulse();
+                  } catch (Throwable t) {
+                     // With assertions enabled the double release trips Watermarks.decrementUsed
+                     ctx.failNow(t);
+                     return;
+                  }
+
+                  ctx.verify(() -> {
+                     assertThat(pool.usedConnectionsCount())
+                           .as("drain must not release the closed connection again; " +
+                                 "a negative count makes the next acquireNow() fail an assertion")
+                           .isEqualTo(0);
+                     assertThat(pool.availableCount())
+                           .as("a closed connection must not be put back into the available deque")
+                           .isEqualTo(availableBefore);
+                     pendingStages.decrementAndGet();
+                  });
+
+                  drained.complete();
+               }));
+
+               // Close the connection while the request is on the wire.
+               conn.close();
+            });
+         });
+      });
+
+      drained.future().onComplete(result -> {
+         ctx.verify(() -> {
+            assertThat(pendingStages.get())
+                  .as("every verification stage must have run - a stage that was skipped means the "
+                        + "drain never saw the closed-connection state this test is about")
+                  .isZero();
+            checkpoint.flag();
+         });
+      });
+   }
+
    private Future<HttpClientPool> getClientPool(VertxTestContext ctx) {
+      return getClientPool(ctx, 1);
+   }
+
+   private Future<HttpClientPool> getClientPool(VertxTestContext ctx, int sharedConnections) {
       Http http = HttpBuilder.forTesting().protocol(Protocol.HTTP)
             .host("localhost").port(httpServer.actualPort())
-            .sharedConnections(1)
+            .sharedConnections(sharedConnections)
             .build(true);
       try {
          HttpClientPool client = HttpClientPoolImpl.forTesting(http, 1);

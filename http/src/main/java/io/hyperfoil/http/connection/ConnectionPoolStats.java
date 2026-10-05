@@ -3,15 +3,11 @@ package io.hyperfoil.http.connection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.Watermarks;
 import io.hyperfoil.http.api.HttpConnection;
 
 public class ConnectionPoolStats {
-   private static final Logger log = LogManager.getLogger(ConnectionPoolStats.class);
    protected final String authority;
    protected final Watermarks usedConnections = new Watermarks();
    protected final Watermarks inFlight = new Watermarks();
@@ -32,6 +28,10 @@ public class ConnectionPoolStats {
 
    public int inFlightCount() {
       return inFlight.current();
+   }
+
+   public int usedConnectionsCount() {
+      return usedConnections.current();
    }
 
    public void visitConnectionStats(ConnectionStatsConsumer consumer) {
