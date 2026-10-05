@@ -73,3 +73,8 @@ docs/site/node_modules/
 
 # code format
 .cache
+
+#
+.bob
+.claude
+.vscode
