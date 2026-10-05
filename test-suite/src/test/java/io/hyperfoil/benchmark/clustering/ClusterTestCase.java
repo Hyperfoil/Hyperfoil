@@ -41,7 +41,7 @@ import io.vertx.junit5.VertxTestContext;
 // It runs from Maven just fine.
 // How to run this test: mvn clean package -Pbenchmark -pl test-suite -am -Dtest=ClusterTestCase -Dsurefire.failIfNoSpecifiedTests=false
 // How to check the logs from the server side ( debug enabled by default ): tail -f test-suite/target/surefire-reports/io.hyperfoil.benchmark.clustering.ClusterTestCase-output.txt
-// How to check the logs from the agent side: tail -f /tmp/hyperfoil/agent*.log
+// How to check the logs from the agent side: tail -f test-suite/target/hyperfoil/agent*.log
 @Tag("io.hyperfoil.test.Benchmark")
 public class ClusterTestCase extends BaseClusteredTest {
    private static final int AGENTS = 2;
