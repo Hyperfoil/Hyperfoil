@@ -1,6 +1,6 @@
 name: hotrod-example
 hotrod:
-- uri: !concat [ "hotrod://localhost:", !param PORT 11222 ]
+- uri: !concat [ "hotrod://", !param HOST 127.0.0.1, ":", !param PORT 11222 ]
   caches:
   - my-cache
 usersPerSec: 1

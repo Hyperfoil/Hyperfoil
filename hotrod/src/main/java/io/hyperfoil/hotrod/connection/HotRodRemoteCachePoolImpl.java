@@ -26,6 +26,7 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
 
    private final Map<String, RemoteCacheManager> remoteCacheManagers = new HashMap<>();
    private final Map<String, RemoteCache<?, ?>> remoteCaches = new HashMap<>();
+   private volatile Throwable startError;
 
    public HotRodRemoteCachePoolImpl(HotRodCluster[] clusters, EventLoop eventLoop) {
       this.clusters = clusters;
@@ -34,6 +35,17 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
 
    @Override
    public void start() {
+      try {
+         doStart();
+      } catch (RuntimeException | Error e) {
+         // The caller only collects the failed promise, so keep the cause around: without it the sessions would
+         // later fail with a misleading 'cache is not a defined cache' error instead of the actual problem.
+         startError = e;
+         throw e;
+      }
+   }
+
+   private void doStart() {
       for (HotRodCluster cluster : clusters) {
          ConfigurationBuilder cb = HotRodURI.create(cluster.uri()).toConfigurationBuilder();
          Properties properties = new Properties();
@@ -68,6 +80,9 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
 
    @Override
    public RemoteCacheWithoutToString<?, ?> getRemoteCache(String cacheName) {
+      if (startError != null) {
+         throw new IllegalStateException("Hot Rod remote cache pool failed to start", startError);
+      }
       RemoteCache<?, ?> cache = this.remoteCaches.get(cacheName);
       if (cache == null) {
          throw new IllegalArgumentException(String.format("Cache '%s' is not a defined cache", cacheName));
