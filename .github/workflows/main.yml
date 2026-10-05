@@ -26,7 +26,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        java: [21, 26]
+        # Baseline LTS and latest release
+        java: [21, 27]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
