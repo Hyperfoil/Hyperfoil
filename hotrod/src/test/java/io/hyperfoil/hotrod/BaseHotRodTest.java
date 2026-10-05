@@ -62,7 +62,14 @@ public abstract class BaseHotRodTest extends BaseScenarioTest {
 
    @Override
    protected Benchmark loadBenchmark(InputStream config) throws IOException, ParserException {
-      return BenchmarkParser.instance().buildBenchmark(
-            config, TestUtil.benchmarkData(), Map.of("PORT", String.valueOf(hotrodServers[0].getPort())));
+      return BenchmarkParser.instance().buildBenchmark(config, TestUtil.benchmarkData(), serverParams());
+   }
+
+   /**
+    * The embedded server binds a single address, so the client must use that very address. Resolving a name such as
+    * <code>localhost</code> may yield the IPv6 loopback on a dual-stack host and the connection would be refused.
+    */
+   protected Map<String, String> serverParams() {
+      return Map.of("HOST", hotrodServers[0].getHost(), "PORT", String.valueOf(hotrodServers[0].getPort()));
    }
 }

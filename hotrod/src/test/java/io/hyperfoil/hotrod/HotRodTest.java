@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.infinispan.configuration.cache.ConfigurationBuilder;
@@ -37,8 +38,9 @@ public class HotRodTest extends BaseHotRodTest {
    public void testUndefinedCache() throws Exception {
       try (InputStream is = getClass().getClassLoader().getResourceAsStream("scenarios/HotRodPutTest.hf.yaml")) {
          String cacheName = "something-else-undefined";
-         Benchmark benchmark = loadBenchmark(is,
-               Map.of("CACHE", cacheName, "PORT", String.valueOf(hotrodServers[0].getPort())));
+         Map<String, String> params = new HashMap<>(serverParams());
+         params.put("CACHE", cacheName);
+         Benchmark benchmark = loadBenchmark(is, params);
 
          RuntimeException e = assertThrows(RuntimeException.class, () -> runScenario(benchmark));
          assertException(RuntimeException.class, IllegalArgumentException.class,
