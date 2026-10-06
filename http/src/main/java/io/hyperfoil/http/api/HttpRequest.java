@@ -67,6 +67,7 @@ public class HttpRequest extends Request {
       }
 
       attach(connection);
+      setFiredTimestampMillis(this.session);
       connection.attach(pool);
       connection.request(this, headerAppenders, injectHostHeader, bodyGenerator);
    }
@@ -156,5 +157,10 @@ public class HttpRequest extends Request {
    @Override
    public long getStartTimestampNanos(Session session) {
       return this.startTimestampNanos();
+   }
+
+   @Override
+   public long getFiredTimestampMillis(Session session) {
+      return this.firedTimestampMillis();
    }
 }

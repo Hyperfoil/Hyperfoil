@@ -2,9 +2,11 @@ package io.hyperfoil.benchmark.standalone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 
 import org.aesh.command.CommandNotFoundException;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.benchmark.BaseWrkBenchmarkTest;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.commands.Wrk2;
@@ -23,7 +26,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.model.RequestStats;
 
 @Tag("io.hyperfoil.test.Benchmark")
-// If you need to debug use "-Dio.hyperfoil.controller.log.level=debug" VM option
+// If you need to debug use "-Dio.hyperfoil.controller.log.level=debug" VM option and read the file /tmp/hyperfoil/hyperfoil.local.log
 public class WrkTest extends BaseWrkBenchmarkTest {
 
    @Test
@@ -141,5 +144,24 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       }
       // we are expecting at least one failed SLA because of the high rate
       assertTrue(failedSLA);
+   }
+
+   @Test
+   public void testWrk2ReqSec() throws CommandNotFoundException {
+      int seconds = 5;
+      Wrk2 cmd = new Wrk2();
+      int result = cmd.exec(new String[] { "-t", "1", "-c", "5", "-d", seconds + "s", "-R", "1000", "--timeout", "1s",
+            "localhost:" + httpServer.actualPort() + "/50ms" });
+
+      CommandContainer<HyperfoilCommandInvocation> commandContainer = cmd.getCommandRegistry().getCommand("wrk2", null);
+      ProcessedCommand processedCommand = commandContainer.getParser().getProcessedCommand();
+      Wrk2.Wrk2Command wrk2Command = (Wrk2.Wrk2Command) processedCommand.getCommand();
+      WrkAbstract.WrkCommandResult wrkCommandResult = wrk2Command.getWrkCommandResult();
+
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result);
+      List<StatisticsSummary> series = wrkCommandResult.getSeries();
+      assertNotNull(series, "Series list should not be null");
+      int size = series.size();
+      assertTrue(size >= (seconds - 1) && size <= (seconds + 1), "Expected ~" + seconds + " buckets, but got: " + size);
    }
 }
