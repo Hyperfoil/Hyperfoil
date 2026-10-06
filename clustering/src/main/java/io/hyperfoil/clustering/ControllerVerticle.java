@@ -69,10 +69,12 @@ import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
@@ -100,6 +102,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    Map<String, Run> runs = new HashMap<>();
 
    @Override
+   public void init(Vertx vertx, Context context) {
+      super.init(vertx, context);
+      eb = vertx.eventBus();
+   }
+
+   @Override
    public void start(Promise<Void> future) {
       log.info("Starting in directory {}...", Controller.ROOT_DIR);
       CountDown startCountDown = new CountDown(ar -> {
@@ -124,8 +132,6 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       Controller.HOOKS_DIR.resolve("pre").toFile().mkdirs();
       //noinspection ResultOfMethodCallIgnored
       Controller.HOOKS_DIR.resolve("post").toFile().mkdirs();
-
-      eb = vertx.eventBus();
 
       eb.consumer(Feeds.DISCOVERY, message -> {
          if (message.body() instanceof AgentHello) {
@@ -580,25 +586,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             AgentInfo agentInfo = new AgentInfo(agent.name, agentCounter++);
             run.agents.add(agentInfo);
             log.debug("Starting agent {}", agent.name);
-            vertx.executeBlocking(() -> {
-               agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
-                  if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
-                     run.errors.add(
-                           new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
-                     log.error("Failed to deploy agent {}", agent.name, exception);
-                     vertx.runOnContext(nil -> stopSimulation(run));
-                  }
-               });
-               return null;
-            }, false)
-                  .onComplete(result -> {
-                     if (result.failed()) {
-                        run.errors.add(new Run.Error(agentInfo,
-                              new BenchmarkExecutionException("Failed to start agent", result.cause())));
-                        log.error("Failed to start agent {}", agent.name, result.cause());
-                        vertx.runOnContext(nil -> stopSimulation(run));
-                     }
-                  });
+            deployAgent(run, agentInfo, agent);
          }
       }
 
@@ -755,7 +743,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   private void stopSimulation(Run run) {
+   void stopSimulation(Run run) {
       if (log.isDebugEnabled()) {
          log.debug("Stopping simulation");
       }
@@ -765,6 +753,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       run.terminateTime.complete(System.currentTimeMillis());
       run.completed = true;
+      // Also cancel here: a run that aborts before all agents register never reaches handleAgentsStarted,
+      // and the timer would then add "Deployment timed out." to a run that is already finished.
+      vertx.cancelTimer(run.deployTimerId);
       for (AgentInfo agent : run.agents) {
          if (agent.deploymentId == null) {
             assert agent.status == AgentInfo.Status.STARTING;
@@ -783,11 +774,17 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   } else {
                      agent.status = AgentInfo.Status.FAILED;
                      log.error("Agent {}/{} failed to stop", agent.name, agent.deploymentId);
+                     Throwable cause;
                      if (reply.result() instanceof Throwable) {
-                        log.error("Failure thrown on the agent node (see agent log for details): ", (Throwable) reply.result());
+                        cause = (Throwable) reply.result();
+                        log.error("Failure thrown on the agent node (see agent log for details): ", cause);
                      } else {
-                        log.error("Failure thrown on the controller (this node): ", reply.cause());
+                        cause = reply.cause();
+                        log.error("Failure thrown on the controller (this node): ", cause);
                      }
+                     // Record it, not just log it: otherwise info.json shows no error for this agent.
+                     run.errors.add(new Run.Error(agent,
+                           new BenchmarkExecutionException("Agent failed to stop", cause)));
                   }
                   if (agent.deployedAgent != null) {
                      // Give agents 3 seconds to leave the cluster
@@ -803,8 +800,57 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       checkAgentsStopped(run);
    }
 
-   private void checkAgentsStopped(Run run) {
-      if (run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
+   void setDeployer(Deployer deployer) {
+      this.deployer = deployer;
+   }
+
+   /** Starts one agent and handles the outcome. */
+   void deployAgent(Run run, AgentInfo agentInfo, Agent agent) {
+      // Vert.x assigns a worker thread from its background pool to run the lambda
+      vertx.executeBlocking(() -> {
+         // The deployer calls back from its own thread; run.errors and agent statuses are event-loop only.
+         agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark,
+               exception -> vertx.runOnContext(nil -> {
+                  if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
+                     run.errors.add(new Run.Error(agentInfo,
+                           new BenchmarkExecutionException("Failed to deploy agent", exception)));
+                     log.error("Failed to deploy agent {}", agent.name, exception);
+                     stopSimulation(run);
+                  }
+               }));
+         return null;
+      }, false)
+            .onComplete(result -> {
+               if (result.failed()) {
+                  run.errors.add(new Run.Error(agentInfo,
+                        new BenchmarkExecutionException("Failed to start agent", result.cause())));
+                  log.error("Failed to start agent {}", agent.name, result.cause());
+                  vertx.runOnContext(nil -> stopSimulation(run));
+               } else if (run.terminateTime.future().isComplete()) {
+                  // The run ended while this agent was still deploying, so stopSimulation did not see it.
+                  // Nothing revisits a finished run, so stop it here or it stays up forever.
+                  log.info("{} Agent {} finished deploying after the run had already ended; stopping it",
+                        run.id, agent.name);
+                  stopDeployedAgent(agentInfo);
+               }
+            });
+   }
+
+   /** Stops the deployed process at once, with no grace period for leaving the cluster. */
+   private static void stopDeployedAgent(AgentInfo agent) {
+      if (agent.deployedAgent != null) {
+         agent.deployedAgent.stop();
+      }
+   }
+
+   /**
+    * Persists the run once every agent is in a terminal state. Called once per STOP reply and once after the
+    * loop that sends them, and those calls can overlap - hence the guard.
+    */
+   void checkAgentsStopped(Run run) {
+      if (!run.completionStarted
+            && run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
+         run.completionStarted = true;
          for (var phase : run.phases.values()) {
             run.statisticsStore().adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(),
                   phase.absoluteCompletionTime());
@@ -819,7 +865,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    @SuppressWarnings("deprecation") // Uses a deprecated executeBlocking call that should be addressed later. This is tracked in https://github.com/Hyperfoil/Hyperfoil/issues/493
-   private void persistRun(Run run) {
+   void persistRun(Run run) {
       vertx.<Void> executeBlocking(() -> {
 
          boolean hasError = false;

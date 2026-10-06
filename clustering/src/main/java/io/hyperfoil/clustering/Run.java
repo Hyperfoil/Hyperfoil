@@ -23,13 +23,17 @@ class Run {
    final Phase[] phasesById;
    final List<Error> errors = new ArrayList<>();
    final List<RunHookOutput> hookResults = new ArrayList<>();
-   long deployTimerId;
+   // Initialize to -1 because 0 is a valid Vert.x timer ID.
+   // This prevents accidentally canceling an unrelated timer if the run aborts early.
+   long deployTimerId = -1;
    String description;
 
    long startTime = Long.MIN_VALUE;
    Promise<Long> terminateTime = Promise.promise();
    boolean cancelled;
    boolean completed;
+   // guards against persisting a run twice; set before the write starts, unlike persisted
+   boolean completionStarted;
    // set to true once the all.json and related files are persisted in the filesystem
    boolean persisted;
    Supplier<StatisticsStore> statsSupplier;
