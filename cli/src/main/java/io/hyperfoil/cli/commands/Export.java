@@ -47,6 +47,7 @@ public class Export extends BaseExportCommand {
          Files.write(Paths.get(destinationFile), bytes);
       } catch (IOException e) {
          invocation.error("Failed to write stats into " + destinationFile);
+         return CommandResult.FAILURE;
       }
       return CommandResult.SUCCESS;
    }
