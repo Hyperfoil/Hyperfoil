@@ -199,6 +199,10 @@ public class Hyperfoil {
          ConfigurationBuilderHolder holder = new ParserRegistry().parse(url);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
                .withProperties(System.getProperties())
+               // Isolates concurrent runs using unique JGroups cluster names.
+               // Deployers (SshDeployedAgent, K8sDeployer) propagate this value to this class.
+               // If unset, it defaults to "ISPN" for backward-compatible, zero-config runs.
+               .clusterName(Properties.get(Properties.CLUSTER_NAME, "ISPN"))
                .initialClusterSize(1);
          return new DefaultCacheManager(holder, true);
       } catch (IOException e) {

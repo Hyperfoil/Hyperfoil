@@ -220,6 +220,10 @@ public class SshDeployedAgent implements DeployedAgent {
             .append(Properties.get(Properties.CONTROLLER_CLUSTER_IP, ""));
       startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=')
             .append(Properties.get(Properties.CONTROLLER_CLUSTER_PORT, ""));
+      String clusterName = Properties.get(Properties.CLUSTER_NAME, null);
+      if (clusterName != null) {
+         startAgentCommmand.append(" -D").append(Properties.CLUSTER_NAME).append('=').append(clusterName);
+      }
       if (DEBUG_ADDRESS != null) {
          startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND)
                .append(",address=").append(DEBUG_ADDRESS);
