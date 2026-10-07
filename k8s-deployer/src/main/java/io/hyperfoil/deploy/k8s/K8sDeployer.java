@@ -214,6 +214,10 @@ public class K8sDeployer implements Deployer {
       command.add("-D" + Properties.RUN_ID + "=" + runId);
       command.add("-D" + Properties.CONTROLLER_CLUSTER_IP + "=" + Properties.get(Properties.CONTROLLER_CLUSTER_IP, null));
       command.add("-D" + Properties.CONTROLLER_CLUSTER_PORT + "=" + Properties.get(Properties.CONTROLLER_CLUSTER_PORT, null));
+      String clusterName = Properties.get(Properties.CLUSTER_NAME, null);
+      if (clusterName != null) {
+         command.add("-D" + Properties.CLUSTER_NAME + "=" + clusterName);
+      }
       if (agent.properties.containsKey("extras")) {
          command.addAll(Arrays.asList(agent.properties.get("extras").split(" ", 0)));
       }

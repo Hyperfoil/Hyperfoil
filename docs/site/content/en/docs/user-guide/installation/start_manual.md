@@ -40,6 +40,7 @@ Below is the comprehensive list of all the properties Hyperfoil recognizes. All 
 | io.hyperfoil.agent.debug.suspend          | n                  | Suspend parameter for the debug port                             |
 | io.hyperfoil.controller.cluster.ip        | first non-loopback | Hostname/IP used for clustering with agents                      |
 | io.hyperfoil.controller.cluster.port      | 7800               | Default JGroups clustering port                                  |
+| io.hyperfoil.cluster.name                 | ISPN               | Cluster name shared by the controller and deployed agents.       |
 | io.hyperfoil.controller.external.uri      |                    | Externally advertised URI of REST server                         |
 | io.hyperfoil.controller.keystore.path     |                    | File path to Java Keystore                                       |
 | io.hyperfoil.controller.keystore.password |                    | Java Keystore password                                           |
@@ -55,6 +56,35 @@ This timeout starts after agents have registered with the controller. It is sepa
 from the agent deployment timeout and does not change HTTP request timeouts or benchmark SLAs.
 
 If `io.hyperfoi.trigger.url` is set the controller does not start benchmark run right away after hitting `/benchmark/my-benchmark/start` ; instead it responds with status 301 and header Location set to concatenation of this string and `BENCHMARK=my-benchmark&RUN_ID=xxxx`. CLI interprets that response as a request to hit CI instance on this URL, assuming that CI will trigger a new job that will eventually call `/benchmark/my-benchmark/start?runId=xxxx` with header `x-trigger-job`. This is useful if the the CI has to synchronize Hyperfoil to other benchmarks that don't use this controller instance.
+
+## Running several benchmarks on one host
+
+A controller and the agents it deploys form a JGroups cluster, and a node only ever talks to nodes of
+the same cluster name - messages from any other one are dropped. A single controller per host therefore
+needs no configuration at all: both sides fall back to `ISPN` and find each other.
+
+To run two benchmarks side by side - say one per git worktree - give each controller its own cluster
+name, REST port and root directory:
+
+```sh
+bin/controller.sh -Dio.hyperfoil.cluster.name=runA \
+                  -Dio.hyperfoil.controller.port=8090 \
+                  -Dio.hyperfoil.rootdir=/tmp/hyperfoil-a
+```
+
+```sh
+bin/controller.sh -Dio.hyperfoil.cluster.name=runB \
+                  -Dio.hyperfoil.controller.port=8091 \
+                  -Dio.hyperfoil.rootdir=/tmp/hyperfoil-b
+```
+
+Nothing has to be configured on the agent side: the controller passes its cluster name to every agent it
+starts, over SSH as well as in Kubernetes. The clustering port needs no configuration either - the first
+controller takes 7800 and the second one moves to the next free port on its own.
+
+Note that the runs still share the machine's CPUs. If your agents pin themselves with the `cpu` property
+(see [agent configuration](/docs/user-guide/benchmark/agent/)), give each run a disjoint set of cores,
+otherwise the two benchmarks compete for the same ones and neither produces trustworthy numbers.
 
 ## Security
 
