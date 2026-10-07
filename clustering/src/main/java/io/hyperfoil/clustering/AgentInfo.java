@@ -13,7 +13,8 @@ class AgentInfo {
    String deploymentId;
    Status status = Status.STARTING;
    Map<String, PhaseInstance.Status> phases = new HashMap<>();
-   DeployedAgent deployedAgent;
+   /** Assigned on the deployer's worker thread, read on the event loop. */
+   volatile DeployedAgent deployedAgent;
 
    AgentInfo(String name, int id) {
       this.name = name;

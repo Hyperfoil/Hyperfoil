@@ -212,8 +212,11 @@ public class K8sDeployer implements Deployer {
       command.add("-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       command.add("-D" + Properties.AGENT_NAME + "=" + agent.name);
       command.add("-D" + Properties.RUN_ID + "=" + runId);
-      command.add("-D" + Properties.CONTROLLER_CLUSTER_IP + "=" + Properties.get(Properties.CONTROLLER_CLUSTER_IP, null));
-      command.add("-D" + Properties.CONTROLLER_CLUSTER_PORT + "=" + Properties.get(Properties.CONTROLLER_CLUSTER_PORT, null));
+      addPropertyIfSet(command, Properties.CONTROLLER_CLUSTER_IP);
+      addPropertyIfSet(command, Properties.CONTROLLER_CLUSTER_PORT);
+      // See SshDeployedAgent: the agent has to join the cluster this controller is in, and without this it
+      // joins "hyperfoil" regardless of what the controller was started with.
+      addPropertyIfSet(command, Properties.CLUSTER_NAME);
       if (agent.properties.containsKey("extras")) {
          command.addAll(Arrays.asList(agent.properties.get("extras").split(" ", 0)));
       }
@@ -296,6 +299,19 @@ public class K8sDeployer implements Deployer {
          client.pods().inNamespace(NAMESPACE).withName(podName).watch(new AgentWatcher(podName, k8sAgent));
       }
       return k8sAgent;
+   }
+
+   /**
+    * Passes a property down to the agent only when this JVM actually has it. Concatenating an unset property
+    * would hand the agent the literal string {@code null}, which it cannot tell from a real value: instead of
+    * the agent's own "was not set" diagnostic you would get a JGroups {@code UnknownHostException} for a host
+    * named "null".
+    */
+   private static void addPropertyIfSet(List<String> command, String property) {
+      String value = Properties.get(property, null);
+      if (value != null) {
+         command.add("-D" + property + "=" + value);
+      }
    }
 
    @Override

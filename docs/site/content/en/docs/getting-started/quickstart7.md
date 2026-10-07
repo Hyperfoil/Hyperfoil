@@ -53,6 +53,6 @@ main:
 
 You see that we did 106 requests which fits the assumption about running 10 user sessions per second over 10 seconds, while we have used 2 agents.
 
-Vert.x clustering is using [Infinispan](http://infinispan.org/) and [JGroups](http://www.jgroups.org/); depending on your networking setup it might not work out-of-the-box. If you experience any trouble, check out the [FAQ](/docs/faq).
+Vert.x clustering is using [JGroups](http://www.jgroups.org/); depending on your networking setup it might not work out-of-the-box. If you experience any trouble, check out the [FAQ](/docs/faq).
 
 [Next quickstart](/docs/getting-started/quickstart8) will get back to the scenario definition; we'll show you how to extend Hyperfoil with custom steps and handlers.

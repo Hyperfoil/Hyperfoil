@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.infinispan.commons.api.BasicCacheContainer;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -82,7 +81,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
-import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LogManager.getLogger(ControllerVerticle.class);
@@ -581,14 +579,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             run.agents.add(agentInfo);
             log.debug("Starting agent {}", agent.name);
             vertx.executeBlocking(() -> {
-               agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
-                  if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
-                     run.errors.add(
-                           new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
-                     log.error("Failed to deploy agent {}", agent.name, exception);
-                     vertx.runOnContext(nil -> stopSimulation(run));
-                  }
-               });
+               // The deployer calls this from its own thread whenever the agent process goes away, at the end of
+               // every run as well as when one dies early, so hop onto the event loop before looking at the run:
+               // run.errors and the statuses are only ever safe to touch there, and the status this has to
+               // distinguish the two cases by may still be changing on it.
+               agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark,
+                     exception -> vertx.runOnContext(nil -> agentDied(run, agentInfo, exception)));
                return null;
             }, false)
                   .onComplete(result -> {
@@ -596,7 +592,20 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                         run.errors.add(new Run.Error(agentInfo,
                               new BenchmarkExecutionException("Failed to start agent", result.cause())));
                         log.error("Failed to start agent {}", agent.name, result.cause());
+                        // It will never register, so nothing else will ever move it out of STARTING.
+                        agentInfo.status = AgentInfo.Status.FAILED;
                         vertx.runOnContext(nil -> stopSimulation(run));
+                     } else if (run.terminateTime.future().isComplete()) {
+                        // start() can report a failure through the exception handler and still return a live
+                        // handle: SshDeployedAgent calls the handler inline and carries on rather than
+                        // returning. By the time the handle is assigned above, that failure may already have
+                        // failed the agent, stopped the run and persisted it - stopSimulation walked
+                        // run.agents while this field was still null and found nothing to tear down. Nothing
+                        // revisits a completed run, so without this the SSH session, or the pod on the K8s
+                        // deployer, stays up for the rest of the controller's life.
+                        log.info("{} Agent {} finished deploying after the run had already ended; stopping it",
+                              run.id, agent.name);
+                        stopDeployedAgent(agentInfo);
                      }
                   });
          }
@@ -755,6 +764,30 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
+   /**
+    * The deployer noticed that an agent's process is gone. Called on the event loop.
+    * <p>
+    * This is one of two ways a crash is detected - the other is {@link #nodeLeft(String)}, when the agent drops
+    * out of the cluster - and which one wins is a race: the deployer still holds the shell the agent was started
+    * from and sees it exit at once, while failure detection has to go through FD_SOCK2 and VERIFY_SUSPECT2. Both
+    * therefore have to leave the run in the same state, which is why this marks the agent before stopping the
+    * run rather than letting {@link #stopSimulation} move it to STOPPING: {@code stopSimulation} publishes the
+    * run as completed, and an agent reading STOPPING in that snapshot claims the controller is still waiting for
+    * a process that no longer exists.
+    */
+   private void agentDied(Run run, AgentInfo agent, Throwable exception) {
+      if (agent.status.ordinal() >= AgentInfo.Status.STOPPING.ordinal()) {
+         // We asked it to stop, so its process exiting is the expected end of every run, not a failure.
+         return;
+      }
+      // Not "failed to deploy": the same handler fires for an agent that was running happily until it died,
+      // and the exception the deployer passes up already says which of the two it was.
+      log.error("{} Agent {} is no longer running", run.id, agent.name, exception);
+      run.errors.add(new Run.Error(agent, new BenchmarkExecutionException("Agent is no longer running", exception)));
+      agent.status = AgentInfo.Status.FAILED;
+      stopSimulation(run);
+   }
+
    private void stopSimulation(Run run) {
       if (log.isDebugEnabled()) {
          log.debug("Stopping simulation");
@@ -765,12 +798,27 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       run.terminateTime.complete(System.currentTimeMillis());
       run.completed = true;
+      // Every path out of a run comes through here, including the ones that abort before all agents have
+      // registered, so this is the only place the deploy timer is certain to be cancelled. Left running it
+      // fires long after the run was persisted and appends a "Deployment timed out." that exists only in the
+      // in-memory run, making the REST view disagree with the artifact on disk about why the run failed.
+      vertx.cancelTimer(run.deployTimerId);
       for (AgentInfo agent : run.agents) {
+         if (agent.status == AgentInfo.Status.FAILED) {
+            // Already known to be gone, by whichever of the detection paths got here first. Asking it to stop
+            // would stall the run until the event bus gives up on a reply that is never coming, and STOPPING
+            // would overwrite the one record of which agent did not come back.
+            stopDeployedAgent(agent);
+            continue;
+         }
          if (agent.deploymentId == null) {
+            // Never registered, so there is no address to send a STOP to - but it still has to reach a terminal
+            // status, because checkAgentsStopped waits for every agent and STARTING would hold the run open for
+            // good. It never ran, so the run cannot be called clean.
             assert agent.status == AgentInfo.Status.STARTING;
-            if (agent.deployedAgent != null) {
-               agent.deployedAgent.stop();
-            }
+            log.warn("Run {}: agent {} never registered, marking it as failed", run.id, agent.name);
+            agent.status = AgentInfo.Status.FAILED;
+            stopDeployedAgent(agent);
             continue;
          }
          agent.status = AgentInfo.Status.STOPPING;
@@ -778,17 +826,29 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                .onComplete(reply -> {
                   if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
                      agent.status = AgentInfo.Status.STOPPED;
-                     checkAgentsStopped(run);
                      log.info("Agent {}/{} stopped successfully.", agent.name, agent.deploymentId);
                   } else {
                      agent.status = AgentInfo.Status.FAILED;
                      log.error("Agent {}/{} failed to stop", agent.name, agent.deploymentId);
+                     Throwable cause;
                      if (reply.result() instanceof Throwable) {
-                        log.error("Failure thrown on the agent node (see agent log for details): ", (Throwable) reply.result());
+                        cause = (Throwable) reply.result();
+                        log.error("Failure thrown on the agent node (see agent log for details): ", cause);
                      } else {
-                        log.error("Failure thrown on the controller (this node): ", reply.cause());
+                        cause = reply.cause();
+                        log.error("Failure thrown on the controller (this node): ", cause);
                      }
+                     // Recorded, not just logged. When several agents die at once the first one through
+                     // agentDied moves all the others to STOPPING before their own deployer callbacks arrive,
+                     // and those callbacks then return without recording anything - the STOP that never got a
+                     // reply is the only remaining trace that this agent did not come back, and without it
+                     // info.json blames the one agent that happened to be detected first.
+                     run.errors.add(new Run.Error(agent,
+                           new BenchmarkExecutionException("Agent failed to stop", cause)));
                   }
+                  // Either way the agent is now terminal, and this may have been the last one the run was
+                  // waiting for. Checking only on the happy path would leave the run unpersisted.
+                  checkAgentsStopped(run);
                   if (agent.deployedAgent != null) {
                      // Give agents 3 seconds to leave the cluster
                      log.info("Scheduling deployed agent stop for {}/{} in 3 seconds to allow cluster leave", agent.name,
@@ -803,8 +863,30 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       checkAgentsStopped(run);
    }
 
+   /**
+    * Tears down whatever the deployer started, with no grace period: this is only used for agents that are
+    * already gone or never came up, so there is no cluster leave left to wait for.
+    */
+   private static void stopDeployedAgent(AgentInfo agent) {
+      if (agent.deployedAgent != null) {
+         agent.deployedAgent.stop();
+      }
+   }
+
+   /**
+    * Persists the run once every agent has reached a terminal status.
+    * <p>
+    * Called from several places that can overlap: once per STOP reply and once more after the loop that sends
+    * them, and a reply can be delivered inline, before {@code eb.request} has even returned, when the agent's
+    * registration is already gone and the send fails with NO_HANDLERS. The guard has to be set here, where the
+    * decision is made, rather than relying on {@code run.persisted}, which is only set once the write finishes
+    * - a second call arriving before that would run every post hook again and race the first one writing
+    * {@code stats/*.csv}, {@code info.json} and {@code all.json}.
+    */
    private void checkAgentsStopped(Run run) {
-      if (run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
+      if (!run.completionStarted
+            && run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
+         run.completionStarted = true;
          for (var phase : run.phases.values()) {
             run.statisticsStore().adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(),
                   phase.absoluteCompletionTime());
@@ -1175,14 +1257,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void shutdown() {
-      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((VertxInternal) vertx)
-            .clusterManager();
-      if (clusterManager != null) {
-         BasicCacheContainer cacheManager = clusterManager.getCacheContainer();
-         vertx.close().onComplete(ar -> cacheManager.stop());
-      } else {
-         vertx.close();
-      }
+      // Closing Vert.x calls ClusterManager.leave(), which shuts the JGroups channel down.
+      vertx.close();
    }
 
    public int actualPort() {

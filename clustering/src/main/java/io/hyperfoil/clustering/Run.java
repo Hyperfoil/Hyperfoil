@@ -30,6 +30,9 @@ class Run {
    Promise<Long> terminateTime = Promise.promise();
    boolean cancelled;
    boolean completed;
+   // set to true the moment the run is handed to persistRun, so that it can only be handed over once.
+   // Distinct from persisted, which is only set when the write has finished and so cannot act as the guard.
+   boolean completionStarted;
    // set to true once the all.json and related files are persisted in the filesystem
    boolean persisted;
    Supplier<StatisticsStore> statsSupplier;
