@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.handlers.CheckProcessor;
 import io.hyperfoil.http.BaseHttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.vertx.junit5.VertxExtension;
@@ -21,6 +22,14 @@ public class ErrorRatioTest extends BaseHttpScenarioTest {
       router.get("/get200").handler(ctx -> ctx.response().setStatusCode(200).end());
       router.get("/get400").handler(ctx -> ctx.response().setStatusCode(400).end());
       router.get("/close").handler(ctx -> ctx.response().reset());
+      router.get("/malformed-json").handler(ctx -> ctx.response().setChunked(true).write("{\"value\":")
+            .onComplete(ignored -> ctx.response().end("false")));
+      router.get("/valid-equal").handler(ctx -> ctx.response().setChunked(true).write("response ")
+            .onComplete(ignored -> ctx.response().end("body")));
+      router.get("/valid-regex").handler(ctx -> ctx.response().setChunked(true).write("prefix-")
+            .onComplete(ignored -> ctx.response().end("middle-suffix")));
+      router.get("/valid-json").handler(ctx -> ctx.response().setChunked(true).write("{\"values\":[1.0,true],")
+            .onComplete(ignored -> ctx.response().end("\"message\":\"ok\"}")));
    }
 
    @Test
@@ -80,6 +89,57 @@ public class ErrorRatioTest extends BaseHttpScenarioTest {
    }
 
    @Test
+   public void testMalformedJsonInFragmentedBody() {
+      scenario().initialSequence("malformed-json")
+            .step(SC).httpRequest(HttpMethod.GET).path("/malformed-json")
+            .handler().body(new CheckProcessor.Builder().json("{\"value\":false}"))
+            .stopOnInvalid(false).endHandler().endStep();
+
+      StatisticsSnapshot stats = runScenario().get("malformed-json");
+      assertThat(stats.responseCount).isEqualTo(1);
+      assertThat(stats.invalid).isEqualTo(1);
+      assertThat(stats.internalErrors).isEqualTo(0);
+      assertThat(stats.connectionErrors).isEqualTo(0);
+      assertThat(stats.errors()).isEqualTo(0);
+   }
+
+   @Test
+   public void testEqualToInFragmentedBody() {
+      StatisticsSnapshot stats = runCheck("valid-equal", "/valid-equal",
+            new CheckProcessor.Builder().equalTo("response body"));
+      assertValid(stats);
+   }
+
+   @Test
+   public void testRegexInFragmentedBody() {
+      StatisticsSnapshot stats = runCheck("valid-regex", "/valid-regex",
+            new CheckProcessor.Builder().regex("prefix-.*-suffix"));
+      assertValid(stats);
+   }
+
+   @Test
+   public void testJsonInFragmentedBody() {
+      StatisticsSnapshot stats = runCheck("valid-json", "/valid-json",
+            new CheckProcessor.Builder().json("{\"message\":\"ok\",\"values\":[1,true]}"));
+      assertValid(stats);
+   }
+
+   @Test
+   public void testCheckHonorsStopOnInvalid() {
+      scenario().initialSequence("stop-on-invalid")
+            .step(SC).httpRequest(HttpMethod.GET).path("/get200")
+            .handler().body(new CheckProcessor.Builder().equalTo("expected"))
+            .stopOnInvalid(true).endHandler().endStep()
+            .step(SC).httpRequest(HttpMethod.GET).path("/get200").endStep();
+
+      StatisticsSnapshot stats = runScenario().get("stop-on-invalid");
+      assertThat(stats.requestCount).isEqualTo(1);
+      assertThat(stats.responseCount).isEqualTo(1);
+      assertThat(stats.invalid).isEqualTo(1);
+      assertThat(stats.internalErrors).isEqualTo(0);
+   }
+
+   @Test
    public void testThrowInCompletionHandler() {
       scenario().initialSequence("throw")
             .step(SC).httpRequest(HttpMethod.GET).path("/get200")
@@ -98,5 +158,21 @@ public class ErrorRatioTest extends BaseHttpScenarioTest {
       assertThat(stats.connectionErrors).isEqualTo(0);
       assertThat(stats.internalErrors).isEqualTo(1);
       assertThat(stats.errors()).isEqualTo(1);
+   }
+
+   private StatisticsSnapshot runCheck(String name, String path, CheckProcessor.Builder check) {
+      scenario().initialSequence(name)
+            .step(SC).httpRequest(HttpMethod.GET).path(path)
+            .handler().body(check).endHandler().endStep();
+      return runScenario().get(name);
+   }
+
+   private void assertValid(StatisticsSnapshot stats) {
+      assertThat(stats.requestCount).isEqualTo(1);
+      assertThat(stats.responseCount).isEqualTo(1);
+      assertThat(stats.invalid).isEqualTo(0);
+      assertThat(stats.internalErrors).isEqualTo(0);
+      assertThat(stats.connectionErrors).isEqualTo(0);
+      assertThat(stats.errors()).isEqualTo(0);
    }
 }
