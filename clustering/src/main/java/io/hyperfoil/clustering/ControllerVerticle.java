@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.infinispan.commons.api.BasicCacheContainer;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -84,7 +83,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
-import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LogManager.getLogger(ControllerVerticle.class);
@@ -757,11 +755,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       // and the timer would then add "Deployment timed out." to a run that is already finished.
       vertx.cancelTimer(run.deployTimerId);
       for (AgentInfo agent : run.agents) {
+         if (agent.status == AgentInfo.Status.FAILED) {
+            stopDeployedAgent(agent);
+            continue;
+         }
          if (agent.deploymentId == null) {
+            // Never registered
             assert agent.status == AgentInfo.Status.STARTING;
-            if (agent.deployedAgent != null) {
-               agent.deployedAgent.stop();
-            }
+            log.warn("Run {}: agent {} never registered, marking it as failed", run.id, agent.name);
+            agent.status = AgentInfo.Status.FAILED;
+            stopDeployedAgent(agent);
             continue;
          }
          agent.status = AgentInfo.Status.STOPPING;
@@ -769,7 +772,6 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                .onComplete(reply -> {
                   if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
                      agent.status = AgentInfo.Status.STOPPED;
-                     checkAgentsStopped(run);
                      log.info("Agent {}/{} stopped successfully.", agent.name, agent.deploymentId);
                   } else {
                      agent.status = AgentInfo.Status.FAILED;
@@ -786,6 +788,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      run.errors.add(new Run.Error(agent,
                            new BenchmarkExecutionException("Agent failed to stop", cause)));
                   }
+                  // Either branch above is terminal. Check if all are stopped
+                  completeRunIfAllAgentsStoppedOrFailed(run);
                   if (agent.deployedAgent != null) {
                      // Give agents 3 seconds to leave the cluster
                      log.info("Scheduling deployed agent stop for {}/{} in 3 seconds to allow cluster leave", agent.name,
@@ -797,7 +801,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   }
                });
       }
-      checkAgentsStopped(run);
+      completeRunIfAllAgentsStoppedOrFailed(run);
    }
 
    void setDeployer(Deployer deployer) {
@@ -815,6 +819,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      run.errors.add(new Run.Error(agentInfo,
                            new BenchmarkExecutionException("Failed to deploy agent", exception)));
                      log.error("Failed to deploy agent {}", agent.name, exception);
+                     // Mark failed before stopSimulation to avoid race conditions
+                     agentInfo.status = AgentInfo.Status.FAILED;
                      stopSimulation(run);
                   }
                }));
@@ -825,6 +831,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   run.errors.add(new Run.Error(agentInfo,
                         new BenchmarkExecutionException("Failed to start agent", result.cause())));
                   log.error("Failed to start agent {}", agent.name, result.cause());
+                  agentInfo.status = AgentInfo.Status.FAILED;
                   vertx.runOnContext(nil -> stopSimulation(run));
                } else if (run.terminateTime.future().isComplete()) {
                   // The run ended while this agent was still deploying, so stopSimulation did not see it.
@@ -847,7 +854,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
     * Persists the run once every agent is in a terminal state. Called once per STOP reply and once after the
     * loop that sends them, and those calls can overlap - hence the guard.
     */
-   void checkAgentsStopped(Run run) {
+   void completeRunIfAllAgentsStoppedOrFailed(Run run) {
       if (!run.completionStarted
             && run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
          run.completionStarted = true;
@@ -1221,14 +1228,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void shutdown() {
-      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((VertxInternal) vertx)
-            .clusterManager();
-      if (clusterManager != null) {
-         BasicCacheContainer cacheManager = clusterManager.getCacheContainer();
-         vertx.close().onComplete(ar -> cacheManager.stop());
-      } else {
-         vertx.close();
-      }
+      // Closing Vert.x calls ClusterManager.leave(), which shuts the JGroups channel down.
+      vertx.close();
    }
 
    public int actualPort() {

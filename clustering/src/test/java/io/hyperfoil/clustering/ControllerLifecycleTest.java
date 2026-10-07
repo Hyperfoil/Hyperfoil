@@ -50,7 +50,8 @@ public class ControllerLifecycleTest {
    }
 
    /**
-    * Because {@code checkAgentsStopped} is called both on every STOP reply and after the loop that sends them,
+    * Because {@code completeRunIfAllAgentsStoppedOrFailed} is called both on every STOP reply and after the loop that sends
+    * them,
     * multiple invocations can concurrently observe that all agents have terminated. Without an idempotency guard,
     * this triggers the persistence logic twice, causing duplicate post-hook executions and data races when writing
     * to {@code stats/*.csv}, {@code info.json}, and {@code all.json}.
@@ -60,14 +61,14 @@ public class ControllerLifecycleTest {
       controller.init(vertx, vertx.getOrCreateContext());
       Run run = runWithAgents(dir, AgentInfo.Status.STOPPED);
 
-      controller.checkAgentsStopped(run);
-      controller.checkAgentsStopped(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
 
       assertEquals(1, controller.persisted.get(), "the run must be persisted exactly once");
    }
 
    /**
-    * A premature call to {@code checkAgentsStopped} must leave the completion guard open,
+    * A premature call to {@code completeRunIfAllAgentsStoppedOrFailed} must leave the completion guard open,
     * allowing the run to be persisted once the final agent actually stops.
     */
    @Test
@@ -75,11 +76,11 @@ public class ControllerLifecycleTest {
       controller.init(vertx, vertx.getOrCreateContext());
       Run run = runWithAgents(dir, AgentInfo.Status.STOPPING);
 
-      controller.checkAgentsStopped(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
       assertEquals(0, controller.persisted.get(), "not every agent is terminal yet");
 
       run.agents.get(0).status = AgentInfo.Status.STOPPED;
-      controller.checkAgentsStopped(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
       assertEquals(1, controller.persisted.get());
    }
 
