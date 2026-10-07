@@ -404,11 +404,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.github.ben-manes.caffeine</groupId>
-                <artifactId>caffeine</artifactId>
-                <version>${version.caffeine}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-common</artifactId>
                 <version>${version.apache.sshd}</version>
