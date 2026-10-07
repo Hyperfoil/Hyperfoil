@@ -12,7 +12,6 @@ import org.junit.jupiter.api.AfterEach;
 import io.hyperfoil.Hyperfoil;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.clustering.ControllerVerticle;
-import io.hyperfoil.internal.Properties;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxTestContext;
@@ -28,12 +27,7 @@ public abstract class BaseClusteredTest extends BaseBenchmarkTest {
    }
 
    protected void startController(VertxTestContext ctx) {
-      // Some clustered tests time out in GitHub Actions because the agents don't cluster soon enough.
-      System.setProperty("jgroups.join_timeout", "15000");
-      //configure multi node vert.x cluster
-      System.setProperty(Properties.CONTROLLER_HOST, "localhost");
-      System.setProperty(Properties.CONTROLLER_PORT, "0");
-      System.setProperty(Properties.CONTROLLER_CLUSTER_IP, "localhost");
+      ClusterTestProperties.configureClusterProperties();
 
       // latch used to ensure we wait for controller startup before starting the test
       var countDownLatch = new CountDownLatch(1);
