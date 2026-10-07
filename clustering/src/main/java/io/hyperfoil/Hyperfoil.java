@@ -28,7 +28,9 @@ import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.remoting.transport.Transport;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.JChannel;
+import org.jgroups.PhysicalAddress;
 import org.jgroups.protocols.TP;
+import org.jgroups.stack.IpAddress;
 
 import io.hyperfoil.api.Version;
 import io.hyperfoil.clustering.AgentVerticle;
@@ -130,9 +132,23 @@ public class Hyperfoil {
       JGroupsTransport transport = (JGroupsTransport) baseTransport;
       JChannel channel = transport.getChannel();
       TP tp = channel.getProtocolStack().getTransport();
-      System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tp.getBindAddress().getHostAddress());
-      System.setProperty(Properties.CONTROLLER_CLUSTER_PORT, String.valueOf(tp.getBindPort()));
-      log.info("Using {}:{} as clustering address", tp.getBindAddress().getHostAddress(), tp.getBindPort());
+      // TP.getBindPort() only returns the requested port, not the actual port in use. If the requested
+      // port (e.g., 7800) is busy, JGroups automatically picks the next available port (e.g., 7801).
+      // If we broadcast the requested port instead of the actual port, our agents will connect
+      // to the wrong controller.
+      String address = tp.getBindAddress().getHostAddress();
+      int port = tp.getBindPort();
+      PhysicalAddress physicalAddress = tp.localPhysicalAddress();
+      if (physicalAddress instanceof IpAddress ipAddress) {
+         address = ipAddress.getIpAddress().getHostAddress();
+         port = ipAddress.getPort();
+      } else {
+         log.warn("Cannot resolve the physical address of {}, falling back to the configured {}:{}",
+               channel.getAddress(), address, port);
+      }
+      System.setProperty(Properties.CONTROLLER_CLUSTER_IP, address);
+      System.setProperty(Properties.CONTROLLER_CLUSTER_PORT, String.valueOf(port));
+      log.info("Using {}:{} as clustering address", address, port);
    }
 
    private static InetAddress getAddressWithBestMatch(InetAddress controllerAddress) {
