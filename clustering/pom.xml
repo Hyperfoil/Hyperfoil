@@ -16,12 +16,23 @@
     <properties>
         <io.hyperfoil.clustered>true</io.hyperfoil.clustered>
         <io.hyperfoil.debug />
+        <!--
+        JGroupsContainerPartitionTest needs a Docker daemon and starts three containers, so it is off by
+        default - the same reason, and the same -P benchmark switch, as the clustered tests in test-suite.
+        -->
+        <junit.excluded.categories>io.hyperfoil.test.Container</junit.excluded.categories>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -41,14 +52,8 @@
         </dependency>
 
         <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-infinispan</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.marshalling</groupId>
-                    <artifactId>jboss-marshalling-osgi</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.jgroups</groupId>
+            <artifactId>jgroups</artifactId>
         </dependency>
 
         <dependency>

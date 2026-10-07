@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.infinispan.commons.api.BasicCacheContainer;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -85,7 +84,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
-import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LogManager.getLogger(ControllerVerticle.class);
@@ -1300,14 +1298,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void shutdown() {
-      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((VertxInternal) vertx)
-            .clusterManager();
-      if (clusterManager != null) {
-         BasicCacheContainer cacheManager = clusterManager.getCacheContainer();
-         vertx.close().onComplete(ar -> cacheManager.stop());
-      } else {
-         vertx.close();
-      }
+      // Closing Vert.x calls ClusterManager.leave(), which shuts the JGroups channel down.
+      vertx.close();
    }
 
    public int actualPort() {
