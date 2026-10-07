@@ -3,13 +3,17 @@ package io.hyperfoil.core.impl;
 import io.hyperfoil.internal.Properties;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.kqueue.KQueue;
+import io.netty.channel.kqueue.KQueueDatagramChannel;
 import io.netty.channel.kqueue.KQueueEventLoopGroup;
 import io.netty.channel.kqueue.KQueueSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 public abstract class EventLoopFactory {
@@ -48,6 +52,8 @@ public abstract class EventLoopFactory {
 
    public abstract Class<? extends SocketChannel> socketChannel();
 
+   public abstract Class<? extends DatagramChannel> datagramChannel();
+
    private static class NioEventLoopFactory extends EventLoopFactory {
       @Override
       public EventLoopGroup create(int threads) {
@@ -57,6 +63,11 @@ public abstract class EventLoopFactory {
       @Override
       public Class<? extends SocketChannel> socketChannel() {
          return NioSocketChannel.class;
+      }
+
+      @Override
+      public Class<? extends DatagramChannel> datagramChannel() {
+         return NioDatagramChannel.class;
       }
    }
 
@@ -70,6 +81,12 @@ public abstract class EventLoopFactory {
       public Class<? extends SocketChannel> socketChannel() {
          return EpollSocketChannel.class;
       }
+
+      @Override
+      public Class<? extends DatagramChannel> datagramChannel() {
+         return EpollDatagramChannel.class;
+      }
+
    }
 
    private static class KqueueEventLoopFactory extends EventLoopFactory {
@@ -81,6 +98,11 @@ public abstract class EventLoopFactory {
       @Override
       public Class<? extends SocketChannel> socketChannel() {
          return KQueueSocketChannel.class;
+      }
+
+      @Override
+      public Class<? extends DatagramChannel> datagramChannel() {
+         return KQueueDatagramChannel.class;
       }
    }
 }
