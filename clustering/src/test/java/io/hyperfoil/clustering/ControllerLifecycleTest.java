@@ -60,8 +60,8 @@ public class ControllerLifecycleTest {
       controller.init(vertx, vertx.getOrCreateContext());
       Run run = runWithAgents(dir, AgentInfo.Status.STOPPED);
 
-      controller.checkAgentsStopped(run);
-      controller.checkAgentsStopped(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
 
       assertEquals(1, controller.persisted.get(), "the run must be persisted exactly once");
    }
@@ -75,11 +75,11 @@ public class ControllerLifecycleTest {
       controller.init(vertx, vertx.getOrCreateContext());
       Run run = runWithAgents(dir, AgentInfo.Status.STOPPING);
 
-      controller.checkAgentsStopped(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
       assertEquals(0, controller.persisted.get(), "not every agent is terminal yet");
 
       run.agents.get(0).status = AgentInfo.Status.STOPPED;
-      controller.checkAgentsStopped(run);
+      controller.completeRunIfAllAgentsStoppedOrFailed(run);
       assertEquals(1, controller.persisted.get());
    }
 
