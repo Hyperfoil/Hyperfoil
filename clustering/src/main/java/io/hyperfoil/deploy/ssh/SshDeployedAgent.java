@@ -307,11 +307,16 @@ public class SshDeployedAgent implements DeployedAgent {
       }
    }
 
+   protected String uploadableFile(String file) {
+      return file.endsWith(".jar") ? file : null;
+   }
+
    private Map<String, String> getLocalMd5() {
       String classpath = System.getProperty("java.class.path");
       Map<String, String> md5map = new HashMap<>();
       for (String file : classpath.split(":")) {
-         if (!file.endsWith(".jar")) {
+         file = uploadableFile(file);
+         if (file == null) {
             // ignore folders etc...
             continue;
          }

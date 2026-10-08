@@ -36,9 +36,9 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxTestContext;
 
-// Note: this test won't run from IDE (probably) as SshDeployer copies just .jar files for the agents;
-// since it inspects classpath for .jars it won't copy the class files in the hyperfoil-clustering module.
-// It runs from Maven just fine.
+// Note: the production SshDeployer copies just the .jar files on the classpath, which would leave the agents
+// without any Hyperfoil classes when running from an IDE; the tests therefore use ClasspathDirSshDeployer, which
+// also packs the classpath directories into jars.
 // How to run this test: mvn clean package -Pbenchmark -pl test-suite -am -Dtest=ClusterTestCase -Dsurefire.failIfNoSpecifiedTests=false
 // How to check the logs from the server side ( debug enabled by default ): tail -f test-suite/target/surefire-reports/io.hyperfoil.benchmark.clustering.ClusterTestCase-output.txt
 // How to check the logs from the agent side: tail -f test-suite/target/hyperfoil/agent*.log

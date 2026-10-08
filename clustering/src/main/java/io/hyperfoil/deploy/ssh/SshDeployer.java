@@ -38,7 +38,7 @@ public class SshDeployer implements Deployer {
 
    private final SshClient client;
 
-   private SshDeployer() {
+   protected SshDeployer() {
       client = SshClient.setUpDefaultClient();
 
       PropertyResolverUtils.updateProperty(client, CoreModuleProperties.IDLE_TIMEOUT.getName(), Long.MAX_VALUE);
@@ -96,8 +96,7 @@ public class SshDeployer implements Deployer {
          dir = Controller.ROOT_DIR.toString();
       }
       try {
-         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, sshKey, port, dir, extras,
-               cpu);
+         SshDeployedAgent deployedAgent = createAgent(agent.name, runId, username, hostname, sshKey, port, dir, extras, cpu);
          ClientSession session = connectAndLogin(sshKey, username, hostname, port);
          deployedAgent.deploy(session, exceptionHandler);
          return deployedAgent;
@@ -109,6 +108,11 @@ public class SshDeployer implements Deployer {
          exceptionHandler.accept(e);
          return null;
       }
+   }
+
+   protected SshDeployedAgent createAgent(String name, String runId, String username, String hostname, String sshKey,
+         int port, String dir, String extras, String cpu) {
+      return new SshDeployedAgent(name, runId, username, hostname, sshKey, port, dir, extras, cpu);
    }
 
    @Override
