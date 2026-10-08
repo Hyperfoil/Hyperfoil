@@ -70,7 +70,7 @@ final class ClusterState {
 
    // ---------------------------------------------------------------- reads
 
-   NodeInfo nodeInfo(String nodeId) {
+   synchronized NodeInfo nodeInfo(String nodeId) {
       Slice slice = slices.get(nodeId);
       return slice == null ? null : slice.nodeInfo;
    }
