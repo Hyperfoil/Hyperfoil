@@ -38,7 +38,7 @@ final class ClusterState {
     */
    private static final int MAX_TOMBSTONES = 256;
 
-   private final Map<String, Slice> slices = new ConcurrentHashMap<>();
+   private final Map<String, Slice> slices = new HashMap<>();
    /**
     * Owners {@link #purge} has dropped and {@link #admit} has not brought back.
     * <p>
