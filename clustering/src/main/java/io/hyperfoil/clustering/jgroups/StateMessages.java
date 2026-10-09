@@ -11,17 +11,24 @@ import io.vertx.core.spi.cluster.NodeInfo;
 import io.vertx.core.spi.cluster.RegistrationInfo;
 
 /**
- * Wire codec for the state replicated between {@link JGroupsClusterManager} instances.
+ * Binary wire protocol and serializer for messages exchanged between {@link JGroupsClusterManager} nodes.
  * <p>
- * {@link NodeInfo} and {@link RegistrationInfo} both implement
- * {@link io.vertx.core.shareddata.ClusterSerializable}, so their own {@code writeToBuffer}/{@code readFromBuffer}
- * is used and no external marshaller is required.
+ * Encodes and decodes both small incremental updates (such as adding or removing an EventBus listener)
+ * and complete state snapshots (used when nodes join or recover from network partitions).
+ * <p>
+ * Leverages Vert.x's built-in {@link io.vertx.core.shareddata.ClusterSerializable} to serialize
+ * {@link NodeInfo} and {@link RegistrationInfo} directly into binary buffers without external marshallers.
  */
 final class StateMessages {
+   /** Tells the cluster this node's host address or port has changed. */
    static final byte OP_NODE_INFO = 1;
+   /** Tells the cluster this node started listening to an EventBus address. */
    static final byte OP_SUB_ADD = 2;
+   /** Tells the cluster this node stopped listening to an EventBus address. */
    static final byte OP_SUB_REMOVE = 3;
+   /** Sends this node's complete list of subscriptions to the cluster. */
    static final byte OP_SLICE = 4;
+   /** Asks other nodes to send their complete list of subscriptions. */
    static final byte OP_STATE_REQUEST = 5;
 
    private StateMessages() {
