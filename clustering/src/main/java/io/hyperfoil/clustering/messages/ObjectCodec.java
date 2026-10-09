@@ -21,12 +21,12 @@
 package io.hyperfoil.clustering.messages;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
 import io.vertx.core.buffer.Buffer;
@@ -36,31 +36,37 @@ import io.vertx.core.eventbus.impl.codecs.ByteArrayMessageCodec;
 public class ObjectCodec<T> implements MessageCodec<T, T> {
 
    /**
-    * Exposes the backing array so that the encoded bytes can be appended without an extra copy.
+    * Writes directly to the Vert.x Buffer. No extra buffering is needed.
     */
-   private static final class RawByteArrayOutputStream extends ByteArrayOutputStream {
-      RawByteArrayOutputStream() {
-         super(512);
+   private static final class BufferOutputStream extends OutputStream {
+      private final Buffer buffer;
+
+      BufferOutputStream(Buffer buffer) {
+         this.buffer = buffer;
       }
 
-      byte[] raw() {
-         return buf;
+      @Override
+      public void write(int b) {
+         buffer.appendByte((byte) b);
+      }
+
+      @Override
+      public void write(byte[] bytes, int offset, int length) {
+         buffer.appendBytes(bytes, offset, length);
       }
    }
 
    @Override
    public void encodeToWire(Buffer buffer, T object) {
-
-      RawByteArrayOutputStream bos = new RawByteArrayOutputStream();
-
+      // Write directly to the buffer to avoid extra memory copies.
+      // We reserve space for the length prefix, write the data, and then update the length.
+      int lengthPosition = buffer.length();
+      buffer.appendInt(0);
+      int start = buffer.length();
       try {
-         ObjectOutput out = new ObjectOutputStream(bos);
+         ObjectOutput out = new ObjectOutputStream(new BufferOutputStream(buffer));
          out.writeObject(object);
          out.flush();
-
-         buffer.appendInt(bos.size());
-         buffer.appendBytes(bos.raw(), 0, bos.size());
-
       } catch (IOException e) {
          // If an error happens here, the Vert.x buffer is still empty (nothing was written yet).
          // If we ignore this error, we will send an empty message over the network.
@@ -69,11 +75,9 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
          throw new UncheckedIOException("Cannot serialize " + (object == null ? "null" : object.getClass().getName())
                + " for the clustered event bus", e);
       } finally {
-         try {
-            bos.close();
-         } catch (IOException ex) {
-            // ignore close exception
-         }
+         // Always write the length, even on failure.
+         // This prevents buffer corruption and makes debugging easier.
+         buffer.setInt(lengthPosition, buffer.length() - start);
       }
    }
 
