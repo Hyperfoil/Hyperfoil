@@ -4,9 +4,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -390,20 +388,8 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
 
    /** Decodes a slice whose opcode byte has already been consumed, and applies it. */
    private Set<String> applySlice(String owner, StateMessages.Reader reader) {
-      long v = reader.readLong();
-      NodeInfo nodeInfo = reader.readByte() == 1 ? reader.readNodeInfo() : null;
-      int addressCount = reader.readInt();
-      Map<String, Set<RegistrationInfo>> subs = new HashMap<>();
-      for (int i = 0; i < addressCount; ++i) {
-         String address = reader.readString();
-         int registrationCount = reader.readInt();
-         Set<RegistrationInfo> registrations = new LinkedHashSet<>();
-         for (int j = 0; j < registrationCount; ++j) {
-            registrations.add(reader.readRegistration());
-         }
-         subs.put(address, registrations);
-      }
-      return state.applySlice(owner, v, nodeInfo, subs);
+      StateMessages.DecodedSlice slice = StateMessages.readSlice(reader);
+      return state.applySlice(owner, slice.version(), slice.nodeInfo(), slice.subs());
    }
 
    @Override
