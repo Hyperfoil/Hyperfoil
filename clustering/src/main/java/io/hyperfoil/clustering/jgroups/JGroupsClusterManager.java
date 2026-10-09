@@ -140,7 +140,9 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
          JChannel ch = new JChannel(stackFile);
          // The default logical name is hostname-<random int>, which is collision-resistant but not unique;
          // make it explicit so node ids are both readable in logs and effectively unique.
-         ch.name(Properties.get(Properties.CLUSTER_NODE_NAME, defaultNodeName()));
+         String name = Properties.get(Properties.CLUSTER_NODE_NAME, defaultNodeName());
+         ch.name(name);
+         this.nodeId = name;
          MessageDispatcher d = new MessageDispatcher(ch);
          d.setRequestHandler(this);
          d.setReceiver(this);
@@ -150,7 +152,6 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
          // applied until the state pull below has established the base state.
          beginPull();
          ch.connect(clusterName);
-         this.nodeId = ch.getAddress().toString();
          // lastView is deliberately not set here. connect() installs the first view synchronously through
          // viewAccepted, which has already stored it, and by the time this line would run the membership may
          // have moved on again: storing ch.getView() could overwrite the view viewAccepted installed with a
@@ -341,15 +342,7 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       byte op = reader.op();
       switch (op) {
          case StateMessages.OP_STATE_REQUEST: {
-            String id = nodeId;
-            if (id == null) {
-               // The dispatcher is installed before connect() so that nothing is missed, so a peer can ask for
-               // our slice while we are still inside connect() and have not learnt our own address yet. Our
-               // slice is empty at that point anyway - we only register consumers once join() has completed -
-               // and the asker is repaired by the slice we announce on the view that added us.
-               return StateMessages.slice(0, null, Collections.emptyMap());
-            }
-            return state.encodeSlice(id);
+            return state.encodeSlice(nodeId);
          }
          case StateMessages.OP_NODE_INFO: {
             long v = reader.readLong();
