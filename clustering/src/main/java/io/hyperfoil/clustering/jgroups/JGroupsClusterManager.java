@@ -511,7 +511,8 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
    private void pullState(Completable<Void> completable) {
       MessageDispatcher d = dispatcher;
       JChannel ch = channel;
-      if (d == null || ch == null || ch.getView() == null || ch.getView().size() < 2) {
+      View view = ch == null ? null : ch.getView();
+      if (d == null || view == null || view.size() < 2) {
          // Nobody to pull from: whatever we queued is already the whole truth.
          notifyRegistrations(drainPending());
          if (completable != null) {
