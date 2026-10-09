@@ -410,13 +410,14 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
          }
       }
       List<Address> arrived = View.newMembers(oldView, newView);
+      boolean readmitted = false;
       for (Address address : arrived) {
          String joined = address.toString();
          log.info("Node {} joined the cluster", joined);
          // Lift the tombstone purge left, if there is one: the membership saying a node is back is the only
          // thing that may resurrect it. For a MergeView this is what lets the two halves repair each other
          // with the slices they are about to announce.
-         state.admit(joined);
+         readmitted |= state.admit(joined);
          NodeListener listener = nodeListener;
          if (listener != null) {
             dispatch(() -> listener.nodeAdded(joined));
@@ -424,11 +425,25 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       }
       notifyRegistrations(affected);
       if (!arrived.isEmpty() || newView instanceof MergeView) {
-         log.info("View {} installed, announcing our cluster state slice", newView);
+         // A completely new node: If a node is joining for the very first time, we don't
+         // need to manually ask it for its data. Why? Because it is already going to send
+         // its data to us automatically (the "announcement").
+         //
+         // A returning node: If a node was in the group before, got disconnected ("purged"
+         // or "tombstoned"), and is coming back, then we need to manually ask it for its
+         // data (a "re-pull") to make sure our old records are fixed.
+         //
+         // Doing this prevents a massive storm of unnecessary network messages (a quadratic
+         // burst) when multiple new nodes join at the same time.
+         boolean repull = readmitted || newView instanceof MergeView;
+         log.info("View {} installed, announcing our cluster state slice{}", newView,
+               repull ? " and re-pulling theirs" : "");
          // Keep sends off the JGroups up-handler thread, as everywhere else in this class.
          dispatch(() -> {
             announceSlice();
-            repullState();
+            if (repull) {
+               repullState();
+            }
          });
       }
    }
