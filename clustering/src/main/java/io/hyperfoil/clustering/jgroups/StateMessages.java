@@ -76,8 +76,12 @@ final class StateMessages {
       private final Buffer buffer;
       private int pos;
 
+      Reader(Buffer buffer) {
+         this.buffer = buffer;
+      }
+
       Reader(byte[] bytes) {
-         this.buffer = Buffer.buffer(bytes);
+         this(Buffer.buffer(bytes));
       }
 
       byte op() {

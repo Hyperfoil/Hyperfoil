@@ -2,7 +2,6 @@ package io.hyperfoil.clustering.jgroups;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,10 +34,13 @@ import org.jgroups.util.Rsp;
 import org.jgroups.util.RspList;
 
 import io.hyperfoil.internal.Properties;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Completable;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.internal.ContextInternal;
 import io.vertx.core.internal.VertxInternal;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.Counter;
 import io.vertx.core.shareddata.Lock;
@@ -389,8 +391,8 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       }
    }
 
-   private static byte[] payloadOf(Message msg) {
-      return Arrays.copyOfRange(msg.getArray(), msg.getOffset(), msg.getOffset() + msg.getLength());
+   private static Buffer payloadOf(Message msg) {
+      return BufferInternal.buffer(Unpooled.wrappedBuffer(msg.getArray(), msg.getOffset(), msg.getLength()));
    }
 
    /** Decodes a slice whose opcode byte has already been consumed, and applies it. */
