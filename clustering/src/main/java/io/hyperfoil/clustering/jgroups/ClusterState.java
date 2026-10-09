@@ -190,9 +190,12 @@ final class ClusterState {
     * it is back, which covers both a rejoin and a {@link org.jgroups.MergeView} reuniting a partition whose
     * members the two sides purged while they were apart. A message arriving from the owner is not on its own
     * evidence that it is back - that is exactly the in-flight case the tombstone exists to reject.
+    *
+    * @return true if a tombstone was actually lifted, i.e. this owner is one we had purged rather than one we
+    *         are seeing for the first time
     */
-   synchronized void admit(String owner) {
-      purged.remove(owner);
+   synchronized boolean admit(String owner) {
+      return purged.remove(owner);
    }
 
    synchronized void addLocalOnly(String address, RegistrationInfo registration) {
