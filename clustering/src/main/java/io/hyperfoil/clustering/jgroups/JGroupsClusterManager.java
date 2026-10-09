@@ -534,20 +534,20 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
                   + "our join will repair whatever is missing", error);
          }
          Set<String> affected = new HashSet<>();
-         synchronized (pullLock) {
-            if (error == null) {
-               for (Map.Entry<Address, Rsp<byte[]>> entry : responses.entrySet()) {
-                  Rsp<byte[]> response = entry.getValue();
-                  if (!response.wasReceived() || response.getValue() == null) {
-                     continue;
-                  }
-                  StateMessages.Reader reader = new StateMessages.Reader(response.getValue());
-                  reader.op(); // OP_SLICE
-                  affected.addAll(applySlice(entry.getKey().toString(), reader));
+         if (error == null) {
+            // No lock needed here. Any updates arriving while applying slices
+            // stay in pendingOps until drainPending() clears the queue.
+            for (Map.Entry<Address, Rsp<byte[]>> entry : responses.entrySet()) {
+               Rsp<byte[]> response = entry.getValue();
+               if (!response.wasReceived() || response.getValue() == null) {
+                  continue;
                }
+               StateMessages.Reader reader = new StateMessages.Reader(response.getValue());
+               reader.op(); // OP_SLICE
+               affected.addAll(applySlice(entry.getKey().toString(), reader));
             }
-            affected.addAll(endPull());
          }
+         affected.addAll(drainPending());
          notifyRegistrations(affected);
       } catch (RuntimeException e) {
          // A malformed slice must not cost us the join. Leaving pendingOps installed would queue every later
