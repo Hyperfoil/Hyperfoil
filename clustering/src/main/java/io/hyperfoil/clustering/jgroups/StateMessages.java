@@ -1,6 +1,8 @@
 package io.hyperfoil.clustering.jgroups;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -62,6 +64,36 @@ final class StateMessages {
          }
       }
       return buffer.getBytes();
+   }
+
+   /** What {@link #slice} wrote, read back. */
+   record DecodedSlice(long version, NodeInfo nodeInfo, Map<String, Set<RegistrationInfo>> subs) {
+   }
+
+   /**
+    * Reads a slice whose opcode byte the caller has already consumed - both of its senders, the unicast
+    * response to {@code OP_STATE_REQUEST} and the multicast announcement, have had to look at the opcode to
+    * know they are holding a slice at all.
+    * <p>
+    * Kept next to {@link #slice} on purpose: the two have to be edited as a pair, and the field order is not
+    * self-evident from either one alone.
+    */
+   static DecodedSlice readSlice(Reader reader) {
+      long version = reader.readLong();
+      NodeInfo nodeInfo = reader.readByte() == 1 ? reader.readNodeInfo() : null;
+      int addressCount = reader.readInt();
+      Map<String, Set<RegistrationInfo>> subs = new HashMap<>();
+      for (int i = 0; i < addressCount; ++i) {
+         String address = reader.readString();
+         int registrationCount = reader.readInt();
+         // Insertion-ordered, matching what ClusterState holds, so a slice survives a round trip unchanged.
+         Set<RegistrationInfo> registrations = new LinkedHashSet<>();
+         for (int j = 0; j < registrationCount; ++j) {
+            registrations.add(reader.readRegistration());
+         }
+         subs.put(address, registrations);
+      }
+      return new DecodedSlice(version, nodeInfo, subs);
    }
 
    private static void appendString(Buffer buffer, String value) {

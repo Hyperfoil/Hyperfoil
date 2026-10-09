@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -195,30 +194,14 @@ public class ClusterStateTest {
       assertEquals(decodeSlice(viaSliceOnly.encodeSlice(A)), decodeSlice(viaSliceThenDelta.encodeSlice(A)));
    }
 
-   private record DecodedSlice(long version, NodeInfo nodeInfo, Map<String, Set<RegistrationInfo>> subs) {
-   }
-
    /**
     * Decoded rather than compared as bytes, because the encoding iterates a {@link java.util.HashMap} and two
     * states that agree can still serialize their addresses in a different order.
     */
-   private static DecodedSlice decodeSlice(byte[] encoded) {
+   private static StateMessages.DecodedSlice decodeSlice(byte[] encoded) {
       StateMessages.Reader reader = new StateMessages.Reader(encoded);
       assertEquals(StateMessages.OP_SLICE, reader.op());
-      long version = reader.readLong();
-      NodeInfo nodeInfo = reader.readByte() == 1 ? reader.readNodeInfo() : null;
-      Map<String, Set<RegistrationInfo>> subs = new HashMap<>();
-      int addressCount = reader.readInt();
-      for (int i = 0; i < addressCount; ++i) {
-         String address = reader.readString();
-         Set<RegistrationInfo> registrations = new HashSet<>();
-         int registrationCount = reader.readInt();
-         for (int j = 0; j < registrationCount; ++j) {
-            registrations.add(reader.readRegistration());
-         }
-         subs.put(address, registrations);
-      }
-      return new DecodedSlice(version, nodeInfo, subs);
+      return StateMessages.readSlice(reader);
    }
 
    @Test
