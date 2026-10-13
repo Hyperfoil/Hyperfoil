@@ -84,8 +84,7 @@ public class Run extends ParamsCommand {
          invocation.error(e);
          throw new CommandException("Failed to start benchmark " + benchmarkRef.name(), e);
       }
-      monitor(invocation);
-      return CommandResult.SUCCESS;
+      return monitor(invocation);
    }
 
    protected void setup(HyperfoilCommandInvocation invocation) throws CommandException {
@@ -93,8 +92,9 @@ public class Run extends ParamsCommand {
       // Run command in CLI mode
    }
 
-   protected void monitor(HyperfoilCommandInvocation invocation) throws CommandException {
+   protected CommandResult monitor(HyperfoilCommandInvocation invocation) throws CommandException {
       invocation.executeSwitchable("status");
+      return CommandResult.SUCCESS;
    }
 
    protected boolean onMissingFile(HyperfoilCommandInvocation invocation, String file, ProvidedBenchmarkData data) {
