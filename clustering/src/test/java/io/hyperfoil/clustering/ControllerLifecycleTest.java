@@ -25,6 +25,7 @@ import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.controller.StatisticsStore;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 
@@ -207,6 +208,38 @@ public class ControllerLifecycleTest {
             "the failure must be applied on the event loop, not on the deployer's thread");
       awaitOnEventLoop("the failure to be applied", () -> !run.errors.isEmpty());
       assertEquals("Failed to deploy agent", run.errors.get(0).error.getMessage());
+   }
+
+   /**
+    * The cluster manager reports a node leaving from its own notification thread, not from the event loop.
+    * The handler changes {@code agent.status} and {@code run.errors} and calls {@code stopSimulation}, which are
+    * all event-loop-only state, so it must hop onto the event loop before doing so.
+    */
+   @Test
+   public void shouldHandleNodeLeftOnTheEventLoop(@TempDir Path dir) throws Exception {
+      AtomicBoolean onEventLoop = new AtomicBoolean();
+      CountDownLatch stopped = new CountDownLatch(1);
+      CountingController recording = new CountingController() {
+         @Override
+         void stopSimulation(Run run) {
+            onEventLoop.set(Context.isOnEventLoopThread());
+            stopped.countDown();
+            super.stopSimulation(run);
+         }
+      };
+      recording.init(vertx, vertx.getOrCreateContext());
+      Run run = runWithAgents(dir, AgentInfo.Status.READY);
+      run.agents.get(0).nodeId = "dead-node";
+      recording.runs.put(run.id, run);
+
+      Thread clusterThread = new Thread(() -> recording.nodeLeft("dead-node"), "cluster-listener");
+      clusterThread.start();
+      clusterThread.join(TIMEOUT_MS);
+
+      assertTrue(stopped.await(TIMEOUT_MS, TimeUnit.MILLISECONDS), "the run was never stopped");
+      assertTrue(onEventLoop.get(), "nodeLeft must stop the run on the event loop, not on the cluster manager's thread");
+      awaitOnEventLoop("the error to be recorded", () -> !run.errors.isEmpty());
+      assertEquals("Agent unexpectedly left the cluster.", run.errors.get(0).error.getMessage());
    }
 
    private Run runWithAgents(Path dir, AgentInfo.Status status) {
