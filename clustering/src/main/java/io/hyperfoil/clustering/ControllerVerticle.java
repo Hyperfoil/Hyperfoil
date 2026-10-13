@@ -381,22 +381,27 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    @Override
    public void nodeLeft(String nodeID) {
-      for (Run run : runs.values()) {
-         if (run.terminateTime.future().isComplete()) {
-            continue;
-         }
-         for (AgentInfo agent : run.agents) {
-            if (Objects.equals(agent.nodeId, nodeID)) {
-               agent.status = AgentInfo.Status.FAILED;
-               run.errors.add(new Run.Error(agent, new BenchmarkExecutionException("Agent unexpectedly left the cluster.")));
-               kill(run, result -> {
-                  /* used version of checkstyle does not implement allowEmptyLambdas */
-               });
-               stopSimulation(run);
-               break;
+      // The cluster manager calls this from its own notification thread, while runs, agents and errors
+      // are only touched on the event loop.
+      context.runOnContext(nil -> {
+         for (Run run : runs.values()) {
+            if (run.terminateTime.future().isComplete()) {
+               continue;
+            }
+            for (AgentInfo agent : run.agents) {
+               if (Objects.equals(agent.nodeId, nodeID)) {
+                  agent.status = AgentInfo.Status.FAILED;
+                  run.errors
+                        .add(new Run.Error(agent, new BenchmarkExecutionException("Agent unexpectedly left the cluster.")));
+                  kill(run, result -> {
+                     /* used version of checkstyle does not implement allowEmptyLambdas */
+                  });
+                  stopSimulation(run);
+                  break;
+               }
             }
          }
-      }
+      });
    }
 
    private void updateRuns(Path runDir) {
