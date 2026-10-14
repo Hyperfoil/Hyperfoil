@@ -42,6 +42,32 @@ public class StatisticsAggregationTest {
    }
 
    @Test
+   public void testBlockedTimeAndResponseShareTheSameBucket() {
+      // Ensure that blocked time, request count, and response count
+      // all go into the exact same time bucket (the fired time).
+      long scheduled = baseTime;
+      long fired = baseTime + (3 * millis);
+      Statistics stats = new Statistics(baseTime);
+      // SendHttpRequestStep marks the request as fired before recording blocked time, so both
+      // the blocked time and the request count observe the same fired timestamp.
+      TestStartTimeSource source = new TestStartTimeSource(scheduled, fired);
+      stats.incrementBlockedTime(source, 3 * millis, null);
+      stats.incrementRequests(source, null);
+      stats.recordResponse(source, 100_000, null);
+      stats.end(fired + millis);
+
+      Map<Long, long[]> perBucket = new LinkedHashMap<>();
+      stats.visitSnapshots(snapshot -> perBucket.put(snapshot.histogram.getStartTimeStamp(),
+            new long[] { snapshot.blockedTime, snapshot.requestCount, snapshot.responseCount }));
+
+      assertEquals(1, perBucket.size(), "expected a single non-empty bucket, got " + perBucket.keySet());
+      long[] bucket = perBucket.get(fired);
+      assertEquals(3 * millis, bucket[0], "blocked time must be in the fired bucket");
+      assertEquals(1, bucket[1], "request count must be in the fired bucket");
+      assertEquals(1, bucket[2], "response count must be in the fired bucket");
+   }
+
+   @Test
    public void testEmptyData() {
       Map<Long, Integer> requestData = new LinkedHashMap<>();
       // No data added - testing empty case
@@ -210,8 +236,12 @@ public class StatisticsAggregationTest {
       private final long firedTimestampMillis;
 
       TestStartTimeSource(long timestampMillis) {
-         this.startTimestampMillis = timestampMillis;
-         this.firedTimestampMillis = timestampMillis;
+         this(timestampMillis, timestampMillis);
+      }
+
+      TestStartTimeSource(long startTimestampMillis, long firedTimestampMillis) {
+         this.startTimestampMillis = startTimestampMillis;
+         this.firedTimestampMillis = firedTimestampMillis;
       }
 
       @Override

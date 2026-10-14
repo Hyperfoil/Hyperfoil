@@ -67,7 +67,6 @@ public class HttpRequest extends Request {
       }
 
       attach(connection);
-      setFiredTimestampMillis(this.session);
       connection.attach(pool);
       connection.request(this, headerAppenders, injectHostHeader, bodyGenerator);
    }

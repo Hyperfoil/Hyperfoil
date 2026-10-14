@@ -40,7 +40,22 @@ public interface StartTimeSource {
 
    long getStartTimestampNanos(Session session);
 
+   /**
+    * Gets the timestamp when the operation actually fired.
+    * This decides which time bucket the statistics are saved in.
+    *
+    * @param session the session owning the operation
+    * @return milliseconds since the epoch, or 0 if it hasn't fired yet
+    */
    long getFiredTimestampMillis(Session session);
 
+   /**
+    * Sets the timestamp when the operation fired.
+    *
+    * IMPORTANT: Call this BEFORE recording any statistics (like blocked time).
+    * This ensures all stats for this request end up in the exact same time bucket.
+    *
+    * @param session the session owning the operation
+    */
    void setFiredTimestampMillis(Session session);
 }
