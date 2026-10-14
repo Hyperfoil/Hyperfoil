@@ -56,9 +56,12 @@ public class SendHttpRequestStep extends StatisticsStep implements SLA.Provider 
          session.stop();
          return false;
       }
+      HttpRequest request = context.request;
+      // Set the fired timestamp BEFORE recording blocked time.
+      // This ensures blocked time and request counts land in the exact same bucket.
+      request.setFiredTimestampMillis(session);
       context.stopWaiting();
 
-      HttpRequest request = context.request;
       request.send(context.connection, headerAppenders, injectHostHeader, bodyGenerator);
       // We don't need the context anymore and we need to reset it (in case the step is repeated).
       context.reset();
