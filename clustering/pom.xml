@@ -16,12 +16,23 @@
     <properties>
         <io.hyperfoil.clustered>true</io.hyperfoil.clustered>
         <io.hyperfoil.debug />
+        <!--
+        JGroupsContainerPartitionTest needs a Docker daemon and starts three containers, so it is off by
+        default - the same reason, and the same -P benchmark switch, as the clustered tests in test-suite.
+        -->
+        <junit.excluded.categories>io.hyperfoil.test.Container</junit.excluded.categories>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -41,14 +52,8 @@
         </dependency>
 
         <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-infinispan</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.marshalling</groupId>
-                    <artifactId>jboss-marshalling-osgi</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.jgroups</groupId>
+            <artifactId>jgroups</artifactId>
         </dependency>
 
         <dependency>
@@ -61,11 +66,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.wildfly.common</groupId>
-            <artifactId>wildfly-common</artifactId>
         </dependency>
 
         <dependency>
@@ -114,27 +114,6 @@
             <groupId>net.i2p.crypto</groupId>
             <artifactId>eddsa</artifactId>
         </dependency>
-
-        <dependency>
-            <!-- necessary for MR artifacts to be available
-            for >8 jre -->
-            <groupId>org.jboss.marshalling</groupId>
-            <artifactId>jboss-marshalling</artifactId>
-        </dependency>
-
-        <dependency>
-            <!-- necessary for MR artifacts to be available
-            for >8 jre -->
-            <groupId>org.jboss.marshalling</groupId>
-            <artifactId>jboss-marshalling-river</artifactId>
-        </dependency>
-
-        <dependency>
-            <!-- necessary for MR artifacts to be available
-            for >8 jre -->
-            <groupId>org.jboss.marshalling</groupId>
-            <artifactId>jboss-marshalling-serial</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -150,6 +129,14 @@
             </resource>
         </resources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${junit.excluded.categories}</excludedGroups>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -258,6 +245,44 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>benchmark</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <junit.excluded.categories />
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <!--
+                            JGroupsContainerPartitionTest mounts target/dependency into its containers, which
+                            is what puts the module's runtime classpath in front of the JVMs running there.
+                            The root pom already fills that directory, but at package time - after the tests.
+                            Copying again before they run is cheap, because the second copy finds everything
+                            already in place, and it keeps the test runnable with a plain `mvn test`.
+                            -->
+                            <execution>
+                                <id>copy-dependencies-for-containers</id>
+                                <phase>process-test-classes</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeScope>runtime</includeScope>
+                                    <silent>true</silent>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <id>debug</id>
             <activation>
