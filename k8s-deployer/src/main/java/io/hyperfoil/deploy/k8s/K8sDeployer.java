@@ -110,7 +110,22 @@ public class K8sDeployer implements Deployer {
       }
    }
 
-   private void ensureClient() {
+   /**
+    * Injects a pre-built client, bypassing {@link #ensureClient()}. Exists so tests can point the deployer at a
+    * mock API server: {@link #API_SERVER} is a {@code static final} read at class-init, so it cannot be redirected
+    * per test once the class has loaded.
+    * <p>
+    * The deployer takes ownership either way - {@link #close()} closes whatever client it is holding - so an
+    * injected client must not be shared with anything that outlives this deployer.
+    */
+   void setClient(KubernetesClient client) {
+      synchronized (this) {
+         this.client = client;
+      }
+   }
+
+   /** Package-private so a test can verify the client actually builds; see {@code K8sDeployerTest}. */
+   void ensureClient() {
       synchronized (this) {
          if (client == null) {
             Config config = new ConfigBuilder()
@@ -176,7 +191,7 @@ public class K8sDeployer implements Deployer {
             if (label.isEmpty()) {
                continue;
             } else if (label.contains("=")) {
-               String[] parts = node.split("=", 2);
+               String[] parts = label.split("=", 2);
                nodeSelector.put(parts[0].trim(), parts[1].trim());
             } else {
                nodeSelector.put("kubernetes.io/hostname", label);

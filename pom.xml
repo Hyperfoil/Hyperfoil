@@ -343,6 +343,25 @@
                 <version>${version.fabric8.kubernetes-client}</version>
             </dependency>
 
+            <!--
+            Replaces kubernetes-httpclient-vertx, which kubernetes-client pulls in by default. That one is built
+            against Vert.x 4 and calls WebClientOptions.setMaxPoolSize(int), removed in Vert.x 5 - building a
+            client throws NoSuchMethodError. This implementation is backed by java.net.http and adds no jars.
+            -->
+            <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-httpclient-jdk</artifactId>
+                <version>${version.fabric8.kubernetes-client}</version>
+            </dependency>
+
+            <!-- Must track kubernetes-client exactly: the mock server implements that client's wire contract. -->
+            <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-server-mock</artifactId>
+                <version>${version.fabric8.kubernetes-client}</version>
+                <scope>test</scope>
+            </dependency>
+
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-plugin-api</artifactId>
