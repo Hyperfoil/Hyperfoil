@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -101,8 +102,8 @@ public class AgentCrashTest extends BaseClusteredTest {
    }
 
    private void awaitAgentsRunning(Client.RunRef run) throws InterruptedException {
-      long deadline = System.currentTimeMillis() + DETECTION_DEADLINE_MS;
-      while (System.currentTimeMillis() < deadline) {
+      long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(DETECTION_DEADLINE_MS);
+      while (System.nanoTime() < deadline) {
          Run info = run.get();
          if (info.started != null && info.agents.size() == 2
                && info.agents.stream().noneMatch(agent -> "STARTING".equals(agent.status))) {
@@ -117,8 +118,8 @@ public class AgentCrashTest extends BaseClusteredTest {
    }
 
    private Run awaitCompleted(Client.RunRef run) throws InterruptedException {
-      long deadline = System.currentTimeMillis() + DETECTION_DEADLINE_MS;
-      while (System.currentTimeMillis() < deadline) {
+      long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(DETECTION_DEADLINE_MS);
+      while (System.nanoTime() < deadline) {
          Run info = run.get();
          if (info.completed) {
             return info;
