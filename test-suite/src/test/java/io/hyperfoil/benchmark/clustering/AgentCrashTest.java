@@ -118,8 +118,9 @@ public class AgentCrashTest extends BaseClusteredTest {
    }
 
    private Run awaitCompleted(Client.RunRef run) throws InterruptedException {
-      long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(DETECTION_DEADLINE_MS);
-      while (System.nanoTime() < deadline) {
+      long start = System.nanoTime();
+      long timeout = TimeUnit.MILLISECONDS.toNanos(DETECTION_DEADLINE_MS);
+      while (System.nanoTime() - start < timeout) {
          Run info = run.get();
          if (info.completed) {
             return info;
