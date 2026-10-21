@@ -38,7 +38,6 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.infinispan.commons.util.FileLookupFactory;
 
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
@@ -803,8 +802,15 @@ class ControllerServer implements ApiService {
 
          if (providedTemplatePath.isBlank()) {
             // use the embedded template html
-            try (InputStream stream = FileLookupFactory.newInstance().lookupFile("report-template-v3.3.html",
-                  Thread.currentThread().getContextClassLoader());
+            // Use this class' own loader rather than the TCCL: inside the shaded cli.jar the TCCL can be null.
+            InputStream templateStream = ControllerServer.class.getClassLoader()
+                  .getResourceAsStream("report-template-v3.3.html");
+            if (templateStream == null) {
+               log.error("Cannot find embedded report template report-template-v3.3.html on the classpath");
+               ctx.response().setStatusCode(500).end();
+               return;
+            }
+            try (InputStream stream = templateStream;
                   BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
                String line;
                while ((line = reader.readLine()) != null) {
