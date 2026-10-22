@@ -108,7 +108,7 @@ public class SimulationRunner {
    }
 
    public void init() {
-      long initSimulationStartTime = System.currentTimeMillis();
+      long initSimulationStartTime = System.nanoTime();
       AgentData agentData = new AgentDataImpl();
       ThreadData[] threadData = new ThreadData[executors.length];
       Arrays.setAll(threadData, executorId -> new ThreadDataImpl());
@@ -171,7 +171,8 @@ public class SimulationRunner {
       cpuWatchdog = new CpuWatchdog(errorHandler, () -> instances.values().stream().anyMatch(p -> !p.definition().isWarmup));
       cpuWatchdog.start();
 
-      log.info("Simulation initialization took {} ms", System.currentTimeMillis() - initSimulationStartTime);
+      log.info("Simulation initialization took {} ms",
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - initSimulationStartTime));
    }
 
    public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Handler<AsyncResult<Void>> handler) {
@@ -451,7 +452,7 @@ public class SimulationRunner {
     * @see ManagementFactory#getGarbageCollectorMXBeans()
     */
    private void runGC() {
-      long start = System.currentTimeMillis();
+      long start = System.nanoTime();
 
       if (!Properties.getBoolean(Properties.GC_CHECK)) {
          this.runSystemGC();
@@ -524,7 +525,7 @@ public class SimulationRunner {
          }
       }
 
-      log.info("Overall GC run took {} ms", (System.currentTimeMillis() - start));
+      log.info("Overall GC run took {} ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
    }
 
    /**
@@ -537,7 +538,7 @@ public class SimulationRunner {
     * @see System#gc()
     */
    private void runSystemGC() {
-      long actualGCRun = System.currentTimeMillis();
+      long actualGCRun = System.nanoTime();
 
       // Run the GC twice and force finalization before every GC run
       System.runFinalization();
@@ -545,7 +546,7 @@ public class SimulationRunner {
       System.runFinalization();
       System.gc();
 
-      log.info("GC execution took {} ms", (System.currentTimeMillis() - actualGCRun));
+      log.info("GC execution took {} ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - actualGCRun));
    }
 
    private void checkNativeTransportForSubMillisecondTiming() {
