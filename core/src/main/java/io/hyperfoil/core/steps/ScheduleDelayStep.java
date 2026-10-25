@@ -176,7 +176,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       public Builder min(long min, TimeUnit timeUnit) {
-         this.min = timeUnit.toMillis(min);
+         this.min = timeUnit.toNanos(min);
          return this;
       }
 
@@ -187,12 +187,12 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        * @return Self.
        */
       public Builder min(String min) {
-         this.min = Util.parseToMillis(min);
+         this.min = Util.parseToNanos(min);
          return this;
       }
 
       public Builder max(long max, TimeUnit timeUnit) {
-         this.max = timeUnit.toMillis(max);
+         this.max = timeUnit.toNanos(max);
          return this;
       }
 
@@ -203,7 +203,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        * @return Self.
        */
       public Builder max(String max) {
-         this.max = Util.parseToMillis(max);
+         this.max = Util.parseToNanos(max);
          return this;
       }
 
@@ -236,7 +236,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
                   throw new BenchmarkDefinitionException("The duration is set through 'min' and 'max'; do not use 'duration'");
                } else if (this.min < 0) {
                   throw new BenchmarkDefinitionException("The minimum duration must not be lower than 0.");
-               } else if (this.max > TimeUnit.HOURS.toMillis(24)) {
+               } else if (this.max > TimeUnit.HOURS.toNanos(24)) {
                   throw new BenchmarkDefinitionException("The maximum duration is over 24 hours: that's likely an error.");
                }
                func = new RandomLinearDuration(min, max);
