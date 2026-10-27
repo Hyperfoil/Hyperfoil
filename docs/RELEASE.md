@@ -6,11 +6,11 @@ This document describes the steps needed to release a new version of Hyperfoil.
 
 ### Report template
 
-The HTML report template lives in the [`Hyperfoil/report`](https://github.com/Hyperfoil/report) repo. If any changes were made there since the last release, someone needs to build the report and copy the output into the main repo before tagging the release:
+The HTML report template is maintained in the [`Hyperfoil/report`](https://github.com/Hyperfoil/report) repository. If any changes have been made since the last release, rebuild the template and sync it to the main repository before tagging the release:
 
-1. In the `report` repo, run `npm install && npm run build`.
-2. Copy the built `report-template.html` to `clustering/src/main/resources/report-template.html` in the main Hyperfoil repo.
-3. Commit and push to the stable branch (or include in a PR targeting it).
+1. In the `report` repository, run `npm run build`.
+2. Copy `build/index.embedded.html` to `clustering/src/main/resources/report-template-v3.3.html` in the main Hyperfoil repository.
+3. Open a pull request targeting it.
 
 If no changes were made to the report repo, this step can be skipped.
 
