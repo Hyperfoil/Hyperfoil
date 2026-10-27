@@ -5,6 +5,26 @@ type: docs
 weight: 1
 ---
 
+## 0.30.0 (2026-10-27)
+
+* Allow concurrent benchmark runs
+* Support clustered benchmarks via CLI
+* Calculate throughput using request fired time instead of scheduled time
+* Record blocked time in the bucket of the request it blocked
+* Optimize SSH file transfer by batching uploads
+* Make agent initialization timeout configurable
+* Report a crashed agent as FAILED instead of STOPPING
+* Fix parsing `scheduleDelay` min/max as nanoseconds
+* Fix coordinate omission on HotRodRequestStep and StopwatchBeginStep
+* Fix K8sDeployer client construction under Vert.x 5 and multi-label node selectors
+* Fix run completion and agent teardown races in the controller
+* Fix SLA percentile limits being evaluated as 0-100
+* Fix thread-safety, NPE, and lifecycle management for sessions, connections, and phases
+* Fix visual gap between phases in report
+* Prevent log spam during session reset and when request is not valid
+* Publish actual JGroups bound port instead of configured port
+* Numerous dependency bumps including Vert.x to 5.x.x, Infinispan, Kubernetes Client, SLF4J, Log4j2, JUnit, and various Maven plugins
+
 ## 0.29.3 (2026-06-24)
 
 * Prevent CpuWatchdog crash on non-contiguous CPU IDs
