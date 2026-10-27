@@ -42,6 +42,9 @@ A micro release applies bug fixes to an existing stable branch. No branch creati
 4. Trigger the **Build and deploy Hyperfoil website** workflow from the [`Hyperfoil/Hyperfoil.github.io` Actions tab](https://github.com/Hyperfoil/Hyperfoil.github.io/actions) to update the site with the new version. After it completes, wait for the subsequent **pages build and deployment** workflow to finish before verifying the site.
 5. Push directly to `main` in the [`Hyperfoil/jbang-catalog`](https://github.com/Hyperfoil/jbang-catalog) repo: bump all Hyperfoil version references in `jbang-catalog.json` to the new release version.
 
+> [!IMPORTANT]
+> Keep `master` and `X.Y.x` branches in sync for documentation. The website deploys from the stable branch, so release notes must be present there. However, `master` should also have the latest release notes to keep the repository's in sync.
+
 ## Manual Release Process (fallback)
 
 If the automated workflows are unavailable, you can release manually.
