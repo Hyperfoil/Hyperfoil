@@ -3,11 +3,11 @@ on:
   push:
     branches:
       - master
-      - 0.29.x
+      - 0.30.x
   pull_request:
     branches:
       - master
-      - 0.29.x
+      - 0.30.x
     paths-ignore:
       - "LICENSE*"
       - "**.gitignore"
