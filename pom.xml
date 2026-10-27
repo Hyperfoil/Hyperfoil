@@ -67,6 +67,14 @@
         </license>
     </licenses>
 
+    <!-- Central Portal requires developer information in all published artifacts. -->
+    <developers>
+        <developer>
+            <name>Hyperfoil Community</name>
+            <url>https://hyperfoil.io</url>
+        </developer>
+    </developers>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
