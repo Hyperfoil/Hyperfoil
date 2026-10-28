@@ -1,13 +1,7 @@
 name: Java CI with Maven
 on:
   push:
-    branches:
-      - master
-      - 0.30.x
   pull_request:
-    branches:
-      - master
-      - 0.30.x
     paths-ignore:
       - "LICENSE*"
       - "**.gitignore"
