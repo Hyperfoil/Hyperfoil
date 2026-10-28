@@ -501,8 +501,8 @@
                                         <available file="${git.hooks.dir}" type="dir" />
                                     </and>
                                 </condition>
-                                <copy if:set="git.hooks.dir.found" file="${project.basedir}/config/pre-commit" todir="${git.hooks.dir}" />
-                                <chmod if:set="git.hooks.dir.found" file="${git.hooks.dir}/pre-commit" perm="a+x" />
+                                <copy if:set="git.hooks.dir.found" file="${project.basedir}/config/pre-push" todir="${git.hooks.dir}" />
+                                <chmod if:set="git.hooks.dir.found" file="${git.hooks.dir}/pre-push" perm="a+x" />
                             </target>
                         </configuration>
                     </execution>
