@@ -2,7 +2,7 @@
 
 echo "Running mvn formatter:format to ensure the code is properly formatted"
 
-# running maven clean test
+# running maven formatter and import sort
 MVN_RESULT=$(mvn formatter:format impsort:sort 2>&1)
 if [ $? -ne 0 ]; then
   echo
@@ -11,8 +11,5 @@ if [ $? -ne 0 ]; then
   echo "Error while formating the code"
   exit 1
 fi
-
-# add all modified files
-git add -u
 
 exit 0
