@@ -47,10 +47,6 @@ jobs:
         run: mvn -B -ntp versions:set -DnewVersion=${{ env.NEXT_SNAPSHOT_VERSION }}
 
       # Update existing workflow branches
-      - name: Update main workflow push branches
-        run: yq -i e '.on.push.branches = ["master", "${{ env.STABLE_BRANCH }}"]' .github/workflows/main.yml
-      - name: Update main workflow pull request branches  
-        run: yq -i e '.on.pull_request.branches = ["master", "${{ env.STABLE_BRANCH }}"]' .github/workflows/main.yml
       - name: Update release branch
         run: yq -i e '.env.RELEASE_BRANCH = "${{ env.NEXT_STREAM_VERSION }}"' .github/workflows/release.yml
       - name: Update backport workflow
