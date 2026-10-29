@@ -60,28 +60,27 @@ public class PersistenceRaceConditionTest {
             // 1. Trigger persistence on worker thread
             controller.persistRun(run);
 
-            // 2. Attempt to read immediately simulating the race condition
-            try {
-               byte[] content = Files.readAllBytes(statsPath);
-               ObjectMapper mapper = new ObjectMapper();
-               mapper.readTree(content);
-            } catch (Throwable t) {
-               // Capture the exception (NoSuchFileException or JsonEOFException)
-               capturedError.set(t);
-            } finally {
-               latch.countDown();
-            }
+            // wait for the promise
+            run.persistenceComplete.future().onComplete(ar -> {
+               try {
+                  if (ar.succeeded()) {
+                     byte[] content = Files.readAllBytes(statsPath);
+                     ObjectMapper mapper = new ObjectMapper();
+                     mapper.readTree(content);
+                  }
+               } catch (Throwable t) {
+                  capturedError.set(t);
+               } finally {
+                  latch.countDown();
+               }
+            });
          });
-
          latch.await(5, TimeUnit.SECONDS);
-
          if (capturedError.get() != null) {
             break;
          }
-
          count++;
       }
-
       assertNull(capturedError.get(), "Race condition detected: stats file read before persistence completed");
    }
 }

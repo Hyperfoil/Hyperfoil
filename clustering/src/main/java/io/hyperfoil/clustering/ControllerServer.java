@@ -972,9 +972,52 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getAllStatsJson(RoutingContext ctx, String runId) {
-      withTerminatedRun(ctx, runId, run -> ctx.response()
-            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-            .sendFile(controller.getRunDir(run).resolve(ControllerVerticle.DEFAULT_STATS_JSON).toString()));
+      withTerminatedRun(ctx, runId, run -> {
+         run.persistenceComplete.future().onComplete(persisted -> {
+            if (persisted.failed()) {
+               if (!ctx.response().ended()) {
+                  ctx.response().setStatusCode(500).end("Failed to persist statistics");
+               }
+               return;
+            }
+
+            String statsPathStr = controller.getRunDir(run).resolve(ControllerVerticle.DEFAULT_STATS_JSON).toString();
+            log.debug("getAllStatsJson called for runId={}, statsPath={}", runId, statsPathStr);
+
+            var fs = controller.getVertx().fileSystem();
+
+            fs.exists(statsPathStr).onSuccess(exists -> {
+               log.debug("getAllStatsJson stats file check: exists={}, path={}", exists, statsPathStr);
+
+               if (!exists) {
+                  if (!ctx.response().ended()) {
+                     ctx.response().setStatusCode(404).end("Statistics file not found");
+                  }
+                  return;
+               }
+
+               fs.props(statsPathStr).onSuccess(props -> {
+                  log.debug("Sending JSON stats file: {}, size: {} bytes", statsPathStr, props.size());
+                  if (!ctx.response().ended()) {
+                     ctx.response()
+                           .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+                           .sendFile(statsPathStr);
+                  }
+               }).onFailure(err -> {
+                  if (!ctx.response().ended()) {
+                     log.error("Failed to read file properties for {}", statsPathStr, err);
+                     ctx.response().setStatusCode(500).end("Failed to read file properties");
+                  }
+               });
+
+            }).onFailure(err -> {
+               if (!ctx.response().ended()) {
+                  log.error("Failed to check file existence for {}", statsPathStr, err);
+                  ctx.response().setStatusCode(500).end("Internal server error");
+               }
+            });
+         });
+      });
    }
 
    private void withTerminatedRun(RoutingContext ctx, String runId, Consumer<Run> consumer) {
