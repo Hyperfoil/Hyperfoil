@@ -239,6 +239,15 @@ public class AffinityAwareSessionPool implements ElasticPool<Session> {
    }
 
    @Override
+   public void clear() {
+      for (Queue<Session> localQueue : localQueues) {
+         if (localQueue != null) {
+            localQueue.clear();
+         }
+      }
+   }
+
+   @Override
    public int minUsed() {
       return counters.get(MIN_USED_OFFSET);
    }

@@ -40,6 +40,10 @@ public interface Properties {
    String TRIGGER_URL = "io.hyperfoil.trigger.url";
    String CLI_REQUEST_TIMEOUT = "io.hyperfoil.cli.request.timeout";
    String GC_CHECK = "io.hyperfoil.gc.check.enabled";
+   // keep the sessions of a terminated phase reachable (default: they are released once no other phase shares them)
+   String KEEP_PHASE_SESSIONS = "io.hyperfoil.phase.sessions.keep";
+   // run a full GC right after releasing a terminated phase's sessions, before the next phase can start (default: on)
+   String GC_AFTER_PHASE_RELEASE = "io.hyperfoil.phase.sessions.gc";
    String CLUSTER_JGROUPS_STACK = "io.hyperfoil.cluster.jgroups_stack";
    String CLUSTER_NAME = "io.hyperfoil.cluster.name";
    String REPORT_TEMPLATE = "io.hyperfoil.report.template";
@@ -59,6 +63,10 @@ public interface Properties {
 
    static boolean getBoolean(String property) {
       return get(property, Boolean::valueOf, false);
+   }
+
+   static boolean getBoolean(String property, boolean def) {
+      return get(property, Boolean::valueOf, def);
    }
 
    static <T> T get(String property, Function<String, T> f, T def) {
