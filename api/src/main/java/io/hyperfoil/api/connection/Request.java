@@ -12,15 +12,9 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import io.netty.util.concurrent.ScheduledFuture;
 
 public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>>, StartTimeSource {
    private static final Logger log = LogManager.getLogger(Request.class);
-   private static final GenericFutureListener<Future<Object>> FAILURE_LISTENER = future -> {
-      if (!future.isSuccess() && !future.isCancelled()) {
-         log.error("Timeout task failed", future.cause());
-      }
-   };
 
    public final Session session;
    private final long[] timestamps = new long[2];
@@ -30,7 +24,10 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    private SequenceInstance sequence;
    private SequenceInstance completionSequence;
    private Statistics statistics;
-   private ScheduledFuture<?> timeoutFuture;
+   // Pending timeout, see RequestTimeouts: index of the queue and the slot in it (-1 when none) and the deadline.
+   int timeoutQueue = -1;
+   int timeoutSlot = -1;
+   long timeoutDeadline;
    private Connection connection;
    private Status status = Status.IDLE;
    private Result result = Result.VALID;
@@ -46,7 +43,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public Void call() {
       int uniqueId = session == null ? -1 : session.uniqueId();
       log.warn("#{} Request timeout, closing connection {}", uniqueId, connection);
-      timeoutFuture = null;
+      cancelTimeout();
       if (status != Status.COMPLETED) {
          result = Result.TIMED_OUT;
          statistics.incrementTimeouts(this, session);
@@ -111,10 +108,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void setCompleted() {
-      if (timeoutFuture != null) {
-         timeoutFuture.cancel(false);
-         timeoutFuture = null;
-      }
+      cancelTimeout();
       connection = null;
       sequence = null;
       // handleEnd may indirectly call handleThrowable which calls setCompleted first
@@ -159,8 +153,13 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void setTimeout(long timeout, TimeUnit timeUnit) {
-      timeoutFuture = session.executor().schedule(this, timeout, timeUnit);
-      timeoutFuture.addListener(FAILURE_LISTENER);
+      RequestTimeouts.current().schedule(this, session.executor(), timeUnit.toNanos(timeout));
+   }
+
+   private void cancelTimeout() {
+      if (timeoutQueue >= 0) {
+         RequestTimeouts.current().cancel(this);
+      }
    }
 
    @Override
