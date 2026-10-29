@@ -6,15 +6,19 @@ import java.text.SimpleDateFormat;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -81,6 +85,8 @@ public class SimulationRunner {
    private CpuWatchdog cpuWatchdog;
    private final GlobalDataImpl[] globalData;
    private final GlobalDataImpl.Collector globalCollector = new GlobalDataImpl.Collector();
+   // odd while an explicit GC requested by this runner is in progress; bumped on its start and on its end
+   private final AtomicLong explicitGcEpoch = new AtomicLong();
 
    private final Runnable noAction = () -> {
    };
@@ -193,6 +199,7 @@ public class SimulationRunner {
       long period = Properties.getLong(Properties.JITTER_WATCHDOG_PERIOD, 50);
       long threshold = Properties.getLong(Properties.JITTER_WATCHDOG_THRESHOLD, 100);
       long lastTimestamp = System.nanoTime();
+      long epochAtLastWakeup = explicitGcEpoch.get();
       while (true) {
          try {
             Thread.sleep(period);
@@ -202,7 +209,9 @@ public class SimulationRunner {
          }
          long currentTimestamp = System.nanoTime();
          long delay = TimeUnit.NANOSECONDS.toMillis(currentTimestamp - lastTimestamp);
-         if (delay > threshold) {
+         // a pause spanning an explicit GC between phases is expected, not a GC-settings problem
+         long epoch = explicitGcEpoch.get();
+         if (delay > threshold && epoch == epochAtLastWakeup && (epoch & 1) == 0) {
             String message = String.format(
                   "%s | Jitter watchdog was not invoked for %d ms (threshold is %d ms); please check your GC settings.",
                   new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), delay, threshold);
@@ -210,6 +219,7 @@ public class SimulationRunner {
             errorHandler.accept(new BenchmarkExecutionException(message));
          }
          lastTimestamp = currentTimestamp;
+         epochAtLastWakeup = explicitGcEpoch.get();
       }
    }
 
@@ -224,7 +234,10 @@ public class SimulationRunner {
          }
       }
       if (status == PhaseInstance.Status.TERMINATED) {
+         // the controller learns about the termination (and may start a phase depending on it) only after the
+         // terminated phase's sessions are released and collected
          phaseChangedFuture = completePhase(phase)
+               .thenCompose(nil -> releasePhaseSessions(phase))
                .whenComplete((nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded,
                      error != null ? error : e, globalCollector.extract()));
       } else {
@@ -236,6 +249,86 @@ public class SimulationRunner {
 
    protected Runnable onPhaseChanged(Phase phase, PhaseInstance.Status status) {
       return noAction;
+   }
+
+   /**
+    * Once a phase is terminated, if some phase still has to start and none of the pending phases shares the
+    * terminated phase's session pool, the pool's sessions are destroyed, dropped from every list referencing them
+    * and (unless {@link Properties#GC_AFTER_PHASE_RELEASE} is false) collected by a full GC, so that the memory of
+    * e.g. wrk2's calibration sessions (rate x warmup seconds of them) is not left to the GC during the next phase.
+    * The returned future completes when all that is done; the phase change is reported to the controller only then,
+    * so a phase that starts strictly after this one cannot start before. Runs on its own thread: it walks all the
+    * sessions and blocks in {@code System.gc()}, neither belongs on an event loop. Never fails the phase.
+    */
+   private CompletableFuture<Void> releasePhaseSessions(Phase phase) {
+      if (phase.sharedResources == null || Properties.getBoolean(Properties.KEEP_PHASE_SESSIONS)) {
+         return Util.COMPLETED_VOID_FUTURE;
+      }
+      SharedResources resources = sharedResources.get(phase.sharedResources);
+      if (resources == null || resources.sessions == null || resources.sessions.isEmpty()) {
+         return Util.COMPLETED_VOID_FUTURE;
+      }
+      boolean pendingPhase = false;
+      for (PhaseInstance other : instances.values()) {
+         if (other.definition() == phase) {
+            continue;
+         }
+         if (other.status() == PhaseInstance.Status.NOT_STARTED) {
+            pendingPhase = true;
+         }
+         if (phase.sharedResources.equals(other.definition().sharedResources) && !other.status().isTerminated()) {
+            return Util.COMPLETED_VOID_FUTURE;
+         }
+      }
+      if (!pendingPhase) {
+         // nothing would benefit; shutdown() destroys the sessions
+         return Util.COMPLETED_VOID_FUTURE;
+      }
+      CompletableFuture<Void> released = new CompletableFuture<>();
+      Thread releaser = new Thread(() -> {
+         try {
+            // the sessions are referenced only from the frame of destroyPhaseSessions(), gone before the GC
+            destroyPhaseSessions(phase, resources);
+            if (Properties.getBoolean(Properties.GC_AFTER_PHASE_RELEASE, true)) {
+               explicitGcEpoch.incrementAndGet();
+               try {
+                  runGC();
+               } finally {
+                  explicitGcEpoch.incrementAndGet();
+               }
+            }
+         } catch (Throwable t) {
+            log.error("Failed to release sessions of phase {}", phase.name, t);
+         }
+         released.complete(null);
+      }, "phase-sessions-release");
+      releaser.setDaemon(true);
+      releaser.start();
+      return released;
+   }
+
+   private void destroyPhaseSessions(Phase phase, SharedResources resources) {
+      long start = System.currentTimeMillis();
+      List<Session> phaseSessions;
+      synchronized (sessions) {
+         synchronized (resources.sessions) {
+            phaseSessions = new ArrayList<>(resources.sessions);
+            resources.sessions.clear();
+         }
+         Set<Session> dropped = Collections.newSetFromMap(new IdentityHashMap<>(phaseSessions.size()));
+         dropped.addAll(phaseSessions);
+         sessions.removeIf(dropped::contains);
+      }
+      resources.sessionPool.clear();
+      int active = 0;
+      for (Session session : phaseSessions) {
+         if (session.isActive()) {
+            active++;
+         }
+         SessionFactory.destroy(session);
+      }
+      log.info("Phase {} terminated: released {} sessions ({} still active) in {} ms", phase.name,
+            phaseSessions.size(), active, System.currentTimeMillis() - start);
    }
 
    private CompletableFuture<Void> completePhase(Phase phase) {
