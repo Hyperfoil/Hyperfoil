@@ -916,7 +916,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Cannot write info file", e);
             hasError = true;
          }
-         try (FileOutputStream stream = new FileOutputStream(run.dir.resolve(DEFAULT_STATS_JSON).toFile())) {
+         Path statsPath = run.dir.resolve(DEFAULT_STATS_JSON);
+         log.debug("Starting to write stats file: {}", statsPath);
+         try (FileOutputStream stream = new FileOutputStream(statsPath.toFile())) {
             JsonFactory jfactory = new JsonFactory();
             jfactory.setCodec(new ObjectMapper());
             JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
@@ -924,6 +926,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             JsonWriter.writeArrayJsons(run.statisticsStore(), jGenerator, info);
             jGenerator.flush();
             jGenerator.close();
+            log.debug("Finished writing stats file: {} (exists={})", statsPath, Files.exists(statsPath));
          } catch (IOException e) {
             log.error("Cannot write to {}", DEFAULT_STATS_JSON, e);
             hasError = true;
@@ -964,8 +967,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          run.persisted = true;
          if (result.failed()) {
             log.error("Failed to persist run {}", run.id, result.cause());
+            run.persistenceComplete.fail(result.cause());
          } else {
             log.info("Successfully persisted run {}", run.id);
+            run.persistenceComplete.complete();
          }
       });
    }

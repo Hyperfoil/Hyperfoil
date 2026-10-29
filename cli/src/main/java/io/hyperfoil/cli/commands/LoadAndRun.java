@@ -36,7 +36,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
 
    @Override
    protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
-      return List.of(Upload.class, Wait.class, Stats.class, Report.class);
+      return List.of(Upload.class, Wait.class, Stats.class, Report.class, Export.class);
    }
 
    @Override
@@ -55,7 +55,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
    @CommandDefinition(name = "run", description = "Load and start a benchmark on Hyperfoil controller server, the argument can be the benchmark definition directly.")
    public static class LoadAndRunCommand extends io.hyperfoil.cli.commands.Run {
 
-      @Option(name = "output", shortName = 'o', description = "Output destination path for the HTML report")
+      @Option(name = "output", shortName = 'o', description = "Output destination path for the statistics (format detected from file extension: .html, .json, or .csv/.zip; CSV output is always packaged inside a .zip archive)")
       private String output;
 
       @Option(name = "print-stack-trace", hasValue = false)
@@ -78,9 +78,9 @@ public class LoadAndRun extends BaseStandaloneCommand {
          invocation.executeSwitchable("wait");
          invocation.executeSwitchable("stats -t");
          if (output != null && !output.isBlank()) {
-            invocation.executeSwitchable("report --silent -y --destination " + output);
+            OutputCommandUtil.executeOutputCommand(invocation, output);
          } else {
-            invocation.println("Skipping report generation, consider providing --output to generate it.");
+            invocation.println("Skipping export, consider providing --output to generate it.");
          }
       }
    }
