@@ -3,15 +3,14 @@ package io.hyperfoil.cli.commands;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
-import org.aesh.io.Resource;
 
-import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 
@@ -19,7 +18,7 @@ import io.hyperfoil.controller.Client;
 public class Export extends BaseExportCommand {
 
    @Option(shortName = 'd', description = "Target file/directory for the output", required = true, askIfNotSet = true)
-   public Resource destination;
+   public String destination;
 
    @Option(shortName = 'y', description = "Assume yes for all interactive questions.", hasValue = false)
    public boolean assumeYes;
@@ -30,12 +29,12 @@ public class Export extends BaseExportCommand {
       Client.RunRef runRef = getRunRef(invocation);
       String acceptFormat = getAcceptFormat();
       String defaultFilename = getDefaultFilename(runRef);
-      destination = CliUtil.sanitize(destination);
-      String destinationFile = destination.toString();
-      if (destination.isDirectory()) {
+      String destinationFile = destination;
+      Path destPath = Paths.get(destination);
+      if (Files.isDirectory(destPath)) {
          destinationFile = destination + File.separator + defaultFilename;
       }
-      if (destination.exists() && !assumeYes) {
+      if (Files.exists(destPath) && !assumeYes) {
          invocation.print("File " + destinationFile + " already exists, override? [y/N]: ");
          if (!readYes(invocation)) {
             invocation.println("Export cancelled.");
