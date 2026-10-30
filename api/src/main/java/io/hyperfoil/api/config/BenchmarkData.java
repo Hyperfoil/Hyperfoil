@@ -2,6 +2,8 @@ package io.hyperfoil.api.config;
 
 import java.io.File;
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
@@ -20,6 +22,30 @@ public interface BenchmarkData {
 
    static String sanitize(String file) {
       return file.replace(File.separatorChar, '_').replace(File.pathSeparatorChar, '_');
+   }
+
+   default String readFileAsString(String file, Charset charset) {
+      try (InputStream in = readFile(file)) {
+         if (in == null) {
+            return null;
+         }
+         byte[] readBytes = new byte[in.available()];
+         int remaining = readBytes.length;
+         while (in.available() > 0) {
+            if (remaining == 0) {
+               readBytes = Arrays.copyOf(readBytes, readBytes.length + in.available());
+               remaining = readBytes.length;
+            }
+            int read = in.read(readBytes, readBytes.length - remaining, remaining);
+            if (read < 0) {
+               break;
+            }
+            remaining -= read;
+         }
+         return new String(readBytes, 0, readBytes.length - remaining, charset);
+      } catch (Exception e) {
+         throw new MissingFileException(file, "Cannot load file " + file, e);
+      }
    }
 
    InputStream readFile(String file);

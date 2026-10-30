@@ -57,6 +57,7 @@
         <module>test-suite</module>
         <module>hotrod</module>
         <module>benchmarks</module>
+        <module>grpc</module>
     </modules>
 
     <!-- Licenses -->
