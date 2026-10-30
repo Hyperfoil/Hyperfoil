@@ -13,10 +13,8 @@ import io.netty.util.concurrent.FastThreadLocal;
  * Request timeouts of one executor thread, without a scheduled task per request.
  * <p>
  * Requests with the same timeout expire in the order they were scheduled, so every distinct timeout value
- * gets a FIFO of requests and a single scheduled wake-up at the deadline of its oldest request. Cancelling
- * a timeout clears the request's slot in the FIFO; the head of the FIFO skips cleared slots. A request only
- * records primitive fields (queue index, slot, deadline), so scheduling and cancelling a timeout do not store
- * references into the long-lived request objects.
+ * gets a linked list of requests and a single scheduled wake-up at the deadline of its oldest request.
+ * Cancelling a timeout unlinks the request from the list.
  */
 final class RequestTimeouts {
    private static final Logger log = LogManager.getLogger(RequestTimeouts.class);
@@ -59,12 +57,10 @@ final class RequestTimeouts {
    private static final class Queue implements Runnable {
       final EventExecutor executor;
       final long timeoutNanos;
-      // Ring buffer with a power-of-two capacity: slots head .. head + length - 1 are in use,
-      // the head slot always holds a request unless the queue is empty.
-      private Request[] slots = new Request[16];
-      private int head;
-      private int length;
-      private int size;
+
+      // Points to the first and last requests in the chain
+      private Request head;
+      private Request tail;
       private boolean wakeScheduled;
 
       Queue(EventExecutor executor, long timeoutNanos) {
@@ -73,55 +69,41 @@ final class RequestTimeouts {
       }
 
       void add(Request request, long now) {
-         if (length == slots.length) {
-            compact();
-         }
-         int slot = (head + length) & (slots.length - 1);
-         slots[slot] = request;
-         request.timeoutSlot = slot;
          request.timeoutDeadline = now + timeoutNanos;
-         ++length;
-         ++size;
+         request.nextTimeout = null;
+         request.prevTimeout = tail;
+
+         if (tail != null) {
+            tail.nextTimeout = request;
+         } else {
+            head = request; // Queue was empty
+         }
+         tail = request;
+
          if (!wakeScheduled) {
             scheduleWake(timeoutNanos);
          }
       }
 
       void remove(Request request) {
-         int slot = request.timeoutSlot;
-         assert slots[slot] == request;
-         slots[slot] = null;
-         request.timeoutSlot = -1;
-         --size;
-         if (slot == head) {
-            skipCleared();
+         // Unlink from the previous request
+         if (request.prevTimeout != null) {
+            request.prevTimeout.nextTimeout = request.nextTimeout;
+         } else if (head == request) {
+            head = request.nextTimeout;
          }
-      }
 
-      private void skipCleared() {
-         int mask = slots.length - 1;
-         while (length > 0 && slots[head] == null) {
-            head = (head + 1) & mask;
-            --length;
+         // Unlink from the next request
+         if (request.nextTimeout != null) {
+            request.nextTimeout.prevTimeout = request.prevTimeout;
+         } else if (tail == request) {
+            tail = request.prevTimeout;
          }
-      }
 
-      private void compact() {
-         Request[] compacted = new Request[size * 2 > slots.length ? slots.length * 2 : slots.length];
-         int mask = slots.length - 1;
-         int copied = 0;
-         for (int i = 0; i < length; ++i) {
-            Request request = slots[(head + i) & mask];
-            if (request != null) {
-               compacted[copied] = request;
-               request.timeoutSlot = copied;
-               ++copied;
-            }
-         }
-         assert copied == size;
-         slots = compacted;
-         head = 0;
-         length = copied;
+         // Clean up the request's own pointers
+         request.prevTimeout = null;
+         request.nextTimeout = null;
+         request.timeoutQueue = -1;
       }
 
       private void scheduleWake(long delayNanos) {
@@ -133,25 +115,32 @@ final class RequestTimeouts {
       public void run() {
          wakeScheduled = false;
          long now = System.nanoTime();
-         int mask = slots.length - 1;
-         while (length > 0) {
-            Request request = slots[head];
-            if (request == null) {
-               head = (head + 1) & mask;
-               --length;
-               continue;
-            }
+
+         while (head != null) {
+            Request request = head;
             long remaining = request.timeoutDeadline - now;
+
+            // If the oldest request hasn't expired yet, stop and wait.
             if (remaining > 0) {
-               scheduleWake(remaining);
+               if (!wakeScheduled) { // Prevents duplicate scheduling during re-entrant
+                  scheduleWake(remaining);
+               }
                return;
             }
-            slots[head] = null;
-            head = (head + 1) & mask;
-            --length;
-            --size;
-            request.timeoutSlot = -1;
+
+            // Remove the expired request from the front of the chain
+            head = request.nextTimeout;
+            if (head != null) {
+               head.prevTimeout = null;
+            } else {
+               tail = null; // Chain is now empty
+            }
+
+            request.prevTimeout = null;
+            request.nextTimeout = null;
             request.timeoutQueue = -1;
+
+            // Trigger the timeout logic
             try {
                request.call();
             } catch (Throwable t) {

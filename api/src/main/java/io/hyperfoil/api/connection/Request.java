@@ -24,10 +24,11 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    private SequenceInstance sequence;
    private SequenceInstance completionSequence;
    private Statistics statistics;
-   // Pending timeout, see RequestTimeouts: index of the queue and the slot in it (-1 when none) and the deadline.
+   // Pending timeout, see RequestTimeouts: queue index (-1 when none), deadline, and linked list pointers.
    int timeoutQueue = -1;
-   int timeoutSlot = -1;
    long timeoutDeadline;
+   Request prevTimeout;
+   Request nextTimeout;
    private Connection connection;
    private Status status = Status.IDLE;
    private Result result = Result.VALID;
