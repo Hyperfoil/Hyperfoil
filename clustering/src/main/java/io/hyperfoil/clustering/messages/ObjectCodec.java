@@ -63,22 +63,19 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
       int lengthPosition = buffer.length();
       buffer.appendInt(0);
       int start = buffer.length();
-      try {
-         ObjectOutput out = new ObjectOutputStream(new BufferOutputStream(buffer));
+      try (ObjectOutput out = new ObjectOutputStream(new BufferOutputStream(buffer))) {
          out.writeObject(object);
-         out.flush();
       } catch (IOException e) {
-         // If an error happens here, the Vert.x buffer is still empty (nothing was written yet).
-         // If we ignore this error, we will send an empty message over the network.
-         // The receiving node will read the wrong bytes, crash, and we will not know why.
-         // By throwing an exception now, we stop the send and easily see the true cause of the error.
+         // We do not write the length here. If serialization fails, the data is incomplete.
+         // If we write a valid length for this incomplete data, the event bus will send a corrupt
+         // message. The receiver will crash, and it will be very hard to debug.
+         // Throwing an exception here stops the send and shows the exact cause of the error.
          throw new UncheckedIOException("Cannot serialize " + (object == null ? "null" : object.getClass().getName())
                + " for the clustered event bus", e);
-      } finally {
-         // Always write the length, even on failure.
-         // This prevents buffer corruption and makes debugging easier.
-         buffer.setInt(lengthPosition, buffer.length() - start);
       }
+      // We write the length only after the stream is closed. This guarantees all bytes
+      // are in the buffer.
+      buffer.setInt(lengthPosition, buffer.length() - start);
    }
 
    @Override
