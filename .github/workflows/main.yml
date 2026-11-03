@@ -1,6 +1,5 @@
 name: Java CI with Maven
 on:
-  push:
   pull_request:
     paths-ignore:
       - "LICENSE*"
