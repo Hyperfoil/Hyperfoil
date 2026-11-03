@@ -1,5 +1,7 @@
 package io.hyperfoil.clustering;
 
+import java.util.function.BiConsumer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,13 +20,16 @@ public class RequestStatsSender extends StatisticsCollector {
    private final String address;
    private final String runId;
    private final EventBus eb;
+   private final BiConsumer<String, Throwable> abort;
    private final StatisticsConsumer sendStats = this::sendStats;
 
-   public RequestStatsSender(Benchmark benchmark, EventBus eb, String address, String runId) {
+   public RequestStatsSender(Benchmark benchmark, EventBus eb, String address, String runId,
+         BiConsumer<String, Throwable> abort) {
       super(benchmark);
       this.eb = eb;
       this.address = address;
       this.runId = runId;
+      this.abort = abort;
    }
 
    public void send(CountDown completion) {
@@ -39,7 +44,8 @@ public class RequestStatsSender extends StatisticsCollector {
          // (on a local eventbus we'd have to do a copy in transform() anyway)
          StatisticsSnapshot copy = statistics.clone();
          countDown.increment();
-         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), stepId, metric, copy))
+         EventBusSend.request(eb, Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), stepId, metric, copy),
+               e -> abort.accept("statistics for " + phase.name() + "/" + stepId + "/" + metric, e))
                .onComplete(reply -> countDown.countDown());
       }
    }
@@ -51,16 +57,19 @@ public class RequestStatsSender extends StatisticsCollector {
          }
 
          countDown.increment();
-         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phaseAndStepId >> 16, -1, null, null))
+         EventBusSend.request(eb, Feeds.STATS, new RequestStatsMessage(address, runId, phaseAndStepId >> 16, -1, null, null),
+               e -> abort.accept("the statistics terminator for phase " + phases[phaseAndStepId >> 16].name(), e))
                .onComplete(reply -> countDown.countDown());
       }
       if (phase == null) {
          // TODO: it would be better to not send this for those phases that are already complete
          for (Phase p : phases) {
-            eb.request(Feeds.STATS, new PhaseStatsCompleteMessage(address, runId, p.name()));
+            EventBusSend.request(eb, Feeds.STATS, new PhaseStatsCompleteMessage(address, runId, p.name()),
+                  e -> abort.accept("the stats-complete notice for phase " + p.name(), e));
          }
       } else {
-         eb.request(Feeds.STATS, new PhaseStatsCompleteMessage(address, runId, phase.name()));
+         EventBusSend.request(eb, Feeds.STATS, new PhaseStatsCompleteMessage(address, runId, phase.name()),
+               e -> abort.accept("the stats-complete notice for phase " + phase.name(), e));
       }
    }
 }

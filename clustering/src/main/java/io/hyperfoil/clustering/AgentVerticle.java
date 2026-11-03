@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.Hyperfoil;
+import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
@@ -100,23 +101,47 @@ public class AgentVerticle extends AbstractVerticle {
          if (log.isDebugEnabled()) {
             log.debug("Sending AgentHello with deploymentId={}, name={}, nodeId={}", deploymentId, name, nodeId);
          }
-         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId)).onComplete(reply -> {
-            log.trace("{} Pinging controller", deploymentId);
-            if (reply.succeeded()) {
-               log.info("{} Got reply from controller.", deploymentId);
-               vertx.cancelTimer(timerId);
-            } else {
-               if (reply.cause() instanceof ReplyException) {
-                  ReplyFailure replyFailure = ((ReplyException) reply.cause()).failureType();
-                  if (replyFailure == ReplyFailure.RECIPIENT_FAILURE) {
-                     log.error("{} Failed to register, already registered!", deploymentId);
+         // No abortRun here: before registration the controller has no agent to attach an ErrorMessage to, so
+         // the run is failed by the deployment timeout instead. Log it so the retry loop is not silent.
+         EventBusSend.request(eb, Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId),
+               e -> log.error("{} Cannot encode AgentHello; this agent will never register and the controller "
+                     + "will fail the run when deployment times out.", deploymentId, e))
+               .onComplete(reply -> {
+                  log.trace("{} Pinging controller", deploymentId);
+                  if (reply.succeeded()) {
+                     log.info("{} Got reply from controller.", deploymentId);
+                     vertx.cancelTimer(timerId);
                   } else {
-                     log.info("{} Failed to register: {}", deploymentId, replyFailure);
+                     if (reply.cause() instanceof ReplyException) {
+                        ReplyFailure replyFailure = ((ReplyException) reply.cause()).failureType();
+                        if (replyFailure == ReplyFailure.RECIPIENT_FAILURE) {
+                           log.error("{} Failed to register, already registered!", deploymentId);
+                        } else {
+                           log.info("{} Failed to register: {}", deploymentId, replyFailure);
+                        }
+                     }
                   }
-               }
-            }
-         });
+               });
       });
+   }
+
+   /**
+    * Fails the run because a message could not be put on the wire. Continuing would mean reporting numbers
+    * that silently omit whatever was dropped, so the run has to end instead.
+    */
+   private void abortRun(String what, Throwable cause) {
+      BenchmarkExecutionException error = new BenchmarkExecutionException(
+            "Cannot send " + what + " to the controller; the run cannot produce valid results.", cause);
+      log.error("{} Aborting the run", deploymentId, error);
+      try {
+         eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, true));
+      } catch (RuntimeException e) {
+         // The abort notification cannot be encoded either, so nothing we put on the bus reaches the
+         // controller. Leaving the cluster is the signal that is left: ControllerVerticle.nodeLeft marks the
+         // agent failed and stops the run.
+         log.error("{} Cannot report the failure over the event bus; leaving the cluster instead", deploymentId, e);
+         Hyperfoil.shutdownVertx(vertx);
+      }
    }
 
    private String agentControlAddress(String vertxDeploymentId) {
@@ -252,12 +277,13 @@ public class AgentVerticle extends AbstractVerticle {
 
       log.info("Creating SimulationRunner for {}", agentId);
       runner = new SimulationRunner(benchmark, runId, agentId,
-            error -> eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, false)));
+            error -> EventBusSend.send(eb, Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, false),
+                  e -> abortRun("a run error report", e)));
       controlFeedConsumer = listenOnControl();
-      requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);
+      requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId, this::abortRun);
       statisticsCountDown = new CountDown(1);
-      sessionStatsSender = new SessionStatsSender(eb, deploymentId, runId);
-      connectionStatsSender = new ConnectionStatsSender(eb, deploymentId, runId);
+      sessionStatsSender = new SessionStatsSender(eb, deploymentId, runId, this::abortRun);
+      connectionStatsSender = new ConnectionStatsSender(eb, deploymentId, runId, this::abortRun);
 
       runner.setControllerListener((phase, status, sessionLimitExceeded, error, globalData) -> {
          log.debug("{} changed phase {} to {}", deploymentId, phase, status);
@@ -276,8 +302,8 @@ public class AgentVerticle extends AbstractVerticle {
                requestStatsSender.sendPhaseComplete(phase, statisticsCountDown);
                log.debug("Finish sending remaining statistics when status={}", status);
             }
-            eb.request(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded,
-                  cpuUsage, error, globalData)).onComplete(ar -> {
+            EventBusSend.request(eb, Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status,
+                  sessionLimitExceeded, cpuUsage, error, globalData)).onComplete(ar -> {
                      if (ar.succeeded()) {
                         future.complete(null);
                      } else {
@@ -307,9 +333,11 @@ public class AgentVerticle extends AbstractVerticle {
 
       runner.openConnections(vertx::executeBlocking, result -> {
          if (result.succeeded()) {
-            eb.send(Feeds.RESPONSE, new AgentReadyMessage(deploymentId, runId));
+            EventBusSend.send(eb, Feeds.RESPONSE, new AgentReadyMessage(deploymentId, runId),
+                  e -> abortRun("the agent-ready notification", e));
          } else {
-            eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, result.cause(), true));
+            EventBusSend.send(eb, Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, result.cause(), true),
+                  e -> abortRun("the connection-failure report", e));
          }
       });
    }

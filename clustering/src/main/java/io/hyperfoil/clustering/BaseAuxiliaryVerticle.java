@@ -32,7 +32,8 @@ public class BaseAuxiliaryVerticle extends AbstractVerticle implements NodeListe
          }
       }
       vertx.setPeriodic(1000, timerId -> {
-         vertx.eventBus().request(Feeds.DISCOVERY, new AuxiliaryHello("CE Receiver", nodeId, deploymentID()))
+         EventBusSend.request(vertx.eventBus(), Feeds.DISCOVERY, new AuxiliaryHello("CE Receiver", nodeId, deploymentID()),
+               e -> log.error("Cannot encode AuxiliaryHello; this node will never register at the controller.", e))
                .onComplete(response -> {
                   if (response.succeeded()) {
                      log.info("Successfully registered at controller {}!", response.result().body());

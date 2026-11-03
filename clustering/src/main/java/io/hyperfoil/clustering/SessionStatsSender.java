@@ -2,6 +2,7 @@ package io.hyperfoil.clustering;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.core.impl.SessionStatsConsumer;
@@ -12,17 +13,20 @@ public class SessionStatsSender implements SessionStatsConsumer {
    private final String address;
    private final String runId;
    private final EventBus eb;
+   private final BiConsumer<String, Throwable> abort;
    private Map<String, LowHigh> sessionStats;
 
-   public SessionStatsSender(EventBus eb, String address, String runId) {
+   public SessionStatsSender(EventBus eb, String address, String runId, BiConsumer<String, Throwable> abort) {
       this.address = address;
       this.runId = runId;
       this.eb = eb;
+      this.abort = abort;
    }
 
    public void send() {
       if (sessionStats != null) {
-         eb.send(Feeds.STATS, new SessionStatsMessage(address, runId, System.currentTimeMillis(), sessionStats));
+         EventBusSend.send(eb, Feeds.STATS, new SessionStatsMessage(address, runId, System.currentTimeMillis(), sessionStats),
+               e -> abort.accept("session statistics", e));
          sessionStats = null;
       }
    }
