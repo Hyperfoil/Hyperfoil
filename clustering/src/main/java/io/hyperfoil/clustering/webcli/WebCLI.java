@@ -95,13 +95,14 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
          }
          ScheduledFuture<?> future = SCHEDULED_EXECUTOR.schedule(() -> {
             ClosedContext closedContext = closedRunners.get(context.sessionId);
-            if (closedContext != null && closedContext.closed <= System.currentTimeMillis() - SESSION_TIMEOUT) {
+            if (closedContext != null
+                  && System.nanoTime() - closedContext.closedNanos >= TimeUnit.MILLISECONDS.toNanos(SESSION_TIMEOUT)) {
                closedContext.context.runner.stop();
                contextMap.remove(context.sessionId);
                closedRunners.remove(context.sessionId);
             }
          }, SESSION_TIMEOUT, TimeUnit.MILLISECONDS);
-         closedRunners.put(context.sessionId, new ClosedContext(System.currentTimeMillis(), context, future));
+         closedRunners.put(context.sessionId, new ClosedContext(System.nanoTime(), context, future));
       });
 
       webSocket.textMessageHandler(msg -> {
@@ -292,12 +293,12 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    }
 
    private static class ClosedContext {
-      final long closed;
+      final long closedNanos;
       final WebCliContext context;
       final ScheduledFuture<?> future;
 
-      private ClosedContext(long closed, WebCliContext context, ScheduledFuture<?> future) {
-         this.closed = closed;
+      private ClosedContext(long closedNanos, WebCliContext context, ScheduledFuture<?> future) {
+         this.closedNanos = closedNanos;
          this.context = context;
          this.future = future;
       }

@@ -247,10 +247,10 @@ public class WrkScenarioTest extends BaseWrkBenchmarkTest {
 
       BaseScenarioTest.TestStatistics statisticsConsumer = new BaseScenarioTest.TestStatistics();
       LocalSimulationRunner runner = new LocalSimulationRunner(builder.build(), statisticsConsumer, null, null);
-      long start = System.currentTimeMillis();
+      long start = System.nanoTime();
       runner.run();
-      long end = System.currentTimeMillis();
-      log.info("Test duration: " + TimeUnit.MILLISECONDS.toSeconds(end - start) + "s");
+      long end = System.nanoTime();
+      log.info("Test duration: " + TimeUnit.NANOSECONDS.toSeconds(end - start) + "s");
       return statisticsConsumer;
    }
 }

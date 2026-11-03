@@ -21,7 +21,8 @@ import io.hyperfoil.api.session.Session;
 public class Statistics {
    private static final Logger log = LogManager.getLogger(Statistics.class);
    private static final long SAMPLING_PERIOD_MILLIS = TimeUnit.SECONDS.toMillis(1);
-   private static final ThreadLocal<Long> lastWarnThrottle = ThreadLocal.withInitial(() -> Long.MIN_VALUE);
+   private static final long WARNING_THROTTLE_NANOS = TimeUnit.MILLISECONDS.toNanos(100);
+   private static final ThreadLocal<WarningThrottle> lastWarnThrottle = ThreadLocal.withInitial(WarningThrottle::new);
 
    private static final AtomicIntegerFieldUpdater<Statistics> LU1 = AtomicIntegerFieldUpdater.newUpdater(Statistics.class,
          "lowestActive1");
@@ -61,18 +62,18 @@ public class Statistics {
    public void recordResponse(StartTimeSource source, long responseTime, Session session) {
       if (responseTime > highestTrackableValue) {
          // we don't use auto-resize histograms
-         long lastWarn = lastWarnThrottle.get();
-         long warnings = lastWarn & 0xFFFF;
-         long now = System.currentTimeMillis();
-         if (now - (lastWarn >> 16) > 100) {
+         WarningThrottle throttle = lastWarnThrottle.get();
+         long now = System.nanoTime();
+         if (throttle.lastWarnNanos == Long.MIN_VALUE || now - throttle.lastWarnNanos > WARNING_THROTTLE_NANOS) {
             log.warn("Response time {} exceeded maximum trackable response time {}",
                   responseTime, highestTrackableValue);
-            if (warnings > 0) {
-               log.warn("Response time was also exceeded {} times since last warning", warnings);
+            if (throttle.warnings > 0) {
+               log.warn("Response time was also exceeded {} times since last warning", throttle.warnings);
             }
-            lastWarnThrottle.set(now << 16);
-         } else if (warnings < 0xFFFF) {
-            lastWarnThrottle.set(lastWarn + 1);
+            throttle.lastWarnNanos = now;
+            throttle.warnings = 0;
+         } else if (throttle.warnings < 0xFFFF) {
+            throttle.warnings++;
          }
          responseTime = highestTrackableValue;
       } else if (responseTime < 0) {
@@ -310,6 +311,11 @@ public class Statistics {
          newArray.set(i, array.get(i));
       }
       return newArray;
+   }
+
+   private static class WarningThrottle {
+      private long lastWarnNanos = Long.MIN_VALUE;
+      private int warnings;
    }
 
    @Override
