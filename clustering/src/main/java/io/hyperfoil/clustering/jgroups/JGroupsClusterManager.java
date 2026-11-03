@@ -730,8 +730,11 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
    }
 
    /**
-    * Single choke point for handing control back to Vert.x. Listener callbacks must never run on a JGroups
-    * up-handler thread: {@code ControllerVerticle.nodeLeft} walks runs and fails agents.
+    * All listener callbacks go through this single method to return to the Vert.x thread. They must never run on a JGroups
+    * network thread, because {@code ControllerVerticle.nodeLeft} checks active benchmarks and marks missing agents as failed.
+    * <p>
+    * Vert.x guarantees that tasks run in the exact order they are added.
+    * This means {@code nodeLeft} and {@code nodeAdded} events will never mix together.
     */
    private void dispatch(Runnable action) {
       ContextInternal ctx = context;
