@@ -468,6 +468,15 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * guard: a slice and the deltas its owner sends afterwards travel the same multicast channel, and NAKACK2
     * delivers one sender's messages in send order, so a delta can never overtake the slice it builds on. That
     * race exists only for the unicast pull responses.
+    * <p>
+    * That ordering is the reason this stays a multicast to the whole view, even though only the members that
+    * just arrived actually need it. Narrowing it to those members by sending the slice directly to each of
+    * them is not safe: the slice would then travel UNICAST3 while {@link #mutate} keeps multicasting the
+    * deltas over NAKACK2, and the two protocols carry separate sequence spaces with no ordering between them.
+    * If a delta update (version V+1) arrives before the full state slice (version V),
+    * {@link ClusterState#applySlice} will reject the full slice as outdated. As a result,
+    * the receiving node will lose all registrations made prior to version V until the next
+    * cluster view change.
     */
    private void announceSlice() {
       MessageDispatcher d = dispatcher;
@@ -476,6 +485,7 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
          return;
       }
       try {
+         // stay as multicast - see the Javadoc above.
          d.castMessage(null, new BytesMessage(null, state.encodeSlice(id)), RequestOptions.ASYNC());
       } catch (Exception e) {
          // Losing this costs a peer its knowledge of us until the next view change; it must not fail the view.
