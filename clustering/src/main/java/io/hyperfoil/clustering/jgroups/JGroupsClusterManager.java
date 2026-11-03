@@ -216,6 +216,11 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
    public List<String> getNodes() {
       View view = lastView;
       if (view == null) {
+         // Fallback to the channel's view if viewAccepted hasn't stored it yet
+         JChannel ch = channel;
+         view = ch == null ? null : ch.getView();
+      }
+      if (view == null) {
          return nodeId == null ? Collections.emptyList() : List.of(nodeId);
       }
       List<String> nodes = new ArrayList<>(view.size());
