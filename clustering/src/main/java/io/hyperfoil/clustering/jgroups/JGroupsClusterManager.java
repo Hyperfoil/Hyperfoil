@@ -430,16 +430,15 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       }
       notifyRegistrations(affected);
       if (!arrived.isEmpty() || newView instanceof MergeView) {
-         // A completely new node: If a node is joining for the very first time, we don't
-         // need to manually ask it for its data. Why? Because it is already going to send
-         // its data to us automatically (the "announcement").
+         // New nodes: We don't need to pull state from completely new nodes because they start empty.
+         // Any future updates will arrive normally. Also, a new node returns early at the top
+         // of this method (oldView == null), so it doesn't announce its state anyway.
          //
-         // A returning node: If a node was in the group before, got disconnected ("purged"
-         // or "tombstoned"), and is coming back, then we need to manually ask it for its
-         // data (a "re-pull") to make sure our old records are fixed.
+         // Returning nodes: If a node was disconnected and purged, we might have ignored its
+         // messages. We must re-pull its state to recover any missing data.
          //
-         // Doing this prevents a massive storm of unnecessary network messages (a quadratic
-         // burst) when multiple new nodes join at the same time.
+         // Skipping the pull for new nodes prevents a massive network storm when many
+         // nodes join at the same time.
          boolean repull = readmitted || newView instanceof MergeView;
          log.info("View {} installed, announcing our cluster state slice{}", newView,
                repull ? " and re-pulling theirs" : "");
