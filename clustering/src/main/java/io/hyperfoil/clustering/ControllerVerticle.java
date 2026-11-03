@@ -625,7 +625,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   agent.status);
          } else {
             // Session allocation and the initialization GC can exceed the event bus's default timeout.
-            eb.request(agent.deploymentId,
+            EventBusSend.request(eb, agent.deploymentId,
                   new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark),
                   new DeliveryOptions().setSendTimeout(Controller.AGENT_INIT_TIMEOUT))
                   .onComplete(reply -> {
@@ -699,19 +699,22 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       for (ControllerPhase phase : run.phases.values()) {
          if (phase.status() == ControllerPhase.Status.RUNNING
                && phase.absoluteStartTime() + phase.definition().duration() <= now) {
-            eb.publish(Feeds.CONTROL,
-                  new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name, null));
+            EventBusSend.publish(eb, Feeds.CONTROL,
+                  new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name, null),
+                  e -> abortRun(run, "FINISH for phase " + phase.definition().name, e));
             phase.status(run.id, ControllerPhase.Status.FINISHING);
          }
          if (phase.status() == ControllerPhase.Status.FINISHED) {
             if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
-               eb.publish(Feeds.CONTROL,
-                     new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name, null));
+               EventBusSend.publish(eb, Feeds.CONTROL,
+                     new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name, null),
+                     e -> abortRun(run, "TERMINATE for phase " + phase.definition().name, e));
                phase.status(run.id, ControllerPhase.Status.TERMINATING);
             } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get)
                   .allMatch(p -> p.status().isTerminated())) {
-               eb.publish(Feeds.CONTROL,
-                     new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name, null));
+               EventBusSend.publish(eb, Feeds.CONTROL,
+                     new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name, null),
+                     e -> abortRun(run, "TRY_TERMINATE for phase " + phase.definition().name, e));
             }
          }
       }
@@ -721,8 +724,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          if (!newGlobalData.isEmpty()) {
             run.newGlobalData = new HashMap<>();
          }
-         eb.publish(Feeds.CONTROL,
-               new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name, newGlobalData));
+         EventBusSend.publish(eb, Feeds.CONTROL,
+               new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name, newGlobalData),
+               e -> abortRun(run, "RUN for phase " + phase.definition().name, e));
          phase.absoluteStartTime(now);
          phase.status(run.id, ControllerPhase.Status.STARTING);
       }
@@ -746,6 +750,18 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       } else {
          vertx.runOnContext(nil -> runSimulation(run));
       }
+   }
+
+   /**
+    * Fails the run because a message could not be put on the wire. A phase control message that never leaves
+    * the controller leaves the agents running something other than what the results will claim was run, so
+    * the run is stopped rather than allowed to report numbers nobody can trust.
+    */
+   private void abortRun(Run run, String what, Throwable cause) {
+      log.error("{} Cannot send {}; aborting the run", run.id, what, cause);
+      run.errors.add(new Run.Error(null,
+            new BenchmarkExecutionException("Cannot send " + what + "; the run cannot produce valid results.", cause)));
+      stopSimulation(run);
    }
 
    void stopSimulation(Run run) {
@@ -775,7 +791,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             continue;
          }
          agent.status = AgentInfo.Status.STOPPING;
-         eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null))
+         EventBusSend.request(eb, agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null))
                .onComplete(reply -> {
                   if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
                      agent.status = AgentInfo.Status.STOPPED;
@@ -1173,7 +1189,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             continue;
          }
          agentCounter.incrementAndGet();
-         eb.request(agent.deploymentId, new AgentControlMessage(command, agent.id, param)).onComplete(result -> {
+         EventBusSend.request(eb, agent.deploymentId, new AgentControlMessage(command, agent.id, param)).onComplete(result -> {
             if (result.failed()) {
                log.error("Failed to connect to agent {}", agent.name, result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));

@@ -2,6 +2,7 @@ package io.hyperfoil.clustering;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import io.hyperfoil.clustering.messages.ConnectionStatsMessage;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
@@ -12,16 +13,19 @@ public class ConnectionStatsSender implements ConnectionStatsConsumer {
    private final EventBus eventBus;
    private final String address;
    private final String runId;
+   private final BiConsumer<String, Throwable> abort;
    private Map<String, Map<String, LowHigh>> stats = new HashMap<>();
 
-   public ConnectionStatsSender(EventBus eb, String address, String runId) {
+   public ConnectionStatsSender(EventBus eb, String address, String runId, BiConsumer<String, Throwable> abort) {
       this.eventBus = eb;
       this.address = address;
       this.runId = runId;
+      this.abort = abort;
    }
 
    public void send() {
-      eventBus.send(Feeds.STATS, new ConnectionStatsMessage(address, runId, System.currentTimeMillis(), stats));
+      EventBusSend.send(eventBus, Feeds.STATS, new ConnectionStatsMessage(address, runId, System.currentTimeMillis(), stats),
+            e -> abort.accept("connection statistics", e));
       // the eventBus may process this asynchronously so we can't reuse the map
       stats = new HashMap<>();
    }

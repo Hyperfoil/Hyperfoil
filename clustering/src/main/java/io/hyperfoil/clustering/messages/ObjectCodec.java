@@ -26,6 +26,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.io.UncheckedIOException;
 
 import org.infinispan.commons.io.LazyByteArrayOutputStream;
 
@@ -49,7 +50,12 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
          buffer.appendBytes(bos.getRawBuffer(), 0, bos.size());
 
       } catch (IOException e) {
-         e.printStackTrace();
+         // If an error happens here, the Vert.x buffer is still empty (nothing was written yet).
+         // If we ignore this error, we will send an empty message over the network.
+         // The receiving node will read the wrong bytes, crash, and we will not know why.
+         // By throwing an exception now, we stop the send and easily see the true cause of the error.
+         throw new UncheckedIOException("Cannot serialize " + (object == null ? "null" : object.getClass().getName())
+               + " for the clustered event bus", e);
       } finally {
          try {
             bos.close();
