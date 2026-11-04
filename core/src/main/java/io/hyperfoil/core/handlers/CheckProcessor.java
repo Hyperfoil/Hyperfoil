@@ -35,6 +35,9 @@ import io.netty.buffer.Unpooled;
 
 /**
  * Validates a complete response body using one configured comparison strategy.
+ * <p>
+ * This processor is for occasional sanity checks, not for the hot path. It parses JSON with Jackson and decodes
+ * the body into a String for regex checks.
  */
 public abstract class CheckProcessor implements Processor {
    private static final Logger log = LogManager.getLogger(CheckProcessor.class);
@@ -69,6 +72,9 @@ public abstract class CheckProcessor implements Processor {
     *
     * Use <code>regex</code> or <code>json</code> instead of <code>equalTo</code> for the other matching strategies.
     * Exactly one strategy must be configured.
+    * <p>
+    * Because this checks the entire response body every time, it can slow down your test.
+    * Use it to verify correctness, not for measuring maximum throughput.
     */
    @MetaInfServices(Processor.Builder.class)
    @Name("check")
