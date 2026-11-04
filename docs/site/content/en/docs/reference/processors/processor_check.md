@@ -11,6 +11,8 @@ handler:
 ```
  <br> Use <code>regex</code> or <code>json</code> instead of <code>equalTo</code> for the other matching strategies. Exactly one strategy must be configured.
 
+ Because this checks the entire response body every time, it can slow down your test. Use it to verify correctness, not for measuring maximum throughput.
+
 | Property | Type | Description |
 | ------- | ------- | -------- |
 | equalTo | String | Requires the response body to have exactly these UTF-8 bytes, including its length. |
