@@ -74,7 +74,6 @@ public class SendHttpRequestStep extends StatisticsStep implements SLA.Provider 
       }
       // Set up timeout only after successful request
       if (timeout > 0) {
-         // TODO alloc!
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       } else {
          long timeout = request.connection().config().requestTimeout();
