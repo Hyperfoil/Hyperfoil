@@ -7,9 +7,14 @@ import java.util.stream.Stream;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
+import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
+import org.aesh.io.Resource;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.controller.Client;
+import io.hyperfoil.controller.model.RequestStatisticsResponse;
+import io.hyperfoil.controller.model.RequestStats;
 
 public class LoadAndRun extends BaseStandaloneCommand {
 
@@ -23,10 +28,16 @@ public class LoadAndRun extends BaseStandaloneCommand {
    }
 
    public static void main(String[] args) {
+      System.exit(run(args));
+   }
+
+   /**
+    * Runs the standalone command and returns the process exit status.
+    */
+   public static int run(String[] args) {
       boolean clustered = Arrays.asList(args).contains(CLUSTERED);
       args = Stream.of(args).filter(s -> !CLUSTERED.equals(s)).toArray(String[]::new);
-      LoadAndRun lr = new LoadAndRun(clustered);
-      lr.exec(args);
+      return new LoadAndRun(clustered).exec(args);
    }
 
    @Override
@@ -61,8 +72,30 @@ public class LoadAndRun extends BaseStandaloneCommand {
       @Option(name = "print-stack-trace", hasValue = false)
       public boolean printStackTrace;
 
+      @Option(name = "fail-on-errors", description = "Fail when the run has runtime, validation, or SLA errors; warmup phases are ignored", hasValue = false)
+      private boolean failOnErrors;
+
+      @Option(name = "export", description = "Destination for exported final run statistics")
+      private Resource export;
+
+      @Option(name = "export-format", description = "Format for --export; supported formats are JSON and CSV", defaultValue = "JSON")
+      private String exportFormat;
+
+      private Export exportCommand;
+
       @Override
       protected void setup(HyperfoilCommandInvocation invocation) throws CommandException {
+         // validate the export options before the benchmark is started so that a typo does not waste a run
+         exportCommand = new Export();
+         exportCommand.format = exportFormat;
+         exportCommand.assumeYes = true;
+         exportCommand.getAcceptFormat();
+         if (export != null) {
+            if (export.toString().isBlank()) {
+               throw new CommandException("Export destination must not be empty");
+            }
+            exportCommand.destination = export;
+         }
          // if benchmarkFile is provided load the benchmark as first step and fail fast if something went wrong
          if (benchmark != null && !benchmark.isBlank()) {
             invocation.executeSwitchable("upload " + (printStackTrace ? "--print-stack-trace " : "") + benchmark);
@@ -74,7 +107,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
       }
 
       @Override
-      protected void monitor(HyperfoilCommandInvocation invocation) throws CommandException {
+      protected CommandResult monitor(HyperfoilCommandInvocation invocation) throws CommandException {
          invocation.executeSwitchable("wait");
          invocation.executeSwitchable("stats -t");
          if (output != null && !output.isBlank()) {
@@ -82,6 +115,33 @@ public class LoadAndRun extends BaseStandaloneCommand {
          } else {
             invocation.println("Skipping report generation, consider providing --output to generate it.");
          }
+         CommandResult result = CommandResult.SUCCESS;
+         if (export != null) {
+            try {
+               result = exportCommand.execute(invocation);
+            } catch (InterruptedException e) {
+               Thread.currentThread().interrupt();
+               throw new CommandException("Interrupted while exporting run statistics", e);
+            }
+         }
+         if (failOnErrors) {
+            Client.RunRef runRef = invocation.context().serverRun();
+            if (hasErrors(runRef.get(), runRef.statsTotal())) {
+               invocation.error("Run " + runRef.id() + " completed with errors");
+               result = CommandResult.FAILURE;
+            }
+         }
+         return result;
+      }
+
+      static boolean hasErrors(io.hyperfoil.controller.model.Run run, RequestStatisticsResponse stats) {
+         return run.cancelled || !run.completed || !run.errors.isEmpty() || run.phases.stream().anyMatch(phase -> phase.failed)
+               || stats.statistics.stream().filter(s -> !s.isWarmup).anyMatch(LoadAndRunCommand::hasErrors);
+      }
+
+      private static boolean hasErrors(RequestStats stats) {
+         return !stats.failedSLAs.isEmpty() || stats.summary.invalid > 0 || stats.summary.requestTimeouts > 0
+               || stats.summary.connectionErrors > 0 || stats.summary.internalErrors > 0;
       }
    }
 }
