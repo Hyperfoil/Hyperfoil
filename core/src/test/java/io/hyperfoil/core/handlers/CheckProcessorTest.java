@@ -351,5 +351,10 @@ public class CheckProcessorTest {
       public long getStartTimestampNanos(Session session) {
          return startTimestampNanos();
       }
+
+      @Override
+      public long getFiredTimestampMillis(Session session) {
+         return firedTimestampMillis();
+      }
    }
 }
