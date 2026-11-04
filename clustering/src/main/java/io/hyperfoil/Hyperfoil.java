@@ -118,7 +118,7 @@ public class Hyperfoil {
       InetAddress address = ClusterAddressResolver.resolve(clusterIp);
       if (clusterIp == null && !address.equals(InetAddress.getLocalHost())) {
          log.warn("Hostname resolves to {} which agents on other machines cannot reach; using address {} of a " +
-                     "non-loopback network interface instead. Set -D{}=x.x.x.x to override.",
+               "non-loopback network interface instead. Set -D{}=x.x.x.x to override.",
                InetAddress.getLocalHost().getHostAddress(), address.getHostAddress(), Properties.CONTROLLER_CLUSTER_IP);
       }
       return address;

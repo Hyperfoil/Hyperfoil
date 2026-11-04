@@ -105,7 +105,6 @@
         <version.apache.sshd>2.20.1</version.apache.sshd>
         <version.jboss-logging>3.6.3.Final</version.jboss-logging>
         <version.jctools>4.0.7</version.jctools>
-        <version.testcontainers>2.0.5</version.testcontainers>
         <version.sonatype.central>0.12.0</version.sonatype.central>
         <version.maven.source>3.4.0</version.maven.source>
         <version.maven.javadoc>3.12.0</version.maven.javadoc>
