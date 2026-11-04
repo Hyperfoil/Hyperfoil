@@ -27,4 +27,11 @@ public interface ElasticPool<T> {
    int maxUsed();
 
    void resetStats();
+
+   /**
+    * Drops every pooled object (all must have been released); the pool is empty afterwards.
+    */
+   default void clear() {
+      throw new UnsupportedOperationException();
+   }
 }
