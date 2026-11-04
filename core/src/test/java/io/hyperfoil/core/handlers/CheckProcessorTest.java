@@ -210,7 +210,7 @@ public class CheckProcessorTest {
    }
 
    @Test
-   public void regexAndJsonReuseSessionResourcesAcrossRequestsAndGrowingBodies() {
+   public void regexAndJsonHandleRepeatedRequestsAndGrowingBodies() {
       String longText = "x".repeat(1000) + "€";
       assertResults(new CheckProcessor.Builder().regex("x*€"), new boolean[] { true, false, true, true },
             bytes("x€"), bytes("y"), bytes(longText), bytes("€"));
