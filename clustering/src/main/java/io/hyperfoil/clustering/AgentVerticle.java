@@ -171,7 +171,17 @@ public class AgentVerticle extends AbstractVerticle {
                   vertx.cancelTimer(statsTimerId);
                }
                CountDown completion = new CountDown(result -> {
-                  message.reply(result.succeeded() ? "OK" : result.cause());
+                  try {
+                     if (result.succeeded()) {
+                        message.reply("OK");
+                     } else {
+                        // Must not reply with the Throwable itself: there is no codec for it, so on a
+                        // clustered bus the reply would throw here and the controller would never hear back.
+                        message.fail(1, Util.explainCauses(result.cause()));
+                     }
+                  } catch (Throwable e) {
+                     log.error("Cannot acknowledge the agent stop", e);
+                  }
                   if (vertx.isClustered()) {
                      // Give the message some time to be sent
                      vertx.setTimer(1000, id -> Hyperfoil.shutdownVertx(vertx));
@@ -203,7 +213,7 @@ public class AgentVerticle extends AbstractVerticle {
                }
             } catch (Throwable e) {
                log.error("Exception thrown when stopping the agent", e);
-               message.reply(e);
+               message.fail(1, Util.explainCauses(e));
             }
             break;
          case LIST_SESSIONS:
@@ -219,7 +229,7 @@ public class AgentVerticle extends AbstractVerticle {
                message.reply(sessions);
             } catch (Throwable e) {
                log.error("Exception thrown when listing sessions", e);
-               message.reply(e);
+               message.fail(1, Util.explainCauses(e));
             }
             break;
          case LIST_CONNECTIONS:
@@ -228,7 +238,7 @@ public class AgentVerticle extends AbstractVerticle {
                message.reply(runner.listConnections());
             } catch (Throwable e) {
                log.error("Exception thrown when listing connections", e);
-               message.reply(e);
+               message.fail(1, Util.explainCauses(e));
             }
             break;
       }
