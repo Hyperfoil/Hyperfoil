@@ -189,82 +189,98 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
 
       eb.consumer(Feeds.STATS, message -> {
-         if (!(message.body() instanceof StatsMessage)) {
-            log.error("Unknown message type: {}", message.body());
-            return;
-         }
-         StatsMessage statsMessage = (StatsMessage) message.body();
-         Run run = runs.get(statsMessage.runId);
-         if (run != null) {
-            String agentName = run.agents.stream()
-                  .filter(ai -> ai.deploymentId.equals(statsMessage.address))
-                  .map(ai -> ai.name).findFirst().orElse("<unknown>");
-            if (statsMessage instanceof RequestStatsMessage) {
-               RequestStatsMessage rsm = (RequestStatsMessage) statsMessage;
-               String phase = run.phase(rsm.phaseId);
-               if (rsm.statistics != null) {
-                  boolean added = run.statisticsStore().record(agentName, rsm.phaseId, rsm.stepId, rsm.metric, rsm.statistics);
-                  if (log.isDebugEnabled()) {
-                     log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests) - added:{}",
-                           rsm.runId, agentName, rsm.address, phase, rsm.stepId, rsm.metric,
-                           rsm.statistics.sequenceId, rsm.statistics.requestCount, added);
-                  }
-                  if (!added) {
-                     // warning already logged
-                     String errorMessage = String.format(
-                           "Received statistics for %s/%d/%s:%d with %d requests but the statistics are already completed; these statistics won't be reported.",
-                           phase, rsm.stepId, rsm.metric, rsm.statistics.sequenceId, rsm.statistics.requestCount);
-                     log.error(errorMessage);
-                     run.errors.add(new Run.Error(null, new BenchmarkExecutionException(errorMessage)));
-                  }
-               }
-            } else if (statsMessage instanceof PhaseStatsCompleteMessage) {
-               PhaseStatsCompleteMessage pscm = (PhaseStatsCompleteMessage) statsMessage;
-               log.debug("Run {}: Received stats completion for phase {} from {}", run.id, pscm.phase, pscm.address);
-               AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(pscm.address)).findFirst().orElse(null);
-               if (agent == null) {
-                  log.error("Run {}: Cannot find agent {}", run.id, pscm.address);
-               } else {
-                  PhaseInstance.Status prevStatus = agent.phases.put(pscm.phase, PhaseInstance.Status.STATS_COMPLETE);
-                  if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
-                     // TODO: the stats might be completed both regularly and when the agent receives STOP
-                     log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, pscm.phase);
-                  } else if (run.agents.stream().map(a -> a.phases.get(pscm.phase))
-                        .allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
-                     ControllerPhase controllerPhase = run.phases.get(pscm.phase);
-                     if (controllerPhase != null) {
-                        tryCompletePhase(run, pscm.phase, controllerPhase);
-                     } else {
-                        log.error("Run {}: Cannot find phase {}!", run.id, pscm.phase);
+         // The agent sends these with request() and counts the replies down before it acknowledges STOP,
+         // so every path must answer - otherwise the agent hangs until the event bus reply timeout expires.
+         try {
+            if (!(message.body() instanceof StatsMessage)) {
+               log.error("Unknown message type: {}", message.body());
+               message.reply("OK");
+               return;
+            }
+            StatsMessage statsMessage = (StatsMessage) message.body();
+            Run run = runs.get(statsMessage.runId);
+            if (run != null) {
+               String agentName = run.agents.stream()
+                     .filter(ai -> ai.deploymentId != null && ai.deploymentId.equals(statsMessage.address))
+                     .map(ai -> ai.name).findFirst().orElse("<unknown>");
+               if (statsMessage instanceof RequestStatsMessage) {
+                  RequestStatsMessage rsm = (RequestStatsMessage) statsMessage;
+                  String phase = run.phase(rsm.phaseId);
+                  if (rsm.statistics != null) {
+                     boolean added = run.statisticsStore().record(agentName, rsm.phaseId, rsm.stepId, rsm.metric,
+                           rsm.statistics);
+                     if (log.isDebugEnabled()) {
+                        log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests) - added:{}",
+                              rsm.runId, agentName, rsm.address, phase, rsm.stepId, rsm.metric,
+                              rsm.statistics.sequenceId, rsm.statistics.requestCount, added);
+                     }
+                     if (!added) {
+                        // warning already logged
+                        String errorMessage = String.format(
+                              "Received statistics for %s/%d/%s:%d with %d requests but the statistics are already completed; these statistics won't be reported.",
+                              phase, rsm.stepId, rsm.metric, rsm.statistics.sequenceId, rsm.statistics.requestCount);
+                        log.error(errorMessage);
+                        run.errors.add(new Run.Error(null, new BenchmarkExecutionException(errorMessage)));
                      }
                   }
+               } else if (statsMessage instanceof PhaseStatsCompleteMessage) {
+                  PhaseStatsCompleteMessage pscm = (PhaseStatsCompleteMessage) statsMessage;
+                  log.debug("Run {}: Received stats completion for phase {} from {}", run.id, pscm.phase, pscm.address);
+                  AgentInfo agent = run.agents.stream()
+                        .filter(a -> a.deploymentId != null && a.deploymentId.equals(pscm.address)).findFirst().orElse(null);
+                  if (agent == null) {
+                     log.error("Run {}: Cannot find agent {}", run.id, pscm.address);
+                  } else {
+                     PhaseInstance.Status prevStatus = agent.phases.put(pscm.phase, PhaseInstance.Status.STATS_COMPLETE);
+                     if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
+                        // TODO: the stats might be completed both regularly and when the agent receives STOP
+                        log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, pscm.phase);
+                     } else if (run.agents.stream().map(a -> a.phases.get(pscm.phase))
+                           .allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
+                        ControllerPhase controllerPhase = run.phases.get(pscm.phase);
+                        if (controllerPhase != null) {
+                           tryCompletePhase(run, pscm.phase, controllerPhase);
+                        } else {
+                           log.error("Run {}: Cannot find phase {}!", run.id, pscm.phase);
+                        }
+                     }
+                  }
+               } else if (statsMessage instanceof SessionStatsMessage) {
+                  SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
+                  log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId,
+                        sessionStatsMessage.address);
+                  for (Map.Entry<String, LowHigh> entry : sessionStatsMessage.sessionStats.entrySet()) {
+                     run.statisticsStore().recordSessionStats(agentName, sessionStatsMessage.timestamp,
+                           entry.getKey(), entry.getValue().low, entry.getValue().high);
+                  }
+               } else if (statsMessage instanceof ConnectionStatsMessage) {
+                  ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
+                  log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId,
+                        connectionStatsMessage.address);
+                  run.statisticsStore().recordConnectionStats(agentName, connectionStatsMessage.timestamp,
+                        connectionStatsMessage.stats);
+               } else if (statsMessage instanceof DelayStatsCompletionMessage) {
+                  DelayStatsCompletionMessage delayStatsCompletionMessage = (DelayStatsCompletionMessage) statsMessage;
+                  String phase = run.phase(delayStatsCompletionMessage.phaseId);
+                  log.trace("Run {}: Received request for extension from {} for phase {} by {} ms",
+                        delayStatsCompletionMessage.runId, delayStatsCompletionMessage.address,
+                        phase, delayStatsCompletionMessage.delay);
+                  ControllerPhase controllerPhase = run.phases.get(phase);
+                  if (controllerPhase != null) {
+                     controllerPhase.delayStatsCompletionUntil(
+                           System.currentTimeMillis() + delayStatsCompletionMessage.delay);
+                  } else {
+                     log.error("Run {}: Cannot find phase {}!", run.id, phase);
+                  }
                }
-            } else if (statsMessage instanceof SessionStatsMessage) {
-               SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
-               log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
-               for (Map.Entry<String, LowHigh> entry : sessionStatsMessage.sessionStats.entrySet()) {
-                  run.statisticsStore().recordSessionStats(agentName, sessionStatsMessage.timestamp,
-                        entry.getKey(), entry.getValue().low, entry.getValue().high);
-               }
-            } else if (statsMessage instanceof ConnectionStatsMessage) {
-               ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
-               log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId,
-                     connectionStatsMessage.address);
-               run.statisticsStore().recordConnectionStats(agentName, connectionStatsMessage.timestamp,
-                     connectionStatsMessage.stats);
-            } else if (statsMessage instanceof DelayStatsCompletionMessage) {
-               DelayStatsCompletionMessage delayStatsCompletionMessage = (DelayStatsCompletionMessage) statsMessage;
-               String phase = run.phase(delayStatsCompletionMessage.phaseId);
-               log.trace("Run {}: Received request for extension from {} for phase {} by {} ms",
-                     delayStatsCompletionMessage.runId, delayStatsCompletionMessage.address,
-                     phase, delayStatsCompletionMessage.delay);
-               ControllerPhase controllerPhase = run.phases.get(phase);
-               controllerPhase.delayStatsCompletionUntil(System.currentTimeMillis() + delayStatsCompletionMessage.delay);
+            } else {
+               log.error("Unknown run {}", statsMessage.runId);
             }
-         } else {
-            log.error("Unknown run {}", statsMessage.runId);
+            message.reply("OK");
+         } catch (Throwable e) {
+            log.error("Failed to process stats message {}", message.body(), e);
+            message.fail(1, Util.explainCauses(e));
          }
-         message.reply("OK");
       });
 
       if (vertx.isClustered()) {
