@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -52,7 +55,8 @@ public class SshDeployer implements Deployer {
    @Override
    public DeployedAgent start(Agent agent, String runId, Benchmark benchmark, Consumer<Throwable> exceptionHandler) {
       String hostname = null, username = null;
-      String sshKey = "id_rsa";
+      // null means 'not configured': we'll try the well-known default key names
+      String sshKey = null;
       int port = -1;
       String dir = null, extras = null, cpu = null;
       if (agent.inlineConfig != null) {
@@ -137,14 +141,41 @@ public class SshDeployer implements Deployer {
       }
    }
 
+   /**
+    * Finds the private key to authenticate with. When the agent does not set the <code>sshKey</code> property we try the
+    * well-known default key names in order; otherwise the configured key must exist.
+    */
+   private Path resolveKeyFile(String sshKey) throws DeploymentException {
+      Path sshDir = Paths.get(System.getProperty("user.home"), ".ssh");
+      if (sshKey != null) {
+         Path keyFile = sshDir.resolve(sshKey);
+         if (!Files.isReadable(keyFile)) {
+            throw new DeploymentException("SSH key file " + keyFile
+                  + " does not exist or is not readable; check the 'sshKey' property of the agent.", null);
+         }
+         return keyFile;
+      }
+      // tried in this order when the agent does not set the 'sshKey' property
+      List<String> defaultKeys = List.of("id_rsa", "id_ed25519", "id_ecdsa");
+      for (String candidate : defaultKeys) {
+         Path keyFile = sshDir.resolve(candidate);
+         if (Files.isReadable(keyFile)) {
+            return keyFile;
+         }
+      }
+      throw new DeploymentException("Cannot find any SSH key in " + sshDir + " (tried "
+            + String.join(", ", defaultKeys) + "); set the 'sshKey' property of the agent to the name of a key file "
+            + "in that directory.", null);
+   }
+
    private ClientSession connectAndLogin(String sshKey, String username, String hostname, int port)
          throws IOException, GeneralSecurityException, DeploymentException {
+      Path keyFile = resolveKeyFile(sshKey);
+
       ConnectFuture connect = client.connect(username, hostname, port).verify(15000);
       ClientSession session = connect.getSession();
 
-      String userHome = System.getProperty("user.home");
-      URLResource identity;
-      identity = new URLResource(Paths.get(userHome, ".ssh", sshKey).toUri().toURL());
+      URLResource identity = new URLResource(keyFile.toUri().toURL());
 
       try (InputStream inputStream = identity.openInputStream()) {
          session.addPublicKeyIdentity(GenericUtils.head(SecurityUtils.loadKeyPairIdentities(

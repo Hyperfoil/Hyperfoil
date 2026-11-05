@@ -28,7 +28,7 @@ The definition is passed to an instance of `i.h.api.deployment.Deployer` which w
 
 ## SSH deployer
 
-The user account running Hyperfoil Controller must have a public-key authorization set up on agents' hosts using key `$HOME/.ssh/id_rsa`. It also has to be able to copy files into the `dir` directory using SCP - all the required JARs will be copied there and you will find the logs there as well.
+The user account running Hyperfoil Controller must have a public-key authorization set up on agents' hosts. The controller looks for the private key in `$HOME/.ssh`, trying `id_rsa`, `id_ed25519` and `id_ecdsa` in this order; use the `sshKey` property to pick a different file name. Passphrase-protected keys and keys held only in `ssh-agent` are not supported. It also has to be able to copy files into the `dir` directory using SCP - all the required JARs will be copied there and you will find the logs there as well.
 
 `ssh` deployer accepts either the `[user@]host[:port]` inline syntax or these properties:
 
@@ -37,7 +37,7 @@ The user account running Hyperfoil Controller must have a public-key authorizati
 | user     | Current username                                                            |                                                                                                                        |
 | host     |                                                                             | This property is mandatory.                                                                                            |
 | port     | 22                                                                          |                                                                                                                        |
-| sshKey   | id_rsa                                                                      | Optionally define a different named key in the `$HOME/.ssh` directory                                                  |
+| sshKey   | `id_rsa`, `id_ed25519` or `id_ecdsa`                                        | Name of the private key file in the `$HOME/.ssh` directory. When set, that file must exist.                            |
 | dir      | Directory set by system property `io.hyperfoil.rootdir` or `/tmp/hyperfoil` | Working directory for the agent. This directory can be shared by multiple agents running on the same physical machine. |
 | cpu      | (all cpus)                                                                  | If set the CPUs where the agent can run is limited using `taskset -c &lt;cpu&gt;`. Example: `0-2,6`                    |
 
@@ -51,6 +51,16 @@ agents:
     host: testserver3
     port: 22
     dir: /some/other/path
+```
+
+Properties shared by all agents can be set once under the reserved `default` entry (it must use the properties form). Since the inline `[user@]host[:port]` syntax cannot carry `sshKey`, this is the way to use a single non-default key for all agents:
+
+```yaml
+agents:
+  default:
+    sshKey: id_ed25519
+  agent1: testserver1
+  agent2: testuser@testserver2
 ```
 
 ## Kubernetes/Openshift deployer
