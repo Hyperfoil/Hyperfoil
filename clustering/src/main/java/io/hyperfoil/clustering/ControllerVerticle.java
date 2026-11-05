@@ -65,6 +65,7 @@ import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.LowHigh;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
@@ -147,33 +148,43 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
 
       eb.consumer(Feeds.RESPONSE, message -> {
-         AgentStatusMessage msg = (AgentStatusMessage) message.body();
-         Run run = runs.get(msg.runId());
-         if (run == null) {
-            log.error("No run {}", msg.runId());
-            return;
-         }
-         AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(msg.senderId())).findAny().orElse(null);
-         if (agent == null) {
-            log.error("No agent {} in run {}", msg.senderId(), run.id);
-            return;
-         }
-         if (msg instanceof PhaseChangeMessage) {
-            handlePhaseChange(run, agent, (PhaseChangeMessage) msg);
-         } else if (msg instanceof ErrorMessage) {
-            ErrorMessage errorMessage = (ErrorMessage) msg;
-            run.errors.add(new Run.Error(agent, errorMessage.error()));
-            if (errorMessage.isFatal()) {
-               agent.status = AgentInfo.Status.FAILED;
-               stopSimulation(run);
+         // The agent sends these with request() and waits for the reply
+         try {
+            AgentStatusMessage msg = (AgentStatusMessage) message.body();
+            Run run = runs.get(msg.runId());
+            if (run == null) {
+               log.error("No run {}", msg.runId());
+               message.reply("OK");
+               return;
             }
-         } else if (msg instanceof AgentReadyMessage) {
-            agent.status = AgentInfo.Status.READY;
-            if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.READY)) {
-               startSimulation(run);
+            AgentInfo agent = run.agents.stream()
+                  .filter(a -> a.deploymentId != null && a.deploymentId.equals(msg.senderId())).findAny().orElse(null);
+            if (agent == null) {
+               log.error("No agent {} in run {}", msg.senderId(), run.id);
+               message.reply("OK");
+               return;
             }
-         } else {
-            log.error("Unexpected type of message: {}", msg);
+            if (msg instanceof PhaseChangeMessage) {
+               handlePhaseChange(run, agent, (PhaseChangeMessage) msg);
+            } else if (msg instanceof ErrorMessage) {
+               ErrorMessage errorMessage = (ErrorMessage) msg;
+               run.errors.add(new Run.Error(agent, errorMessage.error()));
+               if (errorMessage.isFatal()) {
+                  agent.status = AgentInfo.Status.FAILED;
+                  stopSimulation(run);
+               }
+            } else if (msg instanceof AgentReadyMessage) {
+               agent.status = AgentInfo.Status.READY;
+               if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.READY)) {
+                  startSimulation(run);
+               }
+            } else {
+               log.error("Unexpected type of message: {}", msg);
+            }
+            message.reply("OK");
+         } catch (Throwable e) {
+            log.error("Failed to process agent status message {}", message.body(), e);
+            message.fail(1, Util.explainCauses(e));
          }
       });
 
