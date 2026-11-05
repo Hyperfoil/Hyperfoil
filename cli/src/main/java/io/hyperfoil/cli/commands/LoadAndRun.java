@@ -1,5 +1,6 @@
 package io.hyperfoil.cli.commands;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import org.aesh.command.Command;
@@ -8,6 +9,8 @@ import org.aesh.command.CommandException;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.controller.Client;
+import io.hyperfoil.internal.Controller;
 
 public class LoadAndRun extends BaseStandaloneCommand {
 
@@ -80,8 +83,14 @@ public class LoadAndRun extends BaseStandaloneCommand {
          if (output != null && !output.isBlank()) {
             invocation.executeSwitchable("report --silent -y --destination " + output);
          } else {
-            invocation.println("Skipping report generation, consider providing --output to generate it.");
+            invocation.println("Run files are in " + runDir(invocation) + ". Use --output to generate an HTML report.");
          }
+      }
+
+      private String runDir(HyperfoilCommandInvocation invocation) {
+         Client.RunRef runRef = invocation.context().serverRun();
+         Path runDir = Controller.RUN_DIR;
+         return (runRef == null ? runDir : runDir.resolve(runRef.id())).toString();
       }
    }
 }
