@@ -68,7 +68,7 @@ public class AgentSSHKeyTest extends BaseClusteredTest {
          } while (!info.completed);
          assertThat(info.errors).isNotEmpty();
          String errorString = info.errors.get(0);
-         assertThat(errorString).containsSubsequence(keyName, "No such file or directory");
+         assertThat(errorString).containsSubsequence(keyName, "does not exist or is not readable", "sshKey");
       }
    }
 }
