@@ -9,12 +9,9 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -48,8 +45,7 @@ import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 public class Hyperfoil {
-   static final Logger log = LogManager.getLogger(Hyperfoil.class);
-   private static final Set<String> LOCALHOST_IPS = new HashSet<>(Arrays.asList("127.0.0.1", "::1", "[::1]"));
+   private static final Logger log = LogManager.getLogger(Hyperfoil.class);
 
    public static Future<Vertx> clusteredVertx(boolean isController) {
       logVersion();
@@ -60,11 +56,7 @@ public class Hyperfoil {
          String clusterIp = Properties.get(Properties.CONTROLLER_CLUSTER_IP, null);
          InetAddress address;
          if (isController) {
-            if (clusterIp == null) {
-               address = InetAddress.getLocalHost();
-            } else {
-               address = InetAddress.getByName(clusterIp);
-            }
+            address = resolveControllerAddress(clusterIp);
          } else {
             if (clusterIp == null) {
                return Future.failedFuture("Controller clustering IP was not set on agent/auxiliary node.");
@@ -80,13 +72,14 @@ public class Hyperfoil {
          String hostName = address.getHostName();
          String hostAddress = address.getHostAddress();
          log.info("Using host name {}/{}", hostName, hostAddress);
-         if (LOCALHOST_IPS.contains(hostAddress) && clusterIp == null) {
-            log.error("This machine is configured to resolve its hostname to 127.0.0.1; this is " +
-                  "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
+         if (address.isLoopbackAddress() && clusterIp == null) {
+            log.error("This machine is configured to resolve its hostname to a loopback address ({}) and no " +
+                  "non-loopback network interface could be found; this is " +
+                  "an invalid configuration for clustering. Make sure `hostname -i` does not return a loopback address " +
                   " or set -D{}=x.x.x.x to use different address. " +
                   "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).",
-                  Properties.CONTROLLER_CLUSTER_IP);
-            return Future.failedFuture("Hostname resolves to 127.0.0.1");
+                  hostAddress, Properties.CONTROLLER_CLUSTER_IP);
+            return Future.failedFuture("Hostname resolves to a loopback address (" + hostAddress + ")");
          }
          // We are using numeric address because if this is running in a pod its hostname
          // wouldn't be resolvable even within the cluster/namespace.
@@ -125,6 +118,16 @@ public class Hyperfoil {
                ensureNettyResourceLeakDetection();
             })
             .onFailure(error -> log.error("Cannot start Vert.x", error));
+   }
+
+   private static InetAddress resolveControllerAddress(String clusterIp) throws UnknownHostException {
+      InetAddress address = ClusterAddressResolver.resolve(clusterIp);
+      if (clusterIp == null && !address.equals(InetAddress.getLocalHost())) {
+         log.warn("Hostname resolves to {} which agents on other machines cannot reach; using address {} of a " +
+               "non-loopback network interface instead. Set -D{}=x.x.x.x to override.",
+               InetAddress.getLocalHost().getHostAddress(), address.getHostAddress(), Properties.CONTROLLER_CLUSTER_IP);
+      }
+      return address;
    }
 
    private static void populateProperties(DefaultCacheManager dcm) {
