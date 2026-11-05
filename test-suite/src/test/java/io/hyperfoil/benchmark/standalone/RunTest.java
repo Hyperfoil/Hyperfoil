@@ -21,21 +21,21 @@ public class RunTest extends BaseBenchmarkTest {
    @Test
    public void testRun() {
       String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
-      LoadAndRun cmd = new LoadAndRun(false);
+      LoadAndRun cmd = new LoadAndRun();
       int result = cmd.exec(new String[] { benchmark, "-PSERVER_PORT=" + httpServer.actualPort() });
       assertEquals(CommandResult.SUCCESS.getResultValue(), result);
    }
 
    @Test
    public void testRunMissingBenchmarkArg() {
-      LoadAndRun cmd = new LoadAndRun(false);
+      LoadAndRun cmd = new LoadAndRun();
       int result = cmd.exec(new String[] {});
       assertEquals(CommandResult.FAILURE.getResultValue(), result);
    }
 
    @Test
    public void testRunBenchmarkNotFound() {
-      LoadAndRun cmd = new LoadAndRun(false);
+      LoadAndRun cmd = new LoadAndRun();
       int result = cmd.exec(new String[] { "not-found.hf.yaml" });
       assertEquals(CommandResult.FAILURE.getResultValue(), result);
    }
@@ -43,8 +43,8 @@ public class RunTest extends BaseBenchmarkTest {
    @Test
    public void testRunClusteredRejectsBenchmarkWithoutAgents() {
       String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
-      LoadAndRun cmd = new LoadAndRun(true);
-      int result = cmd.exec(new String[] { benchmark, "-PSERVER_PORT=" + httpServer.actualPort() });
+      LoadAndRun cmd = new LoadAndRun();
+      int result = cmd.exec(new String[] { "--clustered", benchmark, "-PSERVER_PORT=" + httpServer.actualPort() });
       assertEquals(CommandResult.FAILURE.getResultValue(), result);
    }
 }

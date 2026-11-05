@@ -21,6 +21,8 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
 import io.hyperfoil.internal.Properties;
 
 public abstract class BaseStandaloneCommand {
+   protected static final String START_LOCAL = "start-local --quiet";
+
    //ignore logging when running in the console below severe
    static {
       Handler[] handlers = Logger.getLogger("").getHandlers();
@@ -62,8 +64,10 @@ public abstract class BaseStandaloneCommand {
 
          cr = runtime.build();
          try {
-            // start the local in-vm controller server
-            cr.executeCommand(startLocalCommand());
+            if (startLocalBeforeCommand()) {
+               // start the local in-vm controller server
+               cr.executeCommand(startLocalCommand());
+            }
             // As -H option could contain a whitespace we have to either escape the space or quote the argument.
             // However, quoting would not work well if the argument contains a quote.
             String optionsCollected = Stream.of(args).map(arg -> arg.replaceAll(" ", "\\\\ ")).collect(Collectors.joining(" "));
@@ -92,7 +96,15 @@ public abstract class BaseStandaloneCommand {
    }
 
    protected String startLocalCommand() {
-      return "start-local --quiet";
+      return START_LOCAL;
+   }
+
+   /**
+    * @return whether the local controller should be started before the command runs; commands that need to
+    *         decide on the controller setup from their own options start it themselves.
+    */
+   protected boolean startLocalBeforeCommand() {
+      return true;
    }
 
    /**

@@ -1,8 +1,6 @@
 package io.hyperfoil.cli.commands;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
@@ -14,19 +12,9 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 public class LoadAndRun extends BaseStandaloneCommand {
 
    private static final String CMD = "run";
-   private static final String CLUSTERED = "--clustered";
-
-   private final boolean clustered;
-
-   public LoadAndRun(boolean clustered) {
-      this.clustered = clustered;
-   }
 
    public static void main(String[] args) {
-      boolean clustered = Arrays.asList(args).contains(CLUSTERED);
-      args = Stream.of(args).filter(s -> !CLUSTERED.equals(s)).toArray(String[]::new);
-      LoadAndRun lr = new LoadAndRun(clustered);
-      lr.exec(args);
+      new LoadAndRun().exec(args);
    }
 
    @Override
@@ -45,11 +33,10 @@ public class LoadAndRun extends BaseStandaloneCommand {
    }
 
    @Override
-   protected String startLocalCommand() {
-      if (!clustered)
-         return super.startLocalCommand();
-
-      return super.startLocalCommand() + " " + CLUSTERED;
+   protected boolean startLocalBeforeCommand() {
+      // the controller is started by the command itself: whether it has to be clustered depends on
+      // --clustered and on the benchmark, and both are known only after the command line is parsed
+      return false;
    }
 
    @CommandDefinition(name = "run", description = "Load and start a benchmark on Hyperfoil controller server, the argument can be the benchmark definition directly.")
@@ -58,19 +45,32 @@ public class LoadAndRun extends BaseStandaloneCommand {
       @Option(name = "output", shortName = 'o', description = "Output destination path for the HTML report")
       private String output;
 
+      @Option(name = "clustered", description = "Start the local controller in clustered mode. Inferred automatically when the benchmark declares agents.", hasValue = false)
+      private boolean clustered;
+
       @Option(name = "print-stack-trace", hasValue = false)
       public boolean printStackTrace;
 
       @Override
       protected void setup(HyperfoilCommandInvocation invocation) throws CommandException {
          // if benchmarkFile is provided load the benchmark as first step and fail fast if something went wrong
-         if (benchmark != null && !benchmark.isBlank()) {
-            invocation.executeSwitchable("upload " + (printStackTrace ? "--print-stack-trace " : "") + benchmark);
-            // once used, reset it as it needs to be populated by the actual benchmark name
-            benchmark = null;
-         } else {
+         if (benchmark == null || benchmark.isBlank()) {
             throw new CommandException("No benchmark file specified");
          }
+         startLocalController(invocation);
+         invocation.executeSwitchable("upload " + (printStackTrace ? "--print-stack-trace " : "") + benchmark);
+         // once used, reset it as it needs to be populated by the actual benchmark name
+         benchmark = null;
+      }
+
+      private void startLocalController(HyperfoilCommandInvocation invocation) throws CommandException {
+         boolean clusteredRun = clustered;
+         if (!clusteredRun && ClusteredDetector.hasAgents(benchmark, getParams(invocation))) {
+            // the benchmark declares agents: the local controller must be able to deploy them
+            clusteredRun = true;
+            invocation.println("Benchmark declares agents, starting the local controller in clustered mode.");
+         }
+         invocation.executeSwitchable(BaseStandaloneCommand.START_LOCAL + (clusteredRun ? " --clustered" : ""));
       }
 
       @Override
