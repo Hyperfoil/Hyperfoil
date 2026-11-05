@@ -1,10 +1,13 @@
 package io.hyperfoil;
 
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.kohsuke.MetaInfServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.hyperfoil.clustering.Codecs;
 import io.hyperfoil.clustering.ControllerVerticle;
@@ -16,6 +19,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
 public class LocalController implements Controller {
+   private static final Logger log = LoggerFactory.getLogger(LocalController.class);
+
    private final Vertx vertx;
    private final String host;
    private final int port;
@@ -62,6 +67,9 @@ public class LocalController implements Controller {
          } else {
             rootDir = Controller.DEFAULT_ROOT_DIR;
          }
+         if (clustered) {
+            ensureUniqueClusterName();
+         }
          Vertx vertx = resolveVertex(clustered).toCompletableFuture().join();
          String host = resolveLocalHostIp(clustered);
          JsonObject config = new JsonObject();
@@ -83,6 +91,19 @@ public class LocalController implements Controller {
             }
          });
          return new LocalController(vertx, host, completion.join(), clustered);
+      }
+
+      /**
+       * Generates a random JGroups cluster name for this run unless the user pinned one explicitly.
+       * Concurrent local controllers would otherwise all join the default "ISPN" cluster and see each
+       * other's agents. The property is propagated to deployed agents by the deployers.
+       */
+      private void ensureUniqueClusterName() {
+         if (System.getProperty(Properties.CLUSTER_NAME) == null) {
+            String clusterName = "hyperfoil-" + UUID.randomUUID();
+            System.setProperty(Properties.CLUSTER_NAME, clusterName);
+            log.info("Using generated cluster name {}", clusterName);
+         }
       }
 
       private CompletionStage<Vertx> resolveVertex(boolean clustered) {
