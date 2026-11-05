@@ -126,6 +126,7 @@
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
         <version.buildnumber.plugin>3.3.1</version.buildnumber.plugin>
         <version.mockito>5.24.0</version.mockito>
+        <version.testcontainers>2.0.5</version.testcontainers>
 
         <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
