@@ -2,6 +2,7 @@ package io.hyperfoil.clustering.messages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -70,15 +71,23 @@ public class ObjectCodecTest {
    }
 
    /**
-    * An object that cannot be serialized must fail the send rather than leave a frame with no body: the
-    * receiver would then read the bytes that follow as if they were ours.
+    * A partially written object must not reach the wire as a well-formed frame: the send has to fail where the
+    * unserializable object is, not later at the receiver.
     */
    @Test
-   public void shouldFailTheSendRatherThanWriteABodylessFrame() {
+   public void shouldFailTheSendRatherThanFrameATruncatedObject() {
       Buffer buffer = Buffer.buffer();
 
       assertThrows(UncheckedIOException.class, () -> codec.encodeToWire(buffer, new Object()));
-      assertEquals(0, buffer.length(), "a failed encode must leave the buffer untouched");
+      assertEquals(0, buffer.getInt(0), "a failed encode must not stamp a length over the partial payload");
+   }
+
+   @Test
+   public void shouldLeaveThePartialWriteForTheCallerToDiscard() {
+      Buffer buffer = Buffer.buffer();
+
+      assertThrows(UncheckedIOException.class, () -> codec.encodeToWire(buffer, new Object()));
+      assertTrue(buffer.length() > Integer.BYTES, "the failed encode is not rolled back");
    }
 
    @Test
