@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BinaryOperator;
@@ -48,7 +49,6 @@ import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.clustering.util.PersistedBenchmarkData;
-import io.hyperfoil.clustering.webcli.WebCLI;
 import io.hyperfoil.controller.ApiService;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.StatisticsStore;
@@ -65,6 +65,7 @@ import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
+import io.hyperfoil.internal.WebCliProvider;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
@@ -165,10 +166,22 @@ class ControllerServer implements ApiService {
             controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));
       int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT,
             controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
-      WebCLI webCLI = new WebCLI(controller.getVertx());
-      httpServer = controller.getVertx().createHttpServer(options)
-            .requestHandler(router)
-            .webSocketHandler(webCLI);
+
+      WebCliProvider.WebCli webCLI = ServiceLoader.load(WebCliProvider.class)
+            .findFirst()
+            .map(p -> p.create(controller.getVertx()))
+            .orElse(null);
+
+      if (webCLI == null) {
+         log.debug("Web CLI is not on the classpath, websocket endpoint disabled.");
+      }
+
+      HttpServer server = controller.getVertx().createHttpServer(options).requestHandler(router);
+      if (webCLI != null) {
+         server = server.webSocketHandler(webCLI);
+      }
+      httpServer = server;
+
       httpServer.listen(controllerPort, controllerHost).onComplete(serverResult -> {
          if (serverResult.succeeded()) {
             String host = controllerHost;
@@ -185,7 +198,9 @@ class ControllerServer implements ApiService {
             } else {
                baseURL = CONTROLLER_EXTERNAL_URI;
             }
-            webCLI.setConnectionOptions(host, serverResult.result().actualPort(), options.isSsl());
+            if (webCLI != null) {
+               webCLI.setConnectionOptions(host, serverResult.result().actualPort(), options.isSsl());
+            }
             log.info("Hyperfoil controller listening on {}", baseURL);
          }
          // Note: serverResult.mapEmpty() still works exactly as before
