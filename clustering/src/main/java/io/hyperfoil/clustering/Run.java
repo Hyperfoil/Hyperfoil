@@ -30,6 +30,7 @@ class Run {
 
    long startTime = Long.MIN_VALUE;
    Promise<Long> terminateTime = Promise.promise();
+   Promise<Void> persistenceComplete = Promise.promise();
    boolean cancelled;
    boolean completed;
    // guards against persisting a run twice; set before the write starts, unlike persisted
