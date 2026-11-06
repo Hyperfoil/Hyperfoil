@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -28,6 +31,8 @@ import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.ext.web.client.HttpResponse;
 
 public class RunRefImpl implements Client.RunRef {
+
+   private static final Logger log = LogManager.getLogger(RunRefImpl.class);
 
    private static final TypeReference<Map<String, Map<String, Client.MinMax>>> STATS_MAP_TYPE = new TypeReference<>() {
    };
@@ -157,8 +162,16 @@ public class RunRefImpl implements Client.RunRef {
                   return;
                }
                try {
-                  future.complete(response.body().getBytes());
+                  if (response.body() == null) {
+                     future.completeExceptionally(new NullPointerException("Response body is null"));
+                     log.error("Response body is null for stats/all request");
+                     return;
+                  }
+                  byte[] bytes = response.body().getBytes();
+                  log.debug("Successfully received stats/all response with {} bytes", bytes.length);
+                  future.complete(bytes);
                } catch (Throwable t) {
+                  log.error("Error getting bytes from response for stats/all", t);
                   future.completeExceptionally(t);
                }
             }));
