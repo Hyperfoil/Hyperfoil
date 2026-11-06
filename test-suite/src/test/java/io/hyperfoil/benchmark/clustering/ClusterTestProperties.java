@@ -1,5 +1,6 @@
 package io.hyperfoil.benchmark.clustering;
 
+import java.util.Map;
 import java.util.UUID;
 
 import io.hyperfoil.deploy.ssh.TestSshDeployer;
@@ -9,6 +10,24 @@ final class ClusterTestProperties {
    static final String CLUSTER_NAME = "hyperfoil-test-" + UUID.randomUUID();
 
    private ClusterTestProperties() {
+   }
+
+   /**
+    * Options for an agent deployed by a clustered test, with any extra JVM arguments appended.
+    */
+   static Map<String, String> agentOptions(String... extraJvmArgs) {
+
+      /*
+       * The jitter watchdog reports any event loop stall over its threshold as a run error. That is a signal about
+       * benchmark quality, not about correctness, but these functional tests assert that the run produced no errors.
+       * GitHub Actions runners are shared and routinely stall a JVM for just over the 100 ms default, so raise the
+       * threshold far enough that only a pathological stall trips it.
+       */
+      StringBuilder extras = new StringBuilder("-D" + Properties.JITTER_WATCHDOG_THRESHOLD + "=60000");
+      for (String arg : extraJvmArgs) {
+         extras.append(' ').append(arg);
+      }
+      return Map.of("extras", extras.toString());
    }
 
    static void configureClusterProperties() {

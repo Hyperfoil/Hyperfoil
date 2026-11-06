@@ -33,7 +33,9 @@ public class MoreAgentsThanUsersTest extends BaseClusteredTest {
 
    @Test
    public void test() throws InterruptedException {
-      Map<String, String> agentOptions = System.getProperty("agent.log.trace") != null ? Map.of("extras", TRACE_CONFIG) : null;
+      Map<String, String> agentOptions = System.getProperty("agent.log.trace") != null
+            ? ClusterTestProperties.agentOptions(TRACE_CONFIG)
+            : ClusterTestProperties.agentOptions();
       //@formatter:off
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
             .name("test")

@@ -53,8 +53,8 @@ public class AgentCrashTest extends BaseClusteredTest {
       //@formatter:off
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
             .name("agent-crash")
-            .addAgent(SURVIVOR, "localhost", null)
-            .addAgent(DOOMED, "localhost", null)
+            .addAgent(SURVIVOR, "localhost", ClusterTestProperties.agentOptions())
+            .addAgent(DOOMED, "localhost", ClusterTestProperties.agentOptions())
             .addPlugin(HttpPluginBuilder::new)
                .http()
                   .host("localhost").port(httpServer.actualPort())

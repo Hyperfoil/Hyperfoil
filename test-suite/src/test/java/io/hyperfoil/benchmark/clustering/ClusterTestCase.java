@@ -49,7 +49,7 @@ public class ClusterTestCase extends BaseClusteredTest {
    public static io.hyperfoil.api.config.Benchmark testBenchmark(int agents, int port) {
       BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder().name("test");
       for (int i = 0; i < agents; ++i) {
-         benchmarkBuilder.addAgent("agent" + i, "localhost", null);
+         benchmarkBuilder.addAgent("agent" + i, "localhost", ClusterTestProperties.agentOptions());
       }
       // @formatter:off
       benchmarkBuilder
