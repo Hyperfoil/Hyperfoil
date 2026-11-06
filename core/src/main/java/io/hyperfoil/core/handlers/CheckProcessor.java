@@ -4,18 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -33,7 +27,6 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
@@ -42,6 +35,9 @@ import io.netty.buffer.Unpooled;
 
 /**
  * Validates a complete response body using one configured comparison strategy.
+ * <p>
+ * This processor is for occasional sanity checks, not for the hot path. It parses JSON with Jackson and decodes
+ * the body into a String for regex checks.
  */
 public abstract class CheckProcessor implements Processor {
    private static final Logger log = LogManager.getLogger(CheckProcessor.class);
@@ -76,6 +72,9 @@ public abstract class CheckProcessor implements Processor {
     *
     * Use <code>regex</code> or <code>json</code> instead of <code>equalTo</code> for the other matching strategies.
     * Exactly one strategy must be configured.
+    * <p>
+    * Because this checks the entire response body every time, it can slow down your test.
+    * Use it to verify correctness, not for measuring maximum throughput.
     */
    @MetaInfServices(Processor.Builder.class)
    @Name("check")
@@ -191,8 +190,7 @@ public abstract class CheckProcessor implements Processor {
       }
    }
 
-   private static class RegexProcessor extends CheckProcessor
-         implements ResourceUtilizer, Session.ResourceKey<RegexProcessor.Context> {
+   private static class RegexProcessor extends CheckProcessor {
       private final Pattern expected;
 
       private RegexProcessor(Pattern expected) {
@@ -201,48 +199,11 @@ public abstract class CheckProcessor implements Processor {
 
       @Override
       boolean matches(Session session, ByteBuf data, int offset, int length) {
-         return session.getResource(this).matches(data, offset, length);
-      }
-
-      @Override
-      public void reserve(Session session) {
-         session.declareResource(this, Context::new);
-      }
-
-      class Context implements Session.Resource {
-         private final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
-               .onMalformedInput(CodingErrorAction.REPLACE)
-               .onUnmappableCharacter(CodingErrorAction.REPLACE);
-         private final Matcher matcher = expected.matcher("");
-         // UTF-8 decoding never produces more chars than input bytes, so the char buffer is sized to the body.
-         private CharBuffer chars = CharBuffer.allocate(256);
-         private ByteBuffer copy = ByteBuffer.allocate(256);
-
-         boolean matches(ByteBuf data, int offset, int length) {
-            ByteBuffer input;
-            if (data.nioBufferCount() == 1) {
-               input = data.internalNioBuffer(offset, length);
-            } else {
-               if (copy.capacity() < length) {
-                  copy = ByteBuffer.allocate(length);
-               }
-               copy.clear().limit(length);
-               data.getBytes(offset, copy);
-               copy.flip();
-               input = copy;
-            }
-            if (chars.capacity() < length) {
-               chars = CharBuffer.allocate(length);
-            }
-            chars.clear();
-            decoder.reset();
-            CoderResult result = decoder.decode(input, chars, true);
-            assert result.isUnderflow() : result;
-            result = decoder.flush(chars);
-            assert result.isUnderflow() : result;
-            chars.flip();
-            return matcher.reset(chars).matches();
-         }
+         // Converts the body into a short-lived String (invalid bytes become U+FFFD).
+         // We do not reuse memory buffers for this check. Reusing buffers caused high RAM usage. The buffers grew to
+         // fit the largest response and stayed in memory until the session ended. Creating a new String is safer
+         // because the Garbage Collector cleans it up quickly. Also, Java's Matcher allocates memory anyway.
+         return expected.matcher(data.toString(offset, length, StandardCharsets.UTF_8)).matches();
       }
    }
 

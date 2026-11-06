@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.connection.Request;
@@ -24,25 +25,29 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 public class CheckProcessorTest {
+
    @Test
-   public void requiresExactlyOneStrategy() {
-      assertThrows(BenchmarkDefinitionException.class, () -> new CheckProcessor.Builder().build(false));
-      assertThrows(BenchmarkDefinitionException.class,
-            () -> new CheckProcessor.Builder().equalTo("body").regex("body").build(false));
-      assertThrows(BenchmarkDefinitionException.class,
-            () -> new CheckProcessor.Builder().equalTo("body").json("\"body\"").build(false));
-      assertThrows(BenchmarkDefinitionException.class,
-            () -> new CheckProcessor.Builder().regex("body").json("\"body\"").build(false));
+   public void buildRequiresAStrategy() {
+      assertRejected(() -> new CheckProcessor.Builder().build(false), "One of");
    }
 
    @Test
-   public void rejectsRepeatedStrategies() {
-      assertThrows(BenchmarkDefinitionException.class,
-            () -> new CheckProcessor.Builder().equalTo("first").equalTo("second").build(false));
-      assertThrows(BenchmarkDefinitionException.class,
-            () -> new CheckProcessor.Builder().regex("first").regex("second").build(false));
-      assertThrows(BenchmarkDefinitionException.class,
-            () -> new CheckProcessor.Builder().json("1").json("2").build(false));
+   public void settersRejectASecondStrategy() {
+      assertRejected(() -> new CheckProcessor.Builder().equalTo("body").regex("body"), "Only one of");
+      assertRejected(() -> new CheckProcessor.Builder().equalTo("body").json("\"body\""), "Only one of");
+      assertRejected(() -> new CheckProcessor.Builder().regex("body").json("\"body\""), "Only one of");
+   }
+
+   @Test
+   public void settersRejectARepeatedStrategy() {
+      assertRejected(() -> new CheckProcessor.Builder().equalTo("first").equalTo("second"), "Only one of");
+      assertRejected(() -> new CheckProcessor.Builder().regex("first").regex("second"), "Only one of");
+      assertRejected(() -> new CheckProcessor.Builder().json("1").json("2"), "Only one of");
+   }
+
+   private static void assertRejected(Executable executable, String expectedMessage) {
+      assertThat(assertThrows(BenchmarkDefinitionException.class, executable))
+            .hasMessageContaining(expectedMessage);
    }
 
    @Test
@@ -210,7 +215,7 @@ public class CheckProcessorTest {
    }
 
    @Test
-   public void regexAndJsonReuseSessionResourcesAcrossRequestsAndGrowingBodies() {
+   public void regexAndJsonHandleRepeatedRequestsAndGrowingBodies() {
       String longText = "x".repeat(1000) + "€";
       assertResults(new CheckProcessor.Builder().regex("x*€"), new boolean[] { true, false, true, true },
             bytes("x€"), bytes("y"), bytes(longText), bytes("€"));
