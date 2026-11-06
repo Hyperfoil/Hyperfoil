@@ -329,6 +329,18 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
+   /**
+    * Whether the clustered event bus can currently route to the agent's node. Returns true when we are not
+    * clustered at all, as then the agent shares this JVM's event bus.
+    */
+   private boolean canReachNode(String nodeId) {
+      if (!vertx.isClustered() || !(vertx instanceof VertxInternal)) {
+         return true;
+      }
+      ClusterManager clusterManager = ((VertxInternal) vertx).clusterManager();
+      return clusterManager == null || clusterManager.getNodes().contains(nodeId);
+   }
+
    private void handleAgentHello(Message<Object> message, AgentHello hello) {
       log.info("Received AgentHello from {} (nodeId={}, deploymentId={}, runId={})", hello.name(), hello.nodeId(),
             hello.deploymentId(), hello.runId());
@@ -349,6 +361,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       if (agentInfo.status != AgentInfo.Status.STARTING) {
          log.info("Ignoring message, {} is not starting (status={})", agentInfo.name, agentInfo.status);
          message.reply("Ignoring");
+         return;
+      }
+      if (!canReachNode(hello.nodeId())) {
+         // The hello proves the agent can reach us, but not that we can reach the agent: right after a
+         // cluster merge our cluster manager may not list the agent's node yet, and sending to its control
+         // address would fail with NO_HANDLERS. Reject the registration; the agent re-sends hello every
+         // second, and the deployment timeout still fails the run if the node never shows up.
+         log.info("Agent {} is not reachable yet (node {} is not in our cluster view), waiting for it to say hello again",
+               hello.name(), hello.nodeId());
+         message.fail(1, "Agent node is not in the controller's cluster view yet");
          return;
       }
       log.debug("Registering agent {} ({}/{})", hello.name(), hello.nodeId(), hello.deploymentId());

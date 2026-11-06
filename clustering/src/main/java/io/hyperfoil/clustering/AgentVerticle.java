@@ -115,7 +115,10 @@ public class AgentVerticle extends AbstractVerticle {
                      if (reply.cause() instanceof ReplyException) {
                         ReplyFailure replyFailure = ((ReplyException) reply.cause()).failureType();
                         if (replyFailure == ReplyFailure.RECIPIENT_FAILURE) {
-                           log.error("{} Failed to register, already registered!", deploymentId);
+                           // The controller rejected us; it says why. This is retryable - it happens while
+                           // the controller cannot route back to this node yet - so keep saying hello.
+                           log.info("{} Controller refused the registration: {}", deploymentId,
+                                 reply.cause().getMessage());
                         } else {
                            log.info("{} Failed to register: {}", deploymentId, replyFailure);
                         }
