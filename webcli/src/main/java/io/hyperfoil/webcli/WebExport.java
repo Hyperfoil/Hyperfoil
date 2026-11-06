@@ -1,4 +1,4 @@
-package io.hyperfoil.clustering.webcli;
+package io.hyperfoil.webcli;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;

@@ -25,6 +25,7 @@
         <copy-module module="http"/>
         <copy-module module="k8s-deployer"/>
         <copy-module module="hotrod"/>
+        <copy-module module="webcli"/>
 
         <copy todir="${dist.dir}/bin" failonerror="true">
             <fileset dir="src/main/resources/">

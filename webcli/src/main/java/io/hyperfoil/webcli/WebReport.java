@@ -1,4 +1,4 @@
-package io.hyperfoil.clustering.webcli;
+package io.hyperfoil.webcli;
 
 import java.nio.charset.StandardCharsets;
 

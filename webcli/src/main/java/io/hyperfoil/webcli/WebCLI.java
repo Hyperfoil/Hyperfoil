@@ -1,4 +1,4 @@
-package io.hyperfoil.clustering.webcli;
+package io.hyperfoil.webcli;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -28,6 +28,7 @@ import org.aesh.terminal.tty.impl.LineDisciplineTerminal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.FormattedMessage;
+import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.cli.HyperfoilCli;
 import io.hyperfoil.cli.commands.Connect;
@@ -40,11 +41,11 @@ import io.hyperfoil.cli.commands.StartLocal;
 import io.hyperfoil.cli.commands.Upload;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.impl.Util;
-import io.vertx.core.Handler;
+import io.hyperfoil.internal.WebCliProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
 
-public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
+public class WebCLI extends HyperfoilCli implements WebCliProvider.WebCli {
    private static final Logger log = LogManager.getLogger(WebCLI.class);
    private static final String EDITS_BEGIN = "__HYPERFOIL_EDITS_BEGIN__\n";
    private static final String EDITS_END = "__HYPERFOIL_EDITS_END__\n";
@@ -66,6 +67,14 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private String hostname = "localhost";
    private int port = 8090;
    private boolean ssl = false;
+
+   @MetaInfServices(WebCliProvider.class)
+   public static class Provider implements WebCliProvider {
+      @Override
+      public WebCli create(Vertx vertx) {
+         return new WebCLI(vertx);
+      }
+   }
 
    public WebCLI(Vertx vertx) {
       this.vertx = vertx;
