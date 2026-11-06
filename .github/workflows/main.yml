@@ -55,7 +55,7 @@ jobs:
       # Retrieve current version from the root pom
       - name: Get version
         run: echo SNAPSHOT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_ENV
-        # Push the current version to quay.io, either the tag or snapshot version
+      # Push the current version to quay.io, either the tag or snapshot version
       - name: Install qemu
         run: sudo apt-get update && sudo apt-get install -y qemu-user-static
       - name: Build container image ${{ env.SNAPSHOT_VERSION }}
@@ -92,3 +92,27 @@ jobs:
       - name: Push image version ${{ env.SNAPSHOT_VERSION }}
         if: matrix.os == 'ubuntu-latest' && env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master'
         run: podman manifest push quay.io/hyperfoil/hyperfoil:${{ env.SNAPSHOT_VERSION }}
+
+  native-build:
+    name: Build CLI Native Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup GraalVM Community Edition
+      - name: Set up GraalVM CE
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'graalvm-community'
+          java-version: '25' # Resolves to the GraalVM CE v25.x release line
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-native-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-native
+
+      # Run native compilation only for the CLI module
+      - name: Build Native CLI
+        run: mvn clean package -Pnative -pl cli -am -DskipTests
