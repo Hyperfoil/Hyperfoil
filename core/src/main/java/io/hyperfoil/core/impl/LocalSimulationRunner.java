@@ -166,7 +166,10 @@ public class LocalSimulationRunner extends SimulationRunner {
       return instances.values().stream().filter(phase -> phase.status() == PhaseInstance.Status.NOT_STARTED &&
             startTime + phase.definition().startTime() <= System.currentTimeMillis() &&
             phase.definition().startAfter().stream().allMatch(dep -> instances.get(dep).status().isFinished()) &&
-            phase.definition().startAfterStrict().stream().allMatch(dep -> instances.get(dep).status().isTerminated()) &&
+            // STATS_COMPLETE: the terminated phase's sessions are released and collected (see SimulationRunner.phaseChanged)
+            phase.definition().startAfterStrict().stream()
+                  .allMatch(dep -> instances.get(dep).status() == PhaseInstance.Status.STATS_COMPLETE)
+            &&
             (phase.definition().startWithDelay() == null ||
                   instances.get(phase.definition().startWithDelay().phase).status().isStarted() &&
                         instances.get(phase.definition().startWithDelay().phase).absoluteStartTime()
