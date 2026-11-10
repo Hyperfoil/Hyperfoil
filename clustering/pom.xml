@@ -93,6 +93,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.hyperfoil</groupId>
+            <artifactId>hyperfoil-cli</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.kohsuke.metainf-services</groupId>
             <artifactId>metainf-services</artifactId>
             <optional>true</optional>
@@ -182,14 +187,6 @@
                 </configuration>
             </plugin>
 
-            <!--
-            The CLI jar is located in hyperfoil-clustering due to: https://github.com/Hyperfoil/Hyperfoil/issues/639
-
-            This placement enables testing external projects with Hyperfoil snapshot versions by simply
-            replacing "jbang wrk@hyperfoil" with "java -jar clustering/target/wrk.jar"
-
-            Example workflow: Share a branch → Build locally → Replace the command → Test results
-            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
