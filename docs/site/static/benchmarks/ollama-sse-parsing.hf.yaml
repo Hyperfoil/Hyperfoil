@@ -1,0 +1,40 @@
+name: ollama-sse-parsing
+
+http:
+  host: localhost
+  port: 11434
+  requestTimeout: 60s
+
+phases:
+- test:
+    atOnce:
+      users: 1
+      scenario:
+      - chat:
+        - httpRequest:
+            POST: /v1/chat/completions
+            headers:
+              Content-Type: application/json
+              Accept: text/event-stream
+            body: |
+              {
+                "model": "granite4.2:3b",
+                "messages": [
+                  { "role": "user", "content": "Why is the sky blue?" }
+                ],
+                "stream": true
+              }
+            handler:
+              status:
+                range: 2xx
+              body:
+                # Capture full SSE response as string
+                store:
+                  toVar: sseResponse
+                  format: STRING
+              onCompletion:
+                log: 'SSE response received'
+
+        # Log the complete SSE response
+        - log: 'Complete SSE Response:'
+        - log: '${sseResponse}'
