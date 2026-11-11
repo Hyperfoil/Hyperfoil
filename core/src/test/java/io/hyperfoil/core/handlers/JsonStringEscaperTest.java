@@ -143,9 +143,29 @@ public class JsonStringEscaperTest {
       ResourceUtilizer.reserveForTesting(session, escaper);
       boolean result = escaper.invoke(session);
 
-      // The step should succeed, but the target variable should remain unset
+      // When source is null, target should be set to null (not left untouched)
       assertThat(result).isTrue();
-      assertThat(targetAccess.isSet(session)).isFalse();
+      assertThat(targetAccess.getObject(session)).isNull();
+   }
+
+   @Test
+   public void testNullClearsStaleValue() {
+      ObjectAccess sourceAccess = SessionFactory.objectAccess("source");
+      ObjectAccess targetAccess = SessionFactory.objectAccess("target");
+      Session session = SessionFactory.forTesting(sourceAccess, targetAccess);
+
+      JsonStringEscaper escaper = new JsonStringEscaper(sourceAccess, targetAccess);
+      ResourceUtilizer.reserveForTesting(session, escaper);
+
+      // First iteration: set a value
+      sourceAccess.setObject(session, "hello");
+      escaper.invoke(session);
+      assertThat(targetAccess.getObject(session)).isEqualTo("hello");
+
+      // Second iteration: null source should clear target (prevent stale value)
+      sourceAccess.setObject(session, null);
+      escaper.invoke(session);
+      assertThat(targetAccess.getObject(session)).isNull();
    }
 
    private void assertEscape(String input, String expectedOutput) {

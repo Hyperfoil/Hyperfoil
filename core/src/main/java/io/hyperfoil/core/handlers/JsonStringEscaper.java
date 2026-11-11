@@ -35,6 +35,9 @@ public class JsonStringEscaper implements Step {
       if (value != null) {
          String escaped = escapeJsonString(value.toString());
          toVar.setObject(session, escaped);
+      } else {
+         // Clear toVar when fromVar is null to prevent stale values in loops
+         toVar.setObject(session, null);
       }
       return true;
    }
