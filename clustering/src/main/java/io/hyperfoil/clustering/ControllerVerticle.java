@@ -453,7 +453,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
    }
 
-   private void updateRuns(Path runDir) {
+   void updateRuns(Path runDir) {
       File file = runDir.toFile();
       if (!file.getName().matches("[0-9A-F][0-9A-F][0-9A-F][0-9A-F]")) {
          return;
@@ -484,6 +484,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       run.completed = true;
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
+      // Historical runs already have all.json on disk - nothing to wait for
+      run.persisted = true;
+      run.persistenceComplete.complete();
       run.description = info.getString("description");
       JsonArray errors = info.getJsonArray("errors");
       if (errors != null) {
@@ -614,7 +617,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             run.startTime = currentTime;
             run.terminateTime.complete(currentTime);
             run.completed = true;
-            return "Agent " + agent + " is already used; try starting the benchmark later";
+            String reason = "Agent " + agent + " is already used; try starting the benchmark later";
+            run.persistenceComplete.fail("Run terminated before persistence: " + reason);
+            return reason;
          }
       }
 
@@ -624,7 +629,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             run.startTime = currentTime;
             run.terminateTime.complete(currentTime);
             run.completed = true;
-            return "Server is started in clustered mode; benchmarks must define agents.";
+            String reason = "Server is started in clustered mode; benchmarks must define agents.";
+            run.persistenceComplete.fail("Run terminated before persistence: " + reason);
+            return reason;
          } else {
             run.agents.add(new AgentInfo("in-vm", 0));
             JsonObject config = new JsonObject().put("runId", run.id).put("name", "in-vm");

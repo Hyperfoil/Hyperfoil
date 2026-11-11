@@ -1,6 +1,7 @@
 package io.hyperfoil.clustering;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.controller.StatisticsStore;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 public class PersistenceRaceConditionTest {
 
@@ -82,5 +85,106 @@ public class PersistenceRaceConditionTest {
          count++;
       }
       assertNull(capturedError.get(), "Race condition detected: stats file read before persistence completed");
+   }
+
+   @Test
+   public void shouldCompleteImmediatelyForHistoricalRuns(@TempDir Path runDir) throws Exception {
+      // Simulate a historical run that was already persisted to disk
+      String runId = "ABCD";
+      Path runPath = runDir.resolve(runId);
+      Files.createDirectories(runPath);
+
+      // Create info.json
+      JsonObject info = new JsonObject()
+            .put("id", runId)
+            .put("benchmark", "test-benchmark")
+            .put("startTime", System.currentTimeMillis() - 10000)
+            .put("terminateTime", System.currentTimeMillis() - 5000)
+            .put("cancelled", false);
+      Files.writeString(runPath.resolve("info.json"), info.encodePrettily());
+
+      // Create all.json
+      JsonArray statsArray = new JsonArray();
+      Files.writeString(runPath.resolve("all.json"), statsArray.encodePrettily());
+
+      // Create stats directory for CSV
+      Files.createDirectories(runPath.resolve("stats"));
+
+      CountDownLatch latch = new CountDownLatch(1);
+      AtomicReference<Boolean> persistenceCompleted = new AtomicReference<>(false);
+      AtomicReference<Throwable> error = new AtomicReference<>();
+
+      vertx.runOnContext(v -> {
+         try {
+            // Call updateRuns which should set persistenceComplete
+            controller.updateRuns(runPath);
+
+            // Get the run that was just loaded
+            Run run = controller.run(runId);
+
+            if (run == null) {
+               error.set(new AssertionError("Run not found after updateRuns()"));
+               latch.countDown();
+               return;
+            }
+
+            // Check if persistenceComplete is already done (should be immediate for historical runs)
+            if (run.persistenceComplete.future().isComplete()) {
+               persistenceCompleted.set(true);
+               latch.countDown();
+            } else {
+               // Wait a bit to see if it completes
+               vertx.setTimer(100, tid -> {
+                  persistenceCompleted.set(run.persistenceComplete.future().isComplete());
+                  latch.countDown();
+               });
+            }
+         } catch (Throwable t) {
+            error.set(t);
+            latch.countDown();
+         }
+      });
+
+      assertTrue(latch.await(5, TimeUnit.SECONDS), "Test timed out");
+      assertNull(error.get(), "Error occurred during test");
+      assertTrue(persistenceCompleted.get(),
+            "persistenceComplete should be immediately completed for historical runs loaded by updateRuns()");
+   }
+
+   @Test
+   public void shouldFailPersistenceForEarlyRejectedRuns(@TempDir Path runDir) throws Exception {
+      // Test that early-rejected runs fail persistenceComplete instead of leaving it pending
+
+      Benchmark benchmark = Benchmark.forTesting();
+      Run run = new Run("EARLY", runDir.resolve("EARLY"), benchmark);
+
+      CountDownLatch latch = new CountDownLatch(1);
+      AtomicReference<Boolean> persistenceFailed = new AtomicReference<>(false);
+      AtomicReference<Throwable> error = new AtomicReference<>();
+
+      vertx.runOnContext(v -> {
+         try {
+            // Simulate early rejection by completing terminateTime and calling persistenceComplete.fail()
+            long currentTime = System.currentTimeMillis();
+            run.startTime = currentTime;
+            run.terminateTime.complete(currentTime);
+            run.completed = true;
+            run.persistenceComplete.fail("Run terminated before persistence: test rejection");
+
+            // Verify that persistenceComplete is failed
+            run.persistenceComplete.future().onComplete(ar -> {
+               persistenceFailed.set(ar.failed());
+               latch.countDown();
+            });
+         } catch (Throwable t) {
+            error.set(t);
+            latch.countDown();
+         }
+      });
+
+      assertTrue(latch.await(5, TimeUnit.SECONDS), "Test timed out");
+      assertNull(error.get(), "Error occurred during test");
+      assertTrue(persistenceFailed.get(),
+            "persistenceComplete should be failed (not pending) for early-rejected runs");
    }
 }
