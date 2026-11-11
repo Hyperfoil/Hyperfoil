@@ -76,6 +76,8 @@ The `sseJsonExtractor` handler processes Server-Sent Events and extracts JSON da
 - Extracts specific JSON paths from event payloads
 - Stores extracted values in session variables for reuse
 
+**Supported SSE subset:** Each `data:` line must contain a single complete JSON object. Multi-line `data:` continuation joining and `event:`/`id:` fields are not handled.
+
 **What happens in practice:**
 
 When Hyperfoil processes the response, it:
@@ -94,7 +96,11 @@ handler:
     sseJsonExtractor:
       path: choices[0].delta.content
       toVar: assistantResponse
+      ignorePatterns:  # Optional: skip terminal events (requires exact byte-for-byte match)
+        - 'data: [DONE]'
 ```
+
+**Note on `ignorePatterns`:** Patterns must match the raw `data:` payload byte-for-byte with no whitespace normalization. For example, `{"type":"done"}` and `{"type": "done"}` are treated as different patterns.
 
 ### JsonStringEscaper
 
