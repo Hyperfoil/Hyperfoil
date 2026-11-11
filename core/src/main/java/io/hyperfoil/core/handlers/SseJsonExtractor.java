@@ -50,12 +50,12 @@ public class SseJsonExtractor implements Processor {
          this.maxLineSize = maxLineSize;
       }
 
-      void append(Session session, ByteBuf buf, int offset, int length) {
+      boolean append(Session session, ByteBuf buf, int offset, int length) {
          int required = bufferLength + length;
          if (required > maxLineSize) {
             session.fail(new IllegalStateException("Line exceeds maximum buffer size of " + maxLineSize
                   + " bytes. Possible malformed stream without newline terminators."));
-            return;
+            return false;
          }
 
          if (required > lineBuffer.length) {
@@ -71,6 +71,7 @@ public class SseJsonExtractor implements Processor {
 
          buf.getBytes(offset, lineBuffer, bufferLength, length);
          bufferLength += length;
+         return true;
       }
 
       void resetValues() {
@@ -139,7 +140,9 @@ public class SseJsonExtractor implements Processor {
 
          if (lfIndex != -1) {
             int chunkLen = lfIndex - currentOffset;
-            state.append(session, byteBuf, currentOffset, chunkLen);
+            if (!state.append(session, byteBuf, currentOffset, chunkLen)) {
+               return;
+            }
 
             processEvent(state.lineBuffer, state.bufferLength, state.values);
             state.bufferLength = 0;
@@ -147,7 +150,9 @@ public class SseJsonExtractor implements Processor {
             currentOffset = lfIndex + 1;
          } else {
             int remaining = endOffset - currentOffset;
-            state.append(session, byteBuf, currentOffset, remaining);
+            if (!state.append(session, byteBuf, currentOffset, remaining)) {
+               return;
+            }
             break;
          }
       }
@@ -229,8 +234,10 @@ public class SseJsonExtractor implements Processor {
             }
 
          } catch (Exception e) {
-            log.error("Failed to parse SSE JSON event. Payload: {}",
-                  new String(buffer, start, jsonLen, StandardCharsets.UTF_8), e);
+            if (log.isDebugEnabled()) {
+               log.debug("Failed to parse SSE JSON event. Payload: {}",
+                     new String(buffer, start, jsonLen, StandardCharsets.UTF_8), e);
+            }
          }
       }
    }
@@ -392,6 +399,9 @@ public class SseJsonExtractor implements Processor {
       public Processor build(boolean fragmented) {
          if (toVar == null || toVar.isEmpty()) {
             throw new BenchmarkDefinitionException("toVar cannot be null or empty");
+         }
+         if (maxLineSize <= 0) {
+            throw new BenchmarkDefinitionException("maxLineSize must be positive");
          }
 
          Map<String, String> rawPathMap = new LinkedHashMap<>();
