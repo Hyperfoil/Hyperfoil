@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
@@ -51,6 +53,37 @@ public class ExportTest {
          // Was "~/" really expanded
          assertEquals(expected, written.getValue(),
                "destination starting with ~/ must be expanded to the user's home directory");
+      }
+   }
+
+   @Test
+   public void doesNotPromptWhenTargetFileInsideExistingDirectoryIsMissing() throws Exception {
+      // export -d /some/dir
+      Export export = newExport("/some/dir", false);
+      Client.RunRef runRef = mockRunRef();
+      HyperfoilCliContext ctx = mockConnectedContext(runRef);
+      Shell shell = mock(Shell.class);
+      // If Export wrongly prompts "overwrite?", it reads a line here. We make it
+      // return "n", so the bug shows as "export silently cancelled" instead of a mock with no configured answer.
+      // this is to reproduce the error without the fix
+      when(shell.readLine()).thenReturn("n");
+      HyperfoilCommandInvocation invocation = mockInvocation(ctx, shell);
+
+      Path dir = Paths.get("/some/dir");
+      Path targetFile = Paths.get("/some/dir/testrun.json");
+      try (MockedStatic<Files> files = mockStatic(Files.class)) {
+         // dir exists ...
+         files.when(() -> Files.isDirectory(dir)).thenReturn(true);
+         files.when(() -> Files.exists(dir)).thenReturn(true);
+         // ... but the real target file inside it does not exist yet.
+         files.when(() -> Files.exists(targetFile)).thenReturn(false);
+
+         export.execute(invocation);
+
+         // Expected: write directly, no overwrite prompt.
+         files.verify(() -> Files.write(any(Path.class), any(byte[].class)));
+         // The target file does not exist, so no prompt is expected.
+         verify(shell, never()).readLine();
       }
    }
 
