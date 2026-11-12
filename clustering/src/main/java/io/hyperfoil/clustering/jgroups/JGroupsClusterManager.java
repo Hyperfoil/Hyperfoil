@@ -467,7 +467,16 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * Pushing is also why the receiving side ({@link #handle}, {@code OP_SLICE}) needs no {@link #pendingOps}
     * guard: a slice and the deltas its owner sends afterwards travel the same multicast channel, and NAKACK2
     * delivers one sender's messages in send order, so a delta can never overtake the slice it builds on. That
-    * race exists only for the unicast pull responses.
+    * race exists only for the unicast pull responses. This method avoids the race
+    * by using the {@link #writeLock}, which is the same lock used by {@link #mutate}.
+    * Without this lock, a bug could happen:
+    * 1. This method reads the state at version V.
+    * 2. At the same time, a concurrent {@code mutate} creates and sends version V+1.
+    * 3. The network sends the V+1 message before the version V message.
+    * 4. A peer receives V+1 first and applies it.
+    * 5. The peer then receives V, but rejects it because V is older than V+1.
+    * This causes the peer to lose data. Taking the lock here guarantees that
+    * messages are sent in the correct order.
     * <p>
     * That ordering is the reason this stays a multicast to the whole view, even though only the members that
     * just arrived actually need it. Narrowing it to those members by sending the slice directly to each of
@@ -485,12 +494,22 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
          return;
       }
       try {
+         byte[] payload = state.encodeSlice(id);
+         afterSliceEncoded();
          // stay as multicast - see the Javadoc above.
-         d.castMessage(null, new BytesMessage(null, state.encodeSlice(id)), RequestOptions.ASYNC());
+         d.castMessage(null, new BytesMessage(null, payload), RequestOptions.ASYNC());
       } catch (Exception e) {
          // Losing this costs a peer its knowledge of us until the next view change; it must not fail the view.
          log.warn("Could not announce our cluster state slice", e);
       }
+   }
+
+   /**
+    * Lets a test pause between the encode and the send to force a specific interleaving with a
+    * concurrent {@link #mutate}. A no-op in production.
+    */
+   protected void afterSliceEncoded() {
+
    }
 
    /**
