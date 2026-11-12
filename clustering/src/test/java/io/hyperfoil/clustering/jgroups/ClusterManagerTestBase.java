@@ -58,13 +58,31 @@ abstract class ClusterManagerTestBase {
     * Each cluster gets its own name so that tests running in the same JVM cannot see each other through
     * SHARED_LOOPBACK's static registry.
     */
-   protected JGroupsClusterManager join(String clusterName) {
-      JGroupsClusterManager manager = new JGroupsClusterManager(stack(), clusterName);
-      manager.init(vertx);
-      managers.add(manager);
+   protected JGroupsClusterManager join(String clusterName, Runnable... afterSliceEncoded) {
+      JGroupsClusterManager manager = newManager(clusterName, afterSliceEncoded);
       Promise<Void> promise = Promise.promise();
       manager.join(promise);
       await(promise.future());
+      return manager;
+   }
+
+   /**
+    * Creates a new manager without joining the cluster right away.
+    * Use this for tests where you need to start the join process manually.
+    */
+   protected JGroupsClusterManager newManager(String clusterName, Runnable... afterSliceEncoded) {
+      JGroupsClusterManager manager = new JGroupsClusterManager(stack(), clusterName) {
+         @Override
+         protected void afterSliceEncoded() {
+            if (afterSliceEncoded != null) {
+               for (Runnable r : afterSliceEncoded) {
+                  r.run();
+               }
+            }
+         }
+      };
+      manager.init(vertx);
+      managers.add(manager);
       return manager;
    }
 
