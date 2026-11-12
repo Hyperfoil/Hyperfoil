@@ -95,8 +95,8 @@ public class RunTest extends BaseBenchmarkTest {
 
       if (".csv".equals(extension)) {
          outputFile = Path.of(outputFile.toString().replace(".csv", ".zip"));
+         assertTrue(outputFile.toString().endsWith(".zip"));
       }
-      assertTrue(outputFile.toString().endsWith(".zip"));
       assertTrue(outputFile.toFile().exists(), "Expected " + extension + " output file to be created at: " + outputFile);
       return outputFile;
    }
