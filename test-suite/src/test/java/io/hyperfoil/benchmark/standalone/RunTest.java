@@ -74,6 +74,7 @@ public class RunTest extends BaseBenchmarkTest {
    @Test
    public void testRunCsvOutput(@TempDir Path tempDir) throws Exception {
       Path csvFile = testRunReportExportOutput(tempDir, ".csv");
+      assertTrue(csvFile.toString().endsWith(".zip"));
       validateCsvZipContent(csvFile, tempDir);
    }
 
@@ -91,6 +92,11 @@ public class RunTest extends BaseBenchmarkTest {
       int result = cmd.exec(new String[] { benchmark, "-PSERVER_PORT=" + httpServer.actualPort(), "--output",
             outputFile.toString() });
       assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Run command should succeed.");
+
+      if (".csv".equals(extension)) {
+         outputFile = Path.of(outputFile.toString().replace(".csv", ".zip"));
+      }
+      assertTrue(outputFile.toString().endsWith(".zip"));
       assertTrue(outputFile.toFile().exists(), "Expected " + extension + " output file to be created at: " + outputFile);
       return outputFile;
    }
