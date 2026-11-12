@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -50,6 +52,78 @@ public class JGroupsClusterManagerTest extends ClusterManagerTestBase {
          assertTrue(manager.isActive());
       }
       assertEquals(3, Set.of(a.getNodeId(), b.getNodeId(), c.getNodeId()).size(), "node ids must be distinct");
+   }
+
+   /**
+    * In a real system, nodes do not join the cluster one by one. The controller starts,
+    * and then many agents try to connect at the exact same time.
+    *
+    * This test makes sure the cluster can handle multiple nodes joining and sending
+    * data concurrently without losing any information or dropping events.
+    */
+   @Test
+   public void shouldConvergeWhenAgentsJoinConcurrently() {
+      String cluster = "concurrent-join";
+      int agentCount = 5;
+
+      // Step 1: Start the controller and listen for nodes joining
+      JGroupsClusterManager controller = join(cluster);
+      RecordingNodeListener listener = new RecordingNodeListener();
+      controller.nodeListener(listener);
+
+      // Step 2: Start multiple agents at the exact same time.
+      // We use newManager() and agent.join() so they all start in parallel,
+      // instead of waiting for one to finish before starting the next.
+      List<JGroupsClusterManager> agents = new ArrayList<>();
+      List<Promise<Void>> joins = new ArrayList<>();
+      for (int i = 0; i < agentCount; i++) {
+         JGroupsClusterManager agent = newManager(cluster);
+         agents.add(agent);
+         Promise<Void> promise = Promise.promise();
+         agent.join(promise);
+         joins.add(promise);
+      }
+
+      // Step 3: Wait for all agents to successfully join the cluster
+      for (Promise<Void> promise : joins) {
+         await(promise.future());
+      }
+
+      // Step 4: Each agent saves its data right after joining.
+      // This simulates a real agent registering its status on startup.
+      for (JGroupsClusterManager agent : agents) {
+         addRegistration(agent, STATS, registration(agent, 1));
+      }
+
+      List<JGroupsClusterManager> all = new ArrayList<>(agents);
+      all.add(controller);
+      int total = agentCount + 1; // 5 agents + 1 controller = 6 nodes
+
+      // Step 5: Verify the cluster is stable.
+      // Every single node (agents and controller) must see exactly 6 distinct nodes.
+      for (JGroupsClusterManager manager : all) {
+         awaitTrue("every node visible from " + manager.getNodeId(), () -> manager.getNodes().size() == total);
+      }
+      assertEquals(total, Set.copyOf(all.stream().map(JGroupsClusterManager::getNodeId).toList()).size(),
+            "node ids must be distinct");
+
+      // Step 6: Verify no data was lost during the concurrent join.
+      // Every node must have a complete copy of all the registrations.
+      Set<RegistrationInfo> expected = new LinkedHashSet<>();
+      for (JGroupsClusterManager agent : agents) {
+         expected.add(registration(agent, 1));
+      }
+      for (JGroupsClusterManager manager : all) {
+         assertRegistrations("every registration made while joining concurrently, seen from "
+               + manager.getNodeId(), manager, STATS, expected);
+      }
+
+      // Step 7: Verify events were fired correctly on the controller.
+      // The controller must have fired exactly one 'nodeAdded' event for each agent.
+      List<String> agentIds = agents.stream().map(JGroupsClusterManager::getNodeId).toList();
+      awaitTrue("nodeAdded for every agent", () -> listener.added.containsAll(agentIds));
+      assertEquals(agentCount, listener.added.size(),
+            "expected exactly one nodeAdded per agent, got " + listener.added);
    }
 
    @Test
