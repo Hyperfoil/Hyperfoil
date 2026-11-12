@@ -493,14 +493,16 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       if (d == null || id == null) {
          return;
       }
-      try {
-         byte[] payload = state.encodeSlice(id);
-         afterSliceEncoded();
-         // stay as multicast - see the Javadoc above.
-         d.castMessage(null, new BytesMessage(null, payload), RequestOptions.ASYNC());
-      } catch (Exception e) {
-         // Losing this costs a peer its knowledge of us until the next view change; it must not fail the view.
-         log.warn("Could not announce our cluster state slice", e);
+      synchronized (writeLock) {
+         try {
+            byte[] payload = state.encodeSlice(id);
+            afterSliceEncoded();
+            // stay as multicast - see the Javadoc above.
+            d.castMessage(null, new BytesMessage(null, payload), RequestOptions.ASYNC());
+         } catch (Exception e) {
+            // Losing this costs a peer its knowledge of us until the next view change; it must not fail the view.
+            log.warn("Could not announce our cluster state slice", e);
+         }
       }
    }
 
