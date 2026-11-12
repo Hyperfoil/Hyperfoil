@@ -36,7 +36,7 @@ public class Export extends BaseExportCommand {
       if (Files.isDirectory(destPath)) {
          destinationFile = destination + File.separator + defaultFilename;
       }
-      if (Files.exists(destPath) && !assumeYes) {
+      if (Files.exists(Paths.get(destinationFile)) && !assumeYes) {
          invocation.print("File " + destinationFile + " already exists, override? [y/N]: ");
          if (!readYes(invocation)) {
             invocation.println("Export cancelled.");
