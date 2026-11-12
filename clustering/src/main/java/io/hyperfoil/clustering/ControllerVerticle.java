@@ -639,7 +639,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       } else {
          if (!vertx.isClustered()) {
-            return "Server is not started as clustered and does not accept benchmarks with agents defined.";
+            long currentTime = System.currentTimeMillis();
+            run.startTime = currentTime;
+            run.terminateTime.complete(currentTime);
+            run.completed = true;
+            String reason = "Server is not started as clustered and does not accept benchmarks with agents defined.";
+            run.persistenceComplete.fail("Run terminated before persistence: " + reason);
+            return reason;
          }
          log.info("Starting agents for run {}", run.id);
          int agentCounter = 0;
