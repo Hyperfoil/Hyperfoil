@@ -13,10 +13,14 @@ public class OutputCommandUtil {
          if ("html".equalsIgnoreCase(extension)) {
             invocation.executeSwitchable("report --silent -y --destination " + output);
          } else {
+            String destination = output;
             if ("zip".equalsIgnoreCase(extension)) {
                extension = "csv";
+            } else if ("csv".equalsIgnoreCase(extension)) {
+               // CSV export is actually a zip archive, save it with the correct extension.
+               destination = destination.substring(0, destination.length() - extension.length()) + "zip";
             }
-            invocation.executeSwitchable("export -y -f " + extension + " -d " + output);
+            invocation.executeSwitchable("export -y -f " + extension + " -d " + destination);
          }
       }
    }
