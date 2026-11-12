@@ -453,7 +453,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
    }
 
-   private void updateRuns(Path runDir) {
+   void updateRuns(Path runDir) {
       File file = runDir.toFile();
       if (!file.getName().matches("[0-9A-F][0-9A-F][0-9A-F][0-9A-F]")) {
          return;
@@ -484,6 +484,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       run.completed = true;
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
+      // Historical runs already have all.json on disk - nothing to wait for
+      run.persisted = true;
+      run.persistenceComplete.complete();
       run.description = info.getString("description");
       JsonArray errors = info.getJsonArray("errors");
       if (errors != null) {
@@ -614,7 +617,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             run.startTime = currentTime;
             run.terminateTime.complete(currentTime);
             run.completed = true;
-            return "Agent " + agent + " is already used; try starting the benchmark later";
+            String reason = "Agent " + agent + " is already used; try starting the benchmark later";
+            run.persistenceComplete.fail("Run terminated before persistence: " + reason);
+            return reason;
          }
       }
 
@@ -624,7 +629,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             run.startTime = currentTime;
             run.terminateTime.complete(currentTime);
             run.completed = true;
-            return "Server is started in clustered mode; benchmarks must define agents.";
+            String reason = "Server is started in clustered mode; benchmarks must define agents.";
+            run.persistenceComplete.fail("Run terminated before persistence: " + reason);
+            return reason;
          } else {
             run.agents.add(new AgentInfo("in-vm", 0));
             JsonObject config = new JsonObject().put("runId", run.id).put("name", "in-vm");
@@ -981,7 +988,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Cannot write info file", e);
             hasError = true;
          }
-         try (FileOutputStream stream = new FileOutputStream(run.dir.resolve(DEFAULT_STATS_JSON).toFile())) {
+         Path statsPath = run.dir.resolve(DEFAULT_STATS_JSON);
+         log.debug("Starting to write stats file: {}", statsPath);
+         try (FileOutputStream stream = new FileOutputStream(statsPath.toFile())) {
             JsonFactory jfactory = new JsonFactory();
             jfactory.setCodec(new ObjectMapper());
             JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
@@ -989,6 +998,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             JsonWriter.writeArrayJsons(run.statisticsStore(), jGenerator, info);
             jGenerator.flush();
             jGenerator.close();
+            log.debug("Finished writing stats file: {} (exists={})", statsPath, Files.exists(statsPath));
          } catch (IOException e) {
             log.error("Cannot write to {}", DEFAULT_STATS_JSON, e);
             hasError = true;
@@ -1029,8 +1039,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          run.persisted = true;
          if (result.failed()) {
             log.error("Failed to persist run {}", run.id, result.cause());
+            run.persistenceComplete.fail(result.cause());
          } else {
             log.info("Successfully persisted run {}", run.id);
+            run.persistenceComplete.complete();
          }
       });
    }
