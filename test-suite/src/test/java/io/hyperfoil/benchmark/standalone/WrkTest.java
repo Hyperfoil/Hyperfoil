@@ -109,6 +109,10 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "--output",
             reportFile.toString(), "localhost:" + httpServer.actualPort() + "/unpredictable" });
       assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Wrk2 command should succeed.");
+      if (".csv".equals(extension)) {
+         reportFile = Path.of(reportFile.toString().replace(".csv", ".zip"));
+         assertTrue(reportFile.toString().endsWith(".zip"));
+      }
       assertTrue(reportFile.toFile().exists(), "Expected " + extension + " report file to be created at: " + reportFile);
       return reportFile;
    }
