@@ -83,6 +83,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.release>21</maven.compiler.release>
+        <version.native.maven.plugin>1.1.18</version.native.maven.plugin>
 
         <!--
         version.infinispan and the following properties must match what came from vertx, and you must run the script.
@@ -339,6 +340,26 @@
             <dependency>
                 <groupId>org.aesh</groupId>
                 <artifactId>readline</artifactId>
+                <version>${version.aesh-readline}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aesh</groupId>
+                <artifactId>readline-api</artifactId>
+                <version>${version.aesh-readline}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aesh</groupId>
+                <artifactId>terminal-api</artifactId>
+                <version>${version.aesh-readline}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aesh</groupId>
+                <artifactId>terminal-detect</artifactId>
+                <version>${version.aesh-readline}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aesh</groupId>
+                <artifactId>terminal-tty</artifactId>
                 <version>${version.aesh-readline}</version>
             </dependency>
 

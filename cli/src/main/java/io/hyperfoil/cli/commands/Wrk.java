@@ -46,7 +46,12 @@ public class Wrk extends WrkAbstract {
    }
 
    @CommandDefinition(name = CMD, description = "Runs a workload simulation against one endpoint using the same vm")
-   public class WrkCommand extends WrkAbstract.AbstractWrkCommand {
+   public static class WrkCommand extends WrkAbstract.AbstractWrkCommand {
+      @Override
+      protected String commandName() {
+         return CMD;
+      }
+
       @Override
       protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs) {
          // there's no need of sessions != connections

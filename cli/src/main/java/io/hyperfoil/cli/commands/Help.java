@@ -54,7 +54,7 @@ public class Help implements Command<HyperfoilCommandInvocation> {
       return CommandResult.SUCCESS;
    }
 
-   private class CommandCompleter implements OptionCompleter<HyperfoilCompleterData> {
+   public static class CommandCompleter implements OptionCompleter<HyperfoilCompleterData> {
 
       @Override
       public void complete(HyperfoilCompleterData completerInvocation) {
