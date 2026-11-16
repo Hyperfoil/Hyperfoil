@@ -141,29 +141,34 @@ public class Statistics {
 
    public <C extends StatsExtension> void update(String key, StartTimeSource source, Supplier<C> creator,
          LongUpdater<C> updater, long value, Session session) {
-      executeUpdate(key, source, creator, session, custom -> updater.update(custom, value));
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         updater.update(extension(key, source, creator, session), value);
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
    }
 
    public <C extends StatsExtension> void update(String key, StartTimeSource source, Supplier<C> creator,
          ObjectUpdater<C> updater, Object value, Session session) {
-      executeUpdate(key, source, creator, session, custom -> updater.update(custom, value));
-   }
-
-   private <C extends StatsExtension> void executeUpdate(
-         String key, StartTimeSource source, Supplier<C> creator, Session session, Consumer<C> action) {
-
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         StatisticsSnapshot active = active(source, session);
-         StatsExtension custom = active.extensions.get(key);
-         if (custom == null) {
-            custom = creator.get();
-            active.extensions.put(key, custom);
-         }
-         action.accept((C) custom);
+         updater.update(extension(key, source, creator, session), value);
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
+   }
+
+   @SuppressWarnings("unchecked")
+   private <C extends StatsExtension> C extension(String key, StartTimeSource source, Supplier<C> creator,
+         Session session) {
+      StatisticsSnapshot active = active(source, session);
+      StatsExtension custom = active.extensions.get(key);
+      if (custom == null) {
+         custom = creator.get();
+         active.extensions.put(key, custom);
+      }
+      return (C) custom;
    }
 
    public void addInvalid(StartTimeSource source, Session session) {
