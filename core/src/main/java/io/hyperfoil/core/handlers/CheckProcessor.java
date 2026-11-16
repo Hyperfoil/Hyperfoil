@@ -200,9 +200,8 @@ public abstract class CheckProcessor implements Processor {
       @Override
       boolean matches(Session session, ByteBuf data, int offset, int length) {
          // Converts the body into a short-lived String (invalid bytes become U+FFFD).
-         // We do not reuse memory buffers for this check. Reusing buffers caused high RAM usage. The buffers grew to
-         // fit the largest response and stayed in memory until the session ended. Creating a new String is safer
-         // because the Garbage Collector cleans it up quickly. Also, Java's Matcher allocates memory anyway.
+         // We intentionally do not reuse a per-session buffer here: it would grow to fit the largest response seen
+         // and stay allocated for the life of the session. A short-lived String lets the GC reclaim it promptly.
          return expected.matcher(data.toString(offset, length, StandardCharsets.UTF_8)).matches();
       }
    }
