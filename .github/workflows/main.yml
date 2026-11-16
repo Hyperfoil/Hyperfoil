@@ -57,7 +57,7 @@ jobs:
         run: echo SNAPSHOT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_ENV
         # Push the current version to quay.io, either the tag or snapshot version
       - name: Install qemu
-        run: sudo apt-get update && sudo apt-get install -y qemu-user-static
+        run: sudo apt-get update && sudo apt-get install -y qemu-user-binfmt
       - name: Build container image ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd distribution
