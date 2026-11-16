@@ -15,6 +15,9 @@ import io.netty.util.concurrent.FastThreadLocal;
  * These requests expire in the order they were scheduled, so they are kept in a list linked through
  * the requests themselves, and a single task wakes up at the deadline of the oldest one: no task is
  * scheduled per request. A request that completes (in any order) is unlinked in constant time.
+ * <p>
+ * Nothing here is thread-safe: the list must only be touched from its executor's thread, which is the
+ * thread of the sessions owning the requests.
  */
 final class RequestTimeouts implements Runnable {
    private static final Logger log = LogManager.getLogger(RequestTimeouts.class);
@@ -56,6 +59,7 @@ final class RequestTimeouts implements Runnable {
    }
 
    void add(Request request) {
+      assert executor.inEventLoop();
       assert request.timeouts == null;
       request.timeouts = this;
       request.timeoutDeadline = System.nanoTime() + timeoutNanos;
@@ -73,6 +77,7 @@ final class RequestTimeouts implements Runnable {
    }
 
    void remove(Request request) {
+      assert executor.inEventLoop() : "request timeout cancelled outside of its event loop";
       Request prev = request.prevTimeout;
       Request next = request.nextTimeout;
       if (prev == null) {
@@ -92,6 +97,7 @@ final class RequestTimeouts implements Runnable {
 
    @Override
    public void run() {
+      assert executor.inEventLoop();
       long now = System.nanoTime();
       Request request;
       while ((request = head) != null && request.timeoutDeadline - now <= 0) {

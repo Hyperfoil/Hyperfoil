@@ -2,6 +2,8 @@ package io.hyperfoil.api.connection;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
@@ -19,9 +21,10 @@ public class RequestTimeoutsTest {
 
    // Delays of the wake-ups scheduled on the executor; the wake-up task is always the RequestTimeouts instance
    private final List<Long> wakeUps = new ArrayList<>();
+   private boolean inEventLoop = true;
    private final EventExecutor executor = (EventExecutor) Proxy.newProxyInstance(getClass().getClassLoader(),
          new Class<?>[] { EventExecutor.class }, (proxy, method, args) -> switch (method.getName()) {
-            case "inEventLoop" -> true;
+            case "inEventLoop" -> inEventLoop;
             case "schedule" -> {
                wakeUps.add(((TimeUnit) args[2]).toNanos((Long) args[1]));
                yield null;
@@ -74,6 +77,36 @@ public class RequestTimeoutsTest {
             requests[2].timeouts, requests[3].timeouts });
       // nothing left to wait for
       assertEquals(1, wakeUps.size());
+   }
+
+   @Test
+   public void testCompletedAndIdleRequestsDoNotTimeOut() {
+      TestRequest completed = new TestRequest();
+      TestRequest idle = new TestRequest();
+      TestRequest pending = new TestRequest();
+      timeouts.add(completed);
+      timeouts.add(idle);
+      timeouts.add(pending);
+      completed.setCompleted();
+      idle.setIdle();
+      assertNull(((Request) completed).timeouts);
+      assertNull(((Request) idle).timeouts);
+      for (TestRequest request : new TestRequest[] { completed, idle, pending }) {
+         request.timeoutDeadline = System.nanoTime() - 1;
+      }
+
+      timeouts.run();
+
+      assertArrayEquals(new int[] { 0, 0, 1 }, new int[] { completed.timeouts, idle.timeouts, pending.timeouts });
+   }
+
+   @Test
+   public void testCancelOutsideOfEventLoopFails() {
+      // the list is not thread-safe: catch any caller that breaks the thread affinity (tests run with -ea)
+      TestRequest request = new TestRequest();
+      timeouts.add(request);
+      inEventLoop = false;
+      assertThrows(AssertionError.class, request::setCompleted);
    }
 
    private static class TestRequest extends Request {
