@@ -54,6 +54,9 @@ public class LoadAndRun extends BaseStandaloneCommand {
       @Option(name = "print-stack-trace", hasValue = false)
       public boolean printStackTrace;
 
+      @Option(shortName = 'y', description = "Assume yes for all interactive questions (e.g. overwriting an existing output file).", hasValue = false)
+      private boolean assumeYes;
+
       @Override
       protected void setup(HyperfoilCommandInvocation invocation) throws CommandException {
          // if benchmarkFile is provided load the benchmark as first step and fail fast if something went wrong
@@ -81,7 +84,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
          invocation.executeSwitchable("wait");
          invocation.executeSwitchable("stats -t");
          if (output != null && !output.isBlank()) {
-            OutputCommandUtil.executeOutputCommand(invocation, output);
+            OutputCommandUtil.executeOutputCommand(invocation, output, assumeYes);
          } else {
             invocation.println("Run files are in " + runDir(invocation) + ". Use --output to generate an HTML report.");
          }

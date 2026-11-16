@@ -105,6 +105,9 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       @Option(name = "output", shortName = 'o', description = "Output destination path for the statistics (format detected from file extension: .html, .json, or .csv/.zip; CSV output is always packaged inside a .zip archive)")
       private String output;
 
+      @Option(shortName = 'y', description = "Assume yes for all interactive questions (e.g. overwriting an existing output file).", hasValue = false)
+      private boolean assumeYes;
+
       @Option(name = "warmup-duration", description = "Duration of the warm up phase, e.g. 2s, 2m, 2h", defaultValue = "6s")
       String warmupDuration;
 
@@ -187,7 +190,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
          if (result) {
             if (output != null && !output.isBlank()) {
-               OutputCommandUtil.executeOutputCommand(invocation, output);
+               OutputCommandUtil.executeOutputCommand(invocation, output, assumeYes);
             }
             if (!started && !run.get().errors.isEmpty()) {
                // here the benchmark simulation did not start, it failed during initialization
