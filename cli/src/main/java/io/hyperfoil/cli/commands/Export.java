@@ -50,6 +50,7 @@ public class Export extends BaseExportCommand {
          invocation.error("Failed to write stats into " + destinationFile);
          return CommandResult.FAILURE;
       }
+      invocation.println("Export written to " + destinationFile);
       return CommandResult.SUCCESS;
    }
 }
