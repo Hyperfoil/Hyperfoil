@@ -1,5 +1,8 @@
 package io.hyperfoil.cli.commands;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.aesh.command.CommandException;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -8,8 +11,11 @@ public class OutputCommandUtil {
 
    public static void executeOutputCommand(HyperfoilCommandInvocation invocation, String output) throws CommandException {
       if (output != null && !output.isBlank()) {
-         String[] extensionPart = output.split("\\.");
-         String extension = extensionPart[extensionPart.length - 1];
+         // Extension comes from the file name only, so dots in directory names don't count.
+         String fileName = Path.of(output).getFileName().toString();
+         int dotIndex = fileName.lastIndexOf('.');
+         // A directory or an extensionless name falls back to an HTML report, like on master.
+         String extension = (dotIndex < 0 || Files.isDirectory(Path.of(output))) ? "html" : fileName.substring(dotIndex + 1);
          if ("html".equalsIgnoreCase(extension)) {
             invocation.executeSwitchable("report --silent -y --destination " + output);
          } else {

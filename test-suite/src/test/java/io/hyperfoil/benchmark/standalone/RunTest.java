@@ -84,6 +84,35 @@ public class RunTest extends BaseBenchmarkTest {
       validateCsvZipContent(zipFile, tempDir);
    }
 
+   @Test
+   public void testRunOutputDirectoryGeneratesHtmlReport(@TempDir Path tempDir) throws IOException {
+      // --output pointing at an existing directory (no extension) is documented usage:
+      // it should write <runId>.html inside that directory, like the "report" command does.
+      String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
+      LoadAndRun cmd = new LoadAndRun();
+      int result = cmd.exec(new String[] { benchmark, "-PSERVER_PORT=" + httpServer.actualPort(), "--output",
+            tempDir.toString() });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Run command should succeed.");
+
+      try (var files = Files.list(tempDir)) {
+         assertTrue(files.anyMatch(p -> p.toString().endsWith(".html")),
+               "Expected an .html report to be created inside " + tempDir);
+      }
+   }
+
+   @Test
+   public void testRunOutputWithoutExtensionGeneratesHtmlReport(@TempDir Path tempDir) {
+      // --output pointing at a file name with no extension should fall back to HTML,
+      // not fail with a confusing "Unknown format" error.
+      String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
+      Path outputFile = tempDir.resolve("report");
+      LoadAndRun cmd = new LoadAndRun();
+      int result = cmd.exec(new String[] { benchmark, "-PSERVER_PORT=" + httpServer.actualPort(), "--output",
+            outputFile.toString() });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Run command should succeed.");
+      assertTrue(outputFile.toFile().exists(), "Expected HTML report to be created at: " + outputFile);
+   }
+
    private Path testRunReportExportOutput(@TempDir Path tempDir, String extension) {
       String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
       Path outputFile = tempDir.resolve(UUID.randomUUID() + extension);
