@@ -194,19 +194,35 @@ public class ControllerLifecycleTest {
       runOnContextAndWait(() -> controller.deployAgent(run, run.agents.get(0), AGENT));
       assertTrue(handlerReady.await(TIMEOUT_MS, TimeUnit.MILLISECONDS), "deployer was never called");
 
-      // Call it from a thread that is not the event loop, which is what a deployer does, and have that same
-      // thread report what it saw. Reading run.errors from here instead would race the event loop, which is
-      // free to have applied the failure already by the time join() returns.
-      AtomicBoolean appliedOnCallerThread = new AtomicBoolean();
-      Thread caller = new Thread(() -> {
-         captured.get().accept(new RuntimeException("agent process died"));
-         appliedOnCallerThread.set(!run.errors.isEmpty());
+      // Occupy the controller's own context before calling accept(), so it is physically unable to run the
+      // deferred runOnContext task until we release it below. Without this, the event loop could win the race
+      // and apply the failure before this thread's very next line runs - runOnContext only schedules the work,
+      // it gives no guaranteed minimum delay - making a timing-based check of run.errors flaky.
+      //
+      // Note: we must block the exact same Context object the production code dispatches onto
+      // (controller.context()), not just "a" context obtained via vertx.runOnContext() from this thread.
+      // Vert.x picks an event loop for a foreign thread based on that thread's identity, so a context
+      // derived here could land on a different event loop than the one the deployer's own thread gets.
+      CountDownLatch blockerRunning = new CountDownLatch(1);
+      CountDownLatch releaseEventLoop = new CountDownLatch(1);
+      controller.context().runOnContext(nil -> {
+         blockerRunning.countDown();
+         try {
+            releaseEventLoop.await(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+         }
       });
+      assertTrue(blockerRunning.await(TIMEOUT_MS, TimeUnit.MILLISECONDS), "event loop blocker never ran");
+
+      // Call it from a thread that is not the event loop, which is what a deployer does.
+      Thread caller = new Thread(() -> captured.get().accept(new RuntimeException("agent process died")));
       caller.start();
       caller.join(TIMEOUT_MS);
 
-      assertFalse(appliedOnCallerThread.get(),
+      assertFalse(!run.errors.isEmpty(),
             "the failure must be applied on the event loop, not on the deployer's thread");
+      releaseEventLoop.countDown();
       awaitOnEventLoop("the failure to be applied", () -> !run.errors.isEmpty());
       assertEquals("Failed to deploy agent", run.errors.get(0).error.getMessage());
    }
@@ -297,6 +313,11 @@ public class ControllerLifecycleTest {
       void persistRun(Run run) {
          persisted.incrementAndGet();
          run.persisted = true;
+      }
+
+      /** The verticle's own pinned context, the one every foreign-thread callback hops onto. */
+      Context context() {
+         return context;
       }
    }
 
