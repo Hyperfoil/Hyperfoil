@@ -1,0 +1,75 @@
+<config xmlns="urn:org:jgroups"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups-5.5.xsd">
+    <!--
+    The shipped jgroups-tcp.xml, over real TCP sockets on loopback, for tests that need what SHARED_LOOPBACK
+    cannot give them: actual sockets, TCPPING discovery, real marshalling and fragmentation.
+
+    Everything below is copied verbatim from jgroups-tcp.xml except for four deltas, all of them forced:
+
+      1. bind_addr is pinned to 127.0.0.1 rather than SITE_LOCAL, so a test never puts traffic on a real NIC.
+      2. bind_port/port_range let several channels coexist in one JVM; the shipped stack expects one per host.
+      3. TCPPING needs an explicit initial_hosts. In production Hyperfoil.java derives
+         jgroups.tcpping.initial_hosts from the controller address; there is no controller here.
+      4. FD_ALL3 is tuned down from its defaults (interval=8s timeout=40s). A partition induced with DISCARD
+         drops messages without closing sockets, so FD_SOCK2 never fires and the whole detection cost falls on
+         FD_ALL3's heartbeat timeout. At the shipped defaults that alone is 40s before the view even splits.
+
+    Failure detection timing is not what these tests assert - reconvergence after the split is - so 4 buys
+    a test that finishes in seconds without weakening anything it does check.
+    -->
+    <TCP bind_addr="127.0.0.1"
+         bind_port="${hyperfoil.test.jgroups.port:7900}"
+         port_range="10"
+         diag.enabled="false"
+         thread_naming_pattern="pl"
+         send_buf_size="640k"
+         sock_conn_timeout="300"
+         tcp_nodelay="true"
+         linger="-1"
+         bundler_type="transfer-queue"
+         bundler.max_size="64000"
+
+         thread_pool.min_threads="0"
+         thread_pool.max_threads="200"
+         thread_pool.keep_alive_time="60000"
+
+         thread_pool.thread_dumps_threshold="10000"
+    />
+    <RED/>
+    <TCPPING initial_hosts="127.0.0.1[7900],127.0.0.1[7901],127.0.0.1[7902]"
+             port_range="10"
+             send_cache_on_join="true"/>
+
+    <!-- Unchanged from the shipped stack: merges are meant to be a routine event, not an exotic one. -->
+    <MERGE3 min_interval="1000"
+            max_interval="3000"
+    />
+    <FD_SOCK2 offset="${jgroups.fd.port-offset:50000}"/>
+    <FD_ALL3 interval="500" timeout="2000"/>
+    <VERIFY_SUSPECT2 timeout="500"/>
+    <pbcast.NAKACK2 use_mcast_xmit="false"
+                    xmit_interval="200"
+                    xmit_table_num_rows="50"
+                    xmit_table_msgs_per_row="1024"
+                    xmit_table_max_compaction_time="30000"
+                    resend_last_seqno="true"
+    />
+    <UNICAST3 conn_close_timeout="5000"
+              xmit_interval="200"
+              xmit_table_num_rows="50"
+              xmit_table_msgs_per_row="1024"
+              xmit_table_max_compaction_time="30000"
+    />
+    <pbcast.STABLE desired_avg_gossip="5000"
+                   max_bytes="1M"
+    />
+    <pbcast.GMS print_local_addr="false" join_timeout="0"/>
+    <UFC max_credits="4m"
+         min_threshold="0.40"
+    />
+    <MFC max_credits="4m"
+         min_threshold="0.40"
+    />
+    <FRAG4 frag_size="60000"/>
+</config>

@@ -51,7 +51,8 @@ public class ControllerLifecycleTest {
    }
 
    /**
-    * Because {@code checkAgentsStopped} is called both on every STOP reply and after the loop that sends them,
+    * Because {@code completeRunIfAllAgentsStoppedOrFailed} is called both on every STOP reply and after the loop that sends
+    * them,
     * multiple invocations can concurrently observe that all agents have terminated. Without an idempotency guard,
     * this triggers the persistence logic twice, causing duplicate post-hook executions and data races when writing
     * to {@code stats/*.csv}, {@code info.json}, and {@code all.json}.
@@ -68,7 +69,7 @@ public class ControllerLifecycleTest {
    }
 
    /**
-    * A premature call to {@code checkAgentsStopped} must leave the completion guard open,
+    * A premature call to {@code completeRunIfAllAgentsStoppedOrFailed} must leave the completion guard open,
     * allowing the run to be persisted once the final agent actually stops.
     */
    @Test
