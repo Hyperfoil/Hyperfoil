@@ -6,8 +6,9 @@ should be one that a reviewer had to point out at least once.
 
 ## Build
 
-- The project targets JDK 21 (`maven.compiler.release=21`). On JDK 23+ pass `-Dmaven.compiler.proc=full`,
-  otherwise annotation processing is disabled and the build breaks.
+- The project targets JDK 21 (`maven.compiler.release=21`) and also builds on newer JDKs.
+- Annotation processors are declared in the root `pom.xml` (`annotationProcessorPaths`), because JDK 23+
+  no longer picks them up from the classpath. A new processor must be added there.
 - Build without tests: `mvn install -pl api,core,http -DskipTests`
 - Single test: `mvn test -pl <module> -am -Dtest=<TestClass> -Dsurefire.failIfNoSpecifiedTests=false`
 - Before pushing: `mvn formatter:validate impsort:check`
@@ -34,7 +35,8 @@ handlers, parsers, `Statistics`, connections, request timeouts.
 - Touch them only from that event loop. From any other thread, go through `session.executor().execute(...)`.
 - Make the invariant explicit with `assert executor.inEventLoop()`. Surefire runs with assertions enabled.
 - An `AssertionError` thrown inside a Netty handler is usually logged, not propagated, so the test can
-  still pass. After a test run, check `target/surefire-reports/*-output.txt` for `AssertionError`.
+  still pass. After a test run, check `<module>/target/surefire-reports/*-output.txt` of every tested
+  module for `AssertionError`.
 
 ## Tests
 
