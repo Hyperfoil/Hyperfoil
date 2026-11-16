@@ -4,14 +4,14 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 
-public class SubMillisecondDetector {
+final class SubMillisecondDetector {
 
    private static final double THRESHOLD = 1000.0;
 
    private SubMillisecondDetector() {
    }
 
-   public static boolean requiresSubMillisecondPrecision(Benchmark benchmark, int agentId) {
+   static boolean requiresSubMillisecondPrecision(Benchmark benchmark, int agentId) {
       for (Phase phase : benchmark.phases()) {
          if (phase.model instanceof Model.ConstantRate model) {
             double rate = benchmark.slice(model.usersPerSec, agentId);
