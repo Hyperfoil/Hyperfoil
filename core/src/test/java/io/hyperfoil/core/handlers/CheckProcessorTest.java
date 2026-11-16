@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -67,6 +68,20 @@ public class CheckProcessorTest {
 
       for (int split = 0; split <= bytes.length; ++split) {
          TestRequest request = validate(new CheckProcessor.Builder().equalTo(body), 0,
+               Arrays.copyOfRange(bytes, 0, split), Arrays.copyOfRange(bytes, split, bytes.length));
+
+         assertThat(request.isValid()).as("split at byte %d", split).isTrue();
+      }
+   }
+
+   @Test
+   public void regexHandlesEveryUtf8ByteSplit() {
+      // body containing: a 1-byte char, a 2-byte char, a 3-byte char, and a 4-byte surrogate-pair emoji
+      String body = "A\u00E9\u20AC\uD83D\uDE00B";
+      byte[] bytes = bytes(body);
+
+      for (int split = 0; split <= bytes.length; ++split) {
+         TestRequest request = validate(new CheckProcessor.Builder().regex(Pattern.quote(body)), 0,
                Arrays.copyOfRange(bytes, 0, split), Arrays.copyOfRange(bytes, split, bytes.length));
 
          assertThat(request.isValid()).as("split at byte %d", split).isTrue();
