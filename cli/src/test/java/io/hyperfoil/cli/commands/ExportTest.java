@@ -1,6 +1,7 @@
 package io.hyperfoil.cli.commands;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -9,7 +10,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +20,7 @@ import org.aesh.command.shell.Shell;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
@@ -59,54 +60,38 @@ public class ExportTest {
    }
 
    @Test
-   public void doesNotPromptWhenTargetFileInsideExistingDirectoryIsMissing() throws Exception {
-      // export -d /some/dir
-      Export export = newExport("/some/dir", false);
+   public void doesNotPromptWhenTargetFileInsideExistingDirectoryIsMissing(@TempDir Path dir) throws Exception {
+      // export -d <dir>, where <dir> exists but the real target file inside it does not.
+      Export export = newExport(dir.toString(), false);
       Client.RunRef runRef = mockRunRef();
       HyperfoilCliContext ctx = mockConnectedContext(runRef);
       Shell shell = mock(Shell.class);
       // If Export wrongly prompts "overwrite?", it reads a line here. We make it
       // return "n", so the bug shows as "export silently cancelled" instead of a mock with no configured answer.
-      // this is to reproduce the error without the fix
       when(shell.readLine()).thenReturn("n");
       HyperfoilCommandInvocation invocation = mockInvocation(ctx, shell);
 
-      Path dir = Paths.get("/some/dir");
-      Path targetFile = Paths.get("/some/dir/testrun.json");
-      try (MockedStatic<Files> files = mockStatic(Files.class)) {
-         // dir exists ...
-         files.when(() -> Files.isDirectory(dir)).thenReturn(true);
-         files.when(() -> Files.exists(dir)).thenReturn(true);
-         // ... but the real target file inside it does not exist yet.
-         files.when(() -> Files.exists(targetFile)).thenReturn(false);
+      export.execute(invocation);
 
-         export.execute(invocation);
-
-         // Expected: write directly, no overwrite prompt.
-         files.verify(() -> Files.write(any(Path.class), any(byte[].class)));
-         // The target file does not exist, so no prompt is expected.
-         verify(shell, never()).readLine();
-      }
+      // Expected: write directly, no overwrite prompt.
+      assertTrue(Files.exists(dir.resolve("testrun.json")), "Expected file to be written without prompting");
+      // The target file does not exist, so no prompt is expected.
+      verify(shell, never()).readLine();
    }
 
    @Test
-   public void returnsFailureWhenWriteFails() throws Exception {
-      Export export = newExport("/some/dir/testrun.json", true);
+   public void returnsFailureWhenWriteFails(@TempDir Path dir) throws Exception {
+      // Parent directory does not exist, so the write fails with a real IOException.
+      Path destination = dir.resolve("missing-subdir").resolve("testrun.json");
+      Export export = newExport(destination.toString(), true);
       Client.RunRef runRef = mockRunRef();
       HyperfoilCliContext ctx = mockConnectedContext(runRef);
       HyperfoilCommandInvocation invocation = mockInvocation(ctx, mock(Shell.class));
 
-      try (MockedStatic<Files> files = mockStatic(Files.class)) {
-         files.when(() -> Files.isDirectory(any(Path.class))).thenReturn(false);
-         files.when(() -> Files.exists(any(Path.class))).thenReturn(false);
-         // Simulate a real write failure (disk full, permission denied, etc).
-         files.when(() -> Files.write(any(Path.class), any(byte[].class))).thenThrow(new IOException("disk full"));
+      CommandResult result = export.execute(invocation);
 
-         CommandResult result = export.execute(invocation);
-
-         // A failed write must not be reported as success.
-         assertEquals(CommandResult.FAILURE, result);
-      }
+      // A failed write must not be reported as success.
+      assertEquals(CommandResult.FAILURE, result);
    }
 
    private Export newExport(String destination, boolean assumeYes) throws Exception {
