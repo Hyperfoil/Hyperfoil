@@ -9,11 +9,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.aesh.command.CommandResult;
 import org.aesh.command.shell.Shell;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -84,6 +86,26 @@ public class ExportTest {
          files.verify(() -> Files.write(any(Path.class), any(byte[].class)));
          // The target file does not exist, so no prompt is expected.
          verify(shell, never()).readLine();
+      }
+   }
+
+   @Test
+   public void returnsFailureWhenWriteFails() throws Exception {
+      Export export = newExport("/some/dir/testrun.json", true);
+      Client.RunRef runRef = mockRunRef();
+      HyperfoilCliContext ctx = mockConnectedContext(runRef);
+      HyperfoilCommandInvocation invocation = mockInvocation(ctx, mock(Shell.class));
+
+      try (MockedStatic<Files> files = mockStatic(Files.class)) {
+         files.when(() -> Files.isDirectory(any(Path.class))).thenReturn(false);
+         files.when(() -> Files.exists(any(Path.class))).thenReturn(false);
+         // Simulate a real write failure (disk full, permission denied, etc).
+         files.when(() -> Files.write(any(Path.class), any(byte[].class))).thenThrow(new IOException("disk full"));
+
+         CommandResult result = export.execute(invocation);
+
+         // A failed write must not be reported as success.
+         assertEquals(CommandResult.FAILURE, result);
       }
    }
 
