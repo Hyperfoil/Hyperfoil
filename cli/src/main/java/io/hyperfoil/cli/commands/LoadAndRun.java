@@ -86,7 +86,8 @@ public class LoadAndRun extends BaseStandaloneCommand {
          if (output != null && !output.isBlank()) {
             OutputCommandUtil.executeOutputCommand(invocation, output, assumeYes);
          } else {
-            invocation.println("Run files are in " + runDir(invocation) + ". Use --output to generate an HTML report.");
+            invocation.println(
+                  "Run files are in " + runDir(invocation) + ". Use --output to save an HTML, JSON, or CSV report.");
          }
       }
 
