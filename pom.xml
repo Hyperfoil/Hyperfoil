@@ -84,7 +84,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.release>21</maven.compiler.release>
 
-        <version.vertx>5.1.8</version.vertx>
+        <version.vertx>5.2.3</version.vertx>
         <!-- Clustering talks to JGroups directly; see io.hyperfoil.clustering.jgroups.JGroupsClusterManager. -->
         <version.jgroups>5.5.7.Final</version.jgroups>
         <!-- Used by the hotrod module only. -->
