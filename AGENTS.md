@@ -33,7 +33,11 @@ handlers, parsers, `Statistics`, connections, request timeouts.
 - A session is pinned to one Netty event loop. Session state, requests, connections and connection
   pools are not thread-safe.
 - Touch them only from that event loop. From any other thread, go through `session.executor().execute(...)`.
-- Make the invariant explicit with `assert executor.inEventLoop()`. Surefire runs with assertions enabled.
+- Make the invariant explicit with `assert executor.inEventLoop()`. Surefire runs with assertions enabled,
+  so tests catch a violation; production launch scripts don't pass `-ea`, so the assert is a no-op there.
+  This is intentional, not a gap to flag or fix: checking thread affinity on the hot path in production
+  would itself be the kind of per-call overhead this project avoids. Don't describe a bare `assert` as
+  "missing production enforcement" — that's the expected, accepted tradeoff here.
 - An `AssertionError` thrown inside a Netty handler is usually logged, not propagated, so the test can
   still pass. After a test run, check `<module>/target/surefire-reports/*-output.txt` of every tested
   module for `AssertionError`.
