@@ -65,7 +65,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
    }
 
    //   @CommandDefinition(name = "wrk", description = "Runs a workload simulation against one endpoint using the same vm")
-   public abstract class AbstractWrkCommand implements Command<HyperfoilCommandInvocation> {
+   public abstract static class AbstractWrkCommand implements Command<HyperfoilCommandInvocation> {
       @Option(shortName = 'c', description = "Total number of HTTP connections to keep open", defaultValue = "10")
       int connections;
 
@@ -117,7 +117,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
       @Override
       public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
          if (help) {
-            invocation.println(invocation.getHelpInfo(getCommandName()));
+            invocation.println(invocation.getHelpInfo(commandName()));
             return CommandResult.SUCCESS;
          }
          if (script != null) {
@@ -150,7 +150,7 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
          BenchmarkBuilder builder;
          try {
-            builder = scenario.getBenchmark(getCommandName(), url, enableHttp2, connections, useHttpCache,
+            builder = scenario.getBenchmark(commandName(), url, enableHttp2, connections, useHttpCache,
                   threads, agent, warmupDuration, duration, parsedHeaders, timeout);
          } catch (URISyntaxException e) {
             invocation.println("Failed to parse URL: " + e.getMessage());
@@ -255,6 +255,8 @@ public abstract class WrkAbstract extends BaseStandaloneCommand {
 
          return true;
       }
+
+      protected abstract String commandName();
 
       protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs);
 
