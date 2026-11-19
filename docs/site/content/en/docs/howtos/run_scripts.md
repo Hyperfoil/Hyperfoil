@@ -43,7 +43,7 @@ Usage: run [<options>] <benchmark>
 Load and start a benchmark on Hyperfoil controller server, the argument can be the benchmark definition directly.
 
 Options:
-  -o, --output         Output destination path for the report (format detected from file extension: .html, .json, or .csv/.zip; CSV output is always packaged inside a .zip archive)
+  -o, --output         Output destination path for the statistics (format detected from file extension: .html, .json, or .csv/.zip; CSV output is always packaged inside a .zip archive)
   -y                   Assume yes for all interactive questions (e.g. overwriting an existing output file)
   --print-stack-trace
   -d, --description    Run description
@@ -58,7 +58,7 @@ Argument:
 From the unzipped Hyperfoil distribution, you can simply run the script using the following format:
 
 ```
-./distribution/bin/run.sh [-o OUTPUT_DIR] [-PPARAM1=.. -PPARAM2=..] BENCHMARK_FILE
+./distribution/bin/run.sh [-o OUTPUT_PATH] [-PPARAM1=.. -PPARAM2=..] BENCHMARK_FILE
 ```
 
 For instance:
