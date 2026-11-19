@@ -52,6 +52,28 @@ jobs:
       # Run a full build with all tests
       - name: Build with Maven
         run: mvn clean -B package --file pom.xml -Pbenchmark -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
+      - name: Check generated reference docs are up to date
+        run: |
+          stale=""
+          for generated in distribution/target/steps/*.md; do
+            name=$(basename "$generated")
+            case "$name" in
+              action_*) target="docs/site/content/en/docs/reference/actions/$name" ;;
+              step_*) target="docs/site/content/en/docs/reference/steps/$name" ;;
+              processor_*) target="docs/site/content/en/docs/reference/processors/$name" ;;
+              *) continue ;;
+            esac
+            if [ ! -f "$target" ] || ! diff -q -b -B "$generated" "$target" > /dev/null; then
+              stale="${stale}  ${target}\n"
+            fi
+          done
+          if [ -n "$stale" ]; then
+            echo "These reference docs are out of date with the builder Javadoc:"
+            echo -e "$stale"
+            echo "Regenerate them with: mvn -pl distribution -am package -DskipTests"
+            echo "then copy the matching file from distribution/target/steps/ over the one(s) listed above, and commit it."
+            exit 1
+          fi
       # Retrieve current version from the root pom
       - name: Get version
         run: echo SNAPSHOT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_ENV
