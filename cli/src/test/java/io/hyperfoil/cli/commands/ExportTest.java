@@ -1,5 +1,6 @@
 package io.hyperfoil.cli.commands;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,6 +78,28 @@ public class ExportTest {
       assertTrue(Files.exists(dir.resolve("testrun.json")), "Expected file to be written without prompting");
       // The target file does not exist, so no prompt is expected.
       verify(shell, never()).readLine();
+   }
+
+   @Test
+   public void promptingWithoutATerminalDoesNotCrash(@TempDir Path dir) throws Exception {
+      // Non-interactive run (e.g. CI, no TTY) where the destination file already exists.
+      // Shell.readLine() returns null (no input available) in that case; readYes() must
+      // treat it as "no" instead of crashing with NullPointerException.
+      Path existing = dir.resolve("testrun.json");
+      byte[] originalContent = { 9 };
+      Files.write(existing, originalContent);
+
+      Export export = newExport(existing.toString(), false);
+      Client.RunRef runRef = mockRunRef();
+      HyperfoilCliContext ctx = mockConnectedContext(runRef);
+      Shell shell = mock(Shell.class);
+      when(shell.readLine()).thenReturn(null);
+      HyperfoilCommandInvocation invocation = mockInvocation(ctx, shell);
+
+      CommandResult result = export.execute(invocation);
+
+      assertEquals(CommandResult.SUCCESS, result);
+      assertArrayEquals(originalContent, Files.readAllBytes(existing), "Existing file must not be overwritten");
    }
 
    @Test
