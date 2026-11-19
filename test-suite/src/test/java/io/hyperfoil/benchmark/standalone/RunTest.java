@@ -98,6 +98,23 @@ public class RunTest extends BaseBenchmarkTest {
    }
 
    @Test
+   public void testRunOutputDirectoryWithDotInNameGeneratesHtmlReport(@TempDir Path tempDir) throws IOException {
+      // A dot in the directory name (not the file name) must not be mistaken for an extension
+      Path dir = tempDir.resolve("my.dir");
+      Files.createDirectory(dir);
+      String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
+      LoadAndRun cmd = new LoadAndRun();
+      int result = cmd.exec(new String[] { benchmark, "-PSERVER_PORT=" + httpServer.actualPort(), "--output",
+            dir.toString() });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Run command should succeed.");
+
+      try (var files = Files.list(dir)) {
+         assertTrue(files.anyMatch(p -> p.toString().endsWith(".html")),
+               "Expected an .html report to be created inside " + dir);
+      }
+   }
+
+   @Test
    public void testRunOutputWithoutExtensionGeneratesHtmlReport(@TempDir Path tempDir) {
       // --output pointing at a file name with no extension should fall back to HTML,
       // not fail with a confusing "Unknown format" error.
