@@ -71,7 +71,10 @@ public class ConcurrentRegistrationTest extends ClusterManagerTestBase {
          worker.join();
       }
 
-      // addRegistration only completes once the multicast has been answered, so the writer is already final
+      // mutate() saves the change locally before sending it to the network.
+      // addRegistration finishes only after this local save is done.
+      // Therefore, the writer already has the final data here.
+      // It does NOT wait for other nodes to reply, because mutate() sends asynchronously.
       assertEquals(expected, Set.copyOf(registrations(writer, ADDRESS)), "registrations lost at the writer");
       assertRegistrations("every registration at the observer", observer, ADDRESS, expected);
    }
