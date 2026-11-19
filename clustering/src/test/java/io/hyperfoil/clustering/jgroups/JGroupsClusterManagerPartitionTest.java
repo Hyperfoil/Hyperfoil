@@ -33,9 +33,16 @@ public class JGroupsClusterManagerPartitionTest extends ClusterManagerTestBase {
    }
 
    /**
-    * The shipped stacks run MERGE3 at {@code min_interval=1000 max_interval=3000}, so merges are a routine event
-    * on a loaded or flaky network rather than an exotic one. Nothing re-pulls state on a merge; each side simply
-    * re-announces its own slice, which is what this asserts.
+    * The default network configuration uses the MERGE3 protocol with short timers
+    * ({@code min_interval=1000 max_interval=3000}).
+    * Because of this, cluster merges happen very often on busy or unstable networks.
+    * They are normal events, not rare ones.
+    * <p>
+    * When a merge happens, each node sends its own data (its "slice") to the cluster again.
+    * This test checks that this sending works correctly.
+    * <p>
+    * Note: Another test ({@code JGroupsTcpPartitionTest}) checks a different part of the merge.
+    * It makes sure nodes also download missing data using {@code repullState()}.
     */
    @Test
    public void shouldConvergeAfterHealingAPartition() throws Exception {

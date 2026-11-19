@@ -2,7 +2,6 @@ package io.hyperfoil.clustering.jgroups;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -86,11 +85,9 @@ public class AnnounceSliceRaceTest extends ClusterManagerTestBase {
 
       // Step 3: Start announceSlice() in a background thread.
       // It will read the older state (Version V) and then PAUSE.
-      Method announceSlice = JGroupsClusterManager.class.getDeclaredMethod("announceSlice");
-      announceSlice.setAccessible(true);
       Thread announcerThread = new Thread(() -> {
          try {
-            announceSlice.invoke(owner);
+            invoke(JGroupsClusterManager.class, owner, "announceSlice", new Class<?>[0]);
          } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
          }
@@ -123,18 +120,5 @@ public class AnnounceSliceRaceTest extends ClusterManagerTestBase {
       Set<RegistrationInfo> expectedData = new LinkedHashSet<>(initialData);
       expectedData.add(newerData);
       assertRegistrations("Peer must have all data, proving it did not reject Version V", peer, FEED, expectedData);
-   }
-
-   private static Object stateOf(JGroupsClusterManager manager) throws ReflectiveOperationException {
-      var field = JGroupsClusterManager.class.getDeclaredField("state");
-      field.setAccessible(true);
-      return field.get(manager);
-   }
-
-   private static void invoke(Class<?> type, Object target, String name, Class<?>[] paramTypes, Object... args)
-         throws ReflectiveOperationException {
-      Method method = type.getDeclaredMethod(name, paramTypes);
-      method.setAccessible(true);
-      method.invoke(target, args);
    }
 }

@@ -22,6 +22,7 @@ import org.jgroups.protocols.SHARED_LOOPBACK;
 import org.jgroups.protocols.SHUFFLE;
 import org.jgroups.stack.Protocol;
 import org.jgroups.stack.ProtocolStack;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -43,6 +44,30 @@ import io.vertx.core.spi.cluster.RegistrationInfo;
  * these drive real channels and so also cover the pieces those rules depend on - the per-owner version stamps,
  * the retransmission the cluster manager assumes underneath, and the state pull on join.
  * <p>
+ * We intentionally insert network faults (like delays or lost packets) <b>below</b> the reliable
+ * network protocols (NAKACK2/UNICAST3), not above them. Here is why:
+ * <ul>
+ * <li><b>We rely on message order:</b> {@code mutate()} and {@code announceSlice()} expect
+ * messages from the same sender to arrive in the exact order they were sent. If an older message
+ * arrives late, {@link ClusterState} will drop it permanently.</li>
+ * <li><b>Real-world network behavior:</b> On a real network, messages get scrambled during transit.
+ * However, NAKACK2 fixes this order and removes duplicates <i>before</i> the messages reach our application.</li>
+ * <li><b>Testing realistic chaos:</b> By putting faults below NAKACK2, we test what happens
+ * on a real network. We prove that the system stays stable even if the raw network loses,
+ * duplicates, or reorders messages.</li>
+ * <li><b>Breaking the rules:</b> If we put faults <i>above</i> NAKACK2, the tests would fail.
+ * This is not a bug in our code. It fails because it breaks the strict message order that our
+ * design requires.</li>
+ * </ul>
+ * <p>
+ * Because NAKACK2 already prevents out-of-order and duplicate messages, these chaos tests
+ * do not test the version check inside {@link ClusterState}.
+ * <p>
+ * We still need that version check for a different problem: when a full state pull happens at the
+ * exact same time as a small data update, and they travel on different network channels. We test
+ * those specific timing issues in {@link AnnounceSliceRaceTest}, {@link RepullStateRaceTest},
+ * and {@link JoinPullRaceTest} instead.
+ * <p>
  * Node departure and full partitions are covered separately, in {@link JGroupsClusterManagerTest} and
  * {@link JGroupsClusterManagerPartitionTest}.
  */
@@ -60,23 +85,27 @@ public class JGroupsChaosTest extends ClusterManagerTestBase {
 
    static Stream<Arguments> faults() {
       return Stream.of(
-            // Chaos Mesh "network delay": every hop is slowed, so responses to a state pull can arrive after the
-            // multicasts that logically follow them. This is the reordering window the pending-op queue exists for.
+            // Simulates a slow network with high latency.
+            // Every message takes longer to arrive.
             Arguments.of("delay", protocolFault(() -> {
                DELAY delay = new DELAY();
                delay.setInDelay(3);
                delay.setOutDelay(3);
                return delay;
             })),
-            // Chaos Mesh "network loss": NAKACK2 and UNICAST3 have to retransmit everything that goes missing.
+
+            // Simulates lost network packets.
+            // The network layer (NAKACK2 and UNICAST3) must automatically resend missing messages.
             Arguments.of("loss", protocolFault(() -> new DISCARD().setUpDiscardRate(0.2))),
-            // Chaos Mesh "network duplicate": every update is delivered several times. The version stamps must
-            // make the replays no-ops rather than producing duplicate registrations.
+
+            // Simulates receiving the same message multiple times.
+            // The network layer must remove the duplicates before our application sees them.
             Arguments.of("duplicate", protocolFault(() -> new DUPL(true, true, 3, 3))),
-            // Reordering: updates arrive out of the order they were sent, so a stale update can land after a
-            // newer one. Nothing but the version check stops it from overwriting.
-            // max_time is what flushes a buffer that never fills; the 1500ms default would hold the tail of
-            // every burst long enough to dominate the run.
+
+            // Simulates messages arriving in the wrong order.
+            // The network layer must fix the order before our application sees them.
+            // We set 'maxTime' to 100ms so the test does not get stuck waiting
+            // for the SHUFFLE buffer to fill up.
             Arguments.of("reorder", protocolFault(
                   () -> new SHUFFLE().setUp(true).setDown(true).setMaxSize(4).setMaxTime(100))));
    }
@@ -173,8 +202,109 @@ public class JGroupsChaosTest extends ClusterManagerTestBase {
    }
 
    /**
-    * Splices a protocol directly above the transport on every node, so it sees messages exactly as they hit and
-    * leave the wire. Each node needs its own instance: a protocol belongs to one stack.
+    * In the standard {@link #shouldConvergeUnder} tests, all nodes join the cluster before anyone starts writing data.
+    * Because of this, a new node joining never overlaps with live data updates.
+    * This means the {@code pendingOps} queue is never used in those tests.
+    * <p>
+    * This test is different. It makes a new node join <i>while</i> other nodes are actively writing data.
+    * <p>
+    * We use the {@code DELAY} fault here on purpose. It makes the network slow, which stretches the time
+    * it takes for the new node to download the full state. This creates a longer window of time for small
+    * data updates (deltas) to arrive during the download, forcing the system to use the {@code pendingOps} queue.
+    * <p>
+    * Other tests (like {@link AnnounceSliceRaceTest}, {@link RepullStateRaceTest}, and {@link JoinPullRaceTest})
+    * test this exact timing by artificially pausing the code. This test proves the queue works in a
+    * real-world scenario, with actual network delays and real threads writing at the same time.
+    */
+   @Test
+   public void shouldConvergeWhenNodeJoinsMidWorkloadUnderDelay() throws Exception {
+      String cluster = "chaos-late-join";
+      List<JGroupsClusterManager> writers = new ArrayList<>();
+      for (int i = 0; i < NODES; i++) {
+         writers.add(join(cluster));
+      }
+
+      Set<RegistrationInfo> expected = new LinkedHashSet<>();
+      for (JGroupsClusterManager manager : writers) {
+         for (int seq = 1; seq <= REGISTRATIONS_PER_NODE; seq++) {
+            expected.add(new RegistrationInfo(manager.getNodeId(), seq, false));
+         }
+      }
+
+      int half = REGISTRATIONS_PER_NODE / 2;
+      AtomicReference<Throwable> failure = new AtomicReference<>();
+      CountDownLatch firstHalf = new CountDownLatch(NODES);
+      CountDownLatch faultInjected = new CountDownLatch(1);
+      CountDownLatch finished = new CountDownLatch(NODES);
+
+      for (JGroupsClusterManager manager : writers) {
+         Thread writer = new Thread(() -> {
+            try {
+               for (int seq = 1; seq <= REGISTRATIONS_PER_NODE; seq++) {
+                  if (seq == half + 1) {
+                     firstHalf.countDown();
+                     if (!faultInjected.await(AWAIT_MS, TimeUnit.MILLISECONDS)) {
+                        throw new AssertionError("fault was never injected");
+                     }
+                  }
+                  addRegistration(manager, FEED, new RegistrationInfo(manager.getNodeId(), seq, false));
+               }
+            } catch (Throwable t) {
+               failure.compareAndSet(null, t);
+            } finally {
+               firstHalf.countDown();
+               finished.countDown();
+            }
+         }, "chaos-late-join-writer-" + manager.getNodeId());
+         writer.setDaemon(true);
+         writer.start();
+      }
+
+      if (!firstHalf.await(AWAIT_MS, TimeUnit.MILLISECONDS)) {
+         fail("workload stalled before the fault");
+      }
+      Fault fault = protocolFault(() -> {
+         DELAY delay = new DELAY();
+         delay.setInDelay(3);
+         delay.setOutDelay(3);
+         return delay;
+      });
+      fault.inject(writers);
+      faultInjected.countDown();
+
+      // Join while the others are still writing under the fault, so this node's own state pull overlaps live
+      // deltas from its peers.
+      JGroupsClusterManager joiner = join(cluster);
+
+      try {
+         if (!finished.await(AWAIT_MS, TimeUnit.MILLISECONDS)) {
+            fail("writers did not finish");
+         }
+      } finally {
+         fault.heal(writers);
+      }
+      if (failure.get() != null) {
+         throw new AssertionError("A writer failed", failure.get());
+      }
+
+      List<JGroupsClusterManager> all = new ArrayList<>(writers);
+      all.add(joiner);
+      for (JGroupsClusterManager manager : all) {
+         assertRegistrations("converged at " + manager.getNodeId() + " after a mid-workload join", manager, FEED,
+               expected);
+         assertEquals(expected.size(), registrations(manager, FEED).size(),
+               "duplicate registrations at " + manager.getNodeId() + " after a mid-workload join");
+      }
+   }
+
+   /**
+    * Inserts a fault protocol into the network stack of every node.
+    * <p>
+    * It places this protocol at the very bottom, directly above the raw network transport.
+    * This allows it to see messages exactly as they enter or leave the network.
+    * <p>
+    * Important: We must create a new protocol object for every node. A single
+    * protocol instance cannot be shared between multiple nodes.
     */
    private static Fault protocolFault(Supplier<Protocol> factory) {
       return new Fault() {
@@ -197,12 +327,29 @@ public class JGroupsChaosTest extends ClusterManagerTestBase {
 
          @Override
          public void heal(List<JGroupsClusterManager> cluster) {
+            // The SHUFFLE protocol holds messages for a short time before sending them.
+            // Calling flush(true) forces it to send all waiting messages immediately and stops the shuffling.
+            // Because of this, we do not need to wait for it to finish naturally.
+            for (Protocol protocol : injected) {
+               if (protocol instanceof SHUFFLE shuffle) {
+                  shuffle.flush(true);
+               }
+            }
+            // Some protocols (like DELAY) use a background thread to deliver messages.
+            // We must pause for a short time (200ms) to let these threads finish their work.
+            // If we remove the protocol while it is still trying to send a message, it breaks
+            // the network links and causes errors in the log.
+            // (The system would safely resend the lost message anyway, but we want to avoid messy log errors).
+            try {
+               Thread.sleep(200);
+            } catch (InterruptedException e) {
+               Thread.currentThread().interrupt();
+            }
             for (int i = 0; i < cluster.size(); i++) {
                Protocol protocol = injected.get(i);
-               cluster.get(i).channel().getProtocolStack().removeProtocol(protocol);
                protocol.stop();
-               // DELAY's handler thread only dies on destroy(), and it spins rather than blocking.
                protocol.destroy();
+               cluster.get(i).channel().getProtocolStack().removeProtocol(protocol);
             }
          }
       };

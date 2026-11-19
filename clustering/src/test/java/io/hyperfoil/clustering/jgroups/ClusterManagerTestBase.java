@@ -3,6 +3,7 @@ package io.hyperfoil.clustering.jgroups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -67,17 +68,41 @@ abstract class ClusterManagerTestBase {
    }
 
    /**
+    * Like {@link #join(String, Runnable...)}, but also lets a test pause {@link JGroupsClusterManager#completePull}
+    * right before it applies the pulled responses, to force a specific interleaving with a concurrent mutation.
+    */
+   protected JGroupsClusterManager join(String clusterName, Runnable afterSliceEncoded,
+         Runnable beforePullResponsesApplied) {
+      JGroupsClusterManager manager = newManager(clusterName, afterSliceEncoded, beforePullResponsesApplied);
+      Promise<Void> promise = Promise.promise();
+      manager.join(promise);
+      await(promise.future());
+      return manager;
+   }
+
+   /**
     * Creates a new manager without joining the cluster right away.
     * Use this for tests where you need to start the join process manually.
     */
    protected JGroupsClusterManager newManager(String clusterName, Runnable... afterSliceEncoded) {
+      return newManager(clusterName, afterSliceEncoded.length == 0 ? null : afterSliceEncoded[0], null);
+   }
+
+   /** Like {@link #newManager(String, Runnable...)}, but also wires {@code beforePullResponsesApplied}. */
+   protected JGroupsClusterManager newManager(String clusterName, Runnable afterSliceEncoded,
+         Runnable beforePullResponsesApplied) {
       JGroupsClusterManager manager = new JGroupsClusterManager(stack(), clusterName) {
          @Override
          protected void afterSliceEncoded() {
             if (afterSliceEncoded != null) {
-               for (Runnable r : afterSliceEncoded) {
-                  r.run();
-               }
+               afterSliceEncoded.run();
+            }
+         }
+
+         @Override
+         protected void beforePullResponsesApplied() {
+            if (beforePullResponsesApplied != null) {
+               beforePullResponsesApplied.run();
             }
          }
       };
@@ -178,6 +203,21 @@ abstract class ClusterManagerTestBase {
       awaitTrue(what, () -> Set.copyOf(registrations(manager, address)).equals(expected));
       // Re-assert outside the poll so a failure reports the actual value rather than just "timed out"
       assertEquals(expected, Set.copyOf(registrations(manager, address)), what);
+   }
+
+   /** The manager's package-private {@link ClusterState}, for tests that poke at it directly to simulate a race. */
+   protected static Object stateOf(JGroupsClusterManager manager) throws ReflectiveOperationException {
+      var field = JGroupsClusterManager.class.getDeclaredField("state");
+      field.setAccessible(true);
+      return field.get(manager);
+   }
+
+   /** Invokes a private method reflectively, for tests that drive internals a race needs (e.g. {@code repullState}). */
+   protected static Object invoke(Class<?> type, Object target, String name, Class<?>[] paramTypes, Object... args)
+         throws ReflectiveOperationException {
+      Method method = type.getDeclaredMethod(name, paramTypes);
+      method.setAccessible(true);
+      return method.invoke(target, args);
    }
 
    protected static final class RecordingNodeListener implements NodeListener {
