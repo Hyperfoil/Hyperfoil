@@ -11,6 +11,10 @@ final class SubMillisecondDetector {
    private SubMillisecondDetector() {
    }
 
+   /**
+    * Rate is evaluated per phase (each fork is its own phase, scaled by its weight) and per agent
+    * via {@link Benchmark#slice}, not on the benchmark's aggregate total.
+    */
    static boolean requiresSubMillisecondPrecision(Benchmark benchmark, int agentId) {
       for (Phase phase : benchmark.phases()) {
          if (phase.model instanceof Model.ConstantRate model) {
