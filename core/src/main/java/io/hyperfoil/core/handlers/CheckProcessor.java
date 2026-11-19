@@ -37,8 +37,8 @@ import io.netty.buffer.Unpooled;
  * Validates a complete response body using one configured comparison strategy.
  * <p>
  * This processor is for occasional sanity checks, not for the hot path. It parses JSON with Jackson and decodes
- * the body into a String for regex checks, allocating roughly the body size per check (more for bodies with
- * non-Latin-1 characters).
+ * the body into a String for regex checks, allocating one to two times the body size per check (more for
+ * bodies with non-Latin-1 characters).
  */
 public abstract class CheckProcessor implements Processor {
    private static final Logger log = LogManager.getLogger(CheckProcessor.class);
