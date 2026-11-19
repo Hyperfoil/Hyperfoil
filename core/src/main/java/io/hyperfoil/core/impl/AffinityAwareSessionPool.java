@@ -231,6 +231,17 @@ public class AffinityAwareSessionPool implements ElasticPool<Session> {
       }
    }
 
+   /**
+    * Drops all the sessions; they must have been released.
+    */
+   public void clear() {
+      for (Queue<Session> localQueue : localQueues) {
+         if (localQueue != null) {
+            localQueue.clear();
+         }
+      }
+   }
+
    private Queue<Session> createLocalQueue(int capacity) {
       if (PlatformDependent.hasUnsafe()) {
          return new MpmcArrayQueue<>(Math.max(2, capacity));

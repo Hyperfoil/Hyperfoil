@@ -25,6 +25,8 @@ public class WrkScenarioPhaseConfig {
       };
       return catalog.constantRate(rate)
             .variance(false)
-            .maxSessions(maxSessions);
+            .maxSessions(maxSessions)
+            // e.g. -R 50000 reserves 300,000 sessions for a 6 s calibration: collect them before the test
+            .releaseSessions(phaseType == WrkScenario.PhaseType.calibration);
    }
 }
