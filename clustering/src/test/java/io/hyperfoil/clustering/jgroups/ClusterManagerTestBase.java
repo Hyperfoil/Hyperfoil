@@ -3,6 +3,7 @@ package io.hyperfoil.clustering.jgroups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -178,6 +179,21 @@ abstract class ClusterManagerTestBase {
       awaitTrue(what, () -> Set.copyOf(registrations(manager, address)).equals(expected));
       // Re-assert outside the poll so a failure reports the actual value rather than just "timed out"
       assertEquals(expected, Set.copyOf(registrations(manager, address)), what);
+   }
+
+   /** The manager's package-private {@link ClusterState}, for tests that poke at it directly to simulate a race. */
+   protected static Object stateOf(JGroupsClusterManager manager) throws ReflectiveOperationException {
+      var field = JGroupsClusterManager.class.getDeclaredField("state");
+      field.setAccessible(true);
+      return field.get(manager);
+   }
+
+   /** Invokes a private method reflectively, for tests that drive internals a race needs (e.g. {@code repullState}). */
+   protected static Object invoke(Class<?> type, Object target, String name, Class<?>[] paramTypes, Object... args)
+         throws ReflectiveOperationException {
+      Method method = type.getDeclaredMethod(name, paramTypes);
+      method.setAccessible(true);
+      return method.invoke(target, args);
    }
 
    protected static final class RecordingNodeListener implements NodeListener {
