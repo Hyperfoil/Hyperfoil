@@ -95,7 +95,7 @@ public class LocalController implements Controller {
 
       /**
        * Generates a random JGroups cluster name for this run unless the user pinned one explicitly.
-       * Concurrent local controllers would otherwise all join the default "ISPN" cluster and see each
+       * Concurrent local controllers would otherwise all join the default "hyperfoil" cluster and see each
        * other's agents. The property is propagated to deployed agents by the deployers.
        */
       private void ensureUniqueClusterName() {
