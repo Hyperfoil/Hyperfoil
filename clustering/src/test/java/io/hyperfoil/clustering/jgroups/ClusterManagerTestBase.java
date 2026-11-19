@@ -72,7 +72,7 @@ abstract class ClusterManagerTestBase {
     * right before it applies the pulled responses, to force a specific interleaving with a concurrent mutation.
     */
    protected JGroupsClusterManager join(String clusterName, Runnable afterSliceEncoded,
-                                        Runnable beforePullResponsesApplied) {
+         Runnable beforePullResponsesApplied) {
       JGroupsClusterManager manager = newManager(clusterName, afterSliceEncoded, beforePullResponsesApplied);
       Promise<Void> promise = Promise.promise();
       manager.join(promise);
@@ -90,7 +90,7 @@ abstract class ClusterManagerTestBase {
 
    /** Like {@link #newManager(String, Runnable...)}, but also wires {@code beforePullResponsesApplied}. */
    protected JGroupsClusterManager newManager(String clusterName, Runnable afterSliceEncoded,
-                                              Runnable beforePullResponsesApplied) {
+         Runnable beforePullResponsesApplied) {
       JGroupsClusterManager manager = new JGroupsClusterManager(stack(), clusterName) {
          @Override
          protected void afterSliceEncoded() {
