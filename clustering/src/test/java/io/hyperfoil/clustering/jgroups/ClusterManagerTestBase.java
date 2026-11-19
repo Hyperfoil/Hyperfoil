@@ -68,17 +68,41 @@ abstract class ClusterManagerTestBase {
    }
 
    /**
+    * Like {@link #join(String, Runnable...)}, but also lets a test pause {@link JGroupsClusterManager#completePull}
+    * right before it applies the pulled responses, to force a specific interleaving with a concurrent mutation.
+    */
+   protected JGroupsClusterManager join(String clusterName, Runnable afterSliceEncoded,
+                                        Runnable beforePullResponsesApplied) {
+      JGroupsClusterManager manager = newManager(clusterName, afterSliceEncoded, beforePullResponsesApplied);
+      Promise<Void> promise = Promise.promise();
+      manager.join(promise);
+      await(promise.future());
+      return manager;
+   }
+
+   /**
     * Creates a new manager without joining the cluster right away.
     * Use this for tests where you need to start the join process manually.
     */
    protected JGroupsClusterManager newManager(String clusterName, Runnable... afterSliceEncoded) {
+      return newManager(clusterName, afterSliceEncoded.length == 0 ? null : afterSliceEncoded[0], null);
+   }
+
+   /** Like {@link #newManager(String, Runnable...)}, but also wires {@code beforePullResponsesApplied}. */
+   protected JGroupsClusterManager newManager(String clusterName, Runnable afterSliceEncoded,
+                                              Runnable beforePullResponsesApplied) {
       JGroupsClusterManager manager = new JGroupsClusterManager(stack(), clusterName) {
          @Override
          protected void afterSliceEncoded() {
             if (afterSliceEncoded != null) {
-               for (Runnable r : afterSliceEncoded) {
-                  r.run();
-               }
+               afterSliceEncoded.run();
+            }
+         }
+
+         @Override
+         protected void beforePullResponsesApplied() {
+            if (beforePullResponsesApplied != null) {
+               beforePullResponsesApplied.run();
             }
          }
       };
