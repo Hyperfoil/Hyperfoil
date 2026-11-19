@@ -26,9 +26,12 @@ import io.vertx.core.spi.cluster.RegistrationInfo;
  * between those two channels, so the version stamp is what makes the state immune to reordering, duplication and
  * merge replays.
  * <p>
- * Mutations are serialized on this object's monitor; reads go straight to concurrent maps and take no lock.
- * Mutation frequency is low (node join/leave and consumer registration), so a single mutation lock is cheap and
- * avoids the divergence bugs that lock-free index maintenance invites.
+ * All data changes (mutations) use a lock on this object. Reading {@link #registrations} does not use a lock;
+ * it reads directly from the concurrent {@link #subsIndex}. However, {@link #nodeInfo} and {@link #encodeSlice}
+ * use the same lock as the data changes. This lock guarantees we read a {@link Slice}'s version, info, and
+ * subscriptions at the exact same moment (a consistent snapshot), rather than reading them separately while they
+ * might be changing. Data changes happen rarely (only when nodes join/leave or consumers register), so using
+ * one simple lock is fast and prevents complicated bugs.
  */
 final class ClusterState {
    /**

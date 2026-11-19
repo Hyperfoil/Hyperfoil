@@ -515,24 +515,17 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
    }
 
    /**
-    * The other half of the view-change repair: asks the cluster for the slices we may have just dropped.
+    * This pull operation needs to use the {@link #pendingOps} queue, just like {@link #join} does.
+    * If we do not use this queue, a small update (delta) could arrive faster than the main data (pull response).
+    * If that happens, {@link ClusterState} will think the main data is too old and reject it.
     * <p>
-    * {@link #announceSlice} alone is not enough once {@link ClusterState#purge} leaves a tombstone. A peer that
-    * installs the new view before we install ours announces its slice straight away, and that multicast can
-    * reach us while its owner is still tombstoned here, in which case it is discarded - correctly, since from
-    * our side the sender is not yet a member. Nothing would carry that peer's state to us afterwards: it has
-    * already announced, and it announces again only on the next view change. Pulling after the admits in
-    * {@link #viewAccepted} closes the window from the side that knows the admits have happened.
-    * <p>
-    * Unlike the pull in {@link #join}, this one must not touch {@link #pendingOps}: draining a join's queue here
-    * would apply its deltas before the slice they were queued to follow, and {@link ClusterState} would then
-    * reject that slice as stale. A join already pulls for itself, so there is nothing to add.
+    * Calling {@link #beginPull} creates a new queue only if one does not already exist. If another
+    * pull is already running, this method does nothing (the other pull will handle the updates).
+    * Otherwise, this method creates the queue and keeps it until {@link #completePull} processes everything.
     */
    private void repullState() {
-      synchronized (pullLock) {
-         if (pendingOps != null) {
-            return;
-         }
+      if (!beginPull()) {
+         return;
       }
       pullState(null);
    }
@@ -571,6 +564,15 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
    }
 
    /**
+    * This method is only used for testing. It allows a test to pause the system after receiving data
+    * from peers, but before saving it. This helps test what happens when another data change
+    * ({@link #mutate}) happens at the exact same time. It does nothing in real production.
+    */
+   protected void beforePullResponsesApplied() {
+
+   }
+
+   /**
     * The second half of {@link #pullState}: applies the slices the peers returned, drains whatever queued
     * behind them and releases the join. Always runs on the Vert.x context, never on a JGroups thread.
     */
@@ -585,6 +587,7 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
          }
          Set<String> affected = new HashSet<>();
          if (error == null) {
+            beforePullResponsesApplied();
             // No lock needed here. Any updates arriving while applying slices
             // stay in pendingOps until drainPending() clears the queue.
             for (Map.Entry<Address, Rsp<byte[]>> entry : responses.entrySet()) {
@@ -612,11 +615,16 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       }
    }
 
-   private void beginPull() {
+   /**
+    * @return true if this method created a new queue, or false if a queue was already running (and was not changed).
+    */
+   private boolean beginPull() {
       synchronized (pullLock) {
-         if (pendingOps == null) {
-            pendingOps = new ArrayList<>();
+         if (pendingOps != null) {
+            return false;
          }
+         pendingOps = new ArrayList<>();
+         return true;
       }
    }
 
@@ -686,32 +694,31 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
    }
 
    /**
-    * Stamps a mutation of our own slice with the next version, applies it locally and multicasts it.
+    * Gives a new version number to a data change, saves it locally, and sends it to all other nodes.
     * <p>
-    * All three steps are done under {@link #writeLock}, and that is the whole point of this method. The SPI
-    * places no constraint on who calls {@link #addRegistration} or {@link #removeRegistration}: Vert.x invokes
-    * them inline on whichever thread registered the consumer, so two of them can run at once. Stamping outside
-    * the lock lets the mutation stamped {@code v} be applied after the one stamped {@code v+1}, and
-    * {@link ClusterState} then drops {@code v} as stale - on <em>this</em> node as well as on every peer, so
-    * the registration is gone everywhere and nothing repairs it, because the slice we would announce no longer
-    * contains it either. The send belongs inside the lock for the same reason: NAKACK2 preserves the order
-    * messages were sent in, not the order their versions were allocated in.
+    * We do all three steps inside a single {@link #writeLock}. This is very important. Vert.x can
+    * call this method from different threads at the same time. If we did not use a lock, Thread A and
+    * Thread B could get version numbers 1 and 2, but apply and send them in the wrong order (2, then 1).
+    * {@link ClusterState} would see 1 as "old" data and delete it forever. Keeping the network send
+    * inside the lock guarantees messages are sent in the exact order of their version numbers.
     * <p>
-    * The send is asynchronous, as in {@link #announceSlice}. Waiting for responses would be bookkeeping for an
-    * answer nobody reads: a missing response means a slow peer rather than a lost update, because NAKACK2 keeps
-    * retransmitting the multicast to every member of the view, and a peer that really did miss it - because it
-    * was partitioned away - is repaired by the slice announced on the next view change, not by anything this
-    * method could do. The lock is still held while the message goes down the stack, which MFC can block on when
-    * credits run out; that is acceptable here, these are rare, tiny control messages, one per registration.
+    * This means we send the network message ({@code castMessage}) while holding a process-wide lock.
+    * We chose to use a lock here on purpose. Consumer registrations happen rarely, so waiting for
+    * a lock does not slow down the system. It is much better to use a lock than to risk saving
+    * data in the wrong order.
     * <p>
-    * Failing to hand the message to the transport at all is a different matter and fails {@code completable}.
-    * The mutation is in our local state and has consumed a version by then, but no peer will ever see it and
-    * nothing is scheduled to retry, so the registration is not cluster-wide and reporting success would leave
-    * the caller with a consumer that silently never receives. An absent dispatcher is not a failure: that is a
-    * node that has not joined or has already left, where the local state is all there is.
+    * Sending the message is asynchronous (we do not wait for other nodes to reply). We do not need
+    * to wait because the network layer (NAKACK2) automatically resends messages if they get lost.
+    * If another node is completely disconnected, it will receive the missing data later when the
+    * cluster reorganizes (during a view change).
+    * <p>
+    * However, if our own node fails to push the message to the network layer, we return an error
+    * (fails {@code completable}). If we did not return an error, the caller would think the registration
+    * succeeded, but no other node would ever receive it. (Note: If our node is not connected to a cluster
+    * at all, it is not an error; saving the data locally is enough).
     *
-    * @param mutation applies the mutation to {@link #state} and returns the payload announcing it
-    * @param affected the addresses whose registrations the mutation changes, for the registration listener
+    * @param mutation applies the data change to {@link #state} and returns the message payload to send
+    * @param affected the list of addresses that are changed by this mutation
     */
    private void mutate(LongFunction<byte[]> mutation, Collection<String> affected, Completable<Void> completable) {
       Exception failure = null;
