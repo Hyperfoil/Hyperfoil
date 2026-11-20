@@ -26,9 +26,11 @@ focus on their test scenarios.
 * No CLI interactions: Running the script does not require any CLI interaction, making this scipt
 suitable for further automation.
 
-* Automatic report generation: By adding the `--output <path-to-dir>` option, the script will generate
-and save an HTML report of the test results in the specified directory, making it easy to review
-performance data immediately after the benchmark completes.
+* Automatic report generation: By adding the `--output <path>` option, the script saves the test
+results once the benchmark completes. The format is detected from the file extension: `.html`
+for an HTML report, `.json` for JSON statistics, and `.csv`/`.zip` for a CSV export (always
+packaged as a zip archive). A directory (e.g. `--output /tmp/reports`) or a path without an
+extension falls back to an HTML report.
 
 
 ### Usage
@@ -41,7 +43,8 @@ Usage: run [<options>] <benchmark>
 Load and start a benchmark on Hyperfoil controller server, the argument can be the benchmark definition directly.
 
 Options:
-  -o, --output         Output destination path for the HTML report
+  -o, --output         Output destination path for the statistics (format detected from file extension: .html, .json, or .csv/.zip; CSV output is always packaged inside a .zip archive)
+  -y                   Assume yes for all interactive questions (e.g. overwriting an existing output file)
   --print-stack-trace
   -d, --description    Run description
   -P, --param          Parameters in case the benchmark is a template. Can be set multiple times. Use `-PFOO=` to set the parameter to empty value and `-PFOO` to remove it and use default if available.
@@ -55,7 +58,7 @@ Argument:
 From the unzipped Hyperfoil distribution, you can simply run the script using the following format:
 
 ```
-./distribution/bin/run.sh [-o OUTPUT_DIR] [-PPARAM1=.. -PPARAM2=..] BENCHMARK_FILE
+./distribution/bin/run.sh [-o OUTPUT_PATH] [-PPARAM1=.. -PPARAM2=..] BENCHMARK_FILE
 ```
 
 For instance:

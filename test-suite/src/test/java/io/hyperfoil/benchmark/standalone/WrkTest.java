@@ -19,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.benchmark.BaseWrkBenchmarkTest;
+import io.hyperfoil.benchmark.OutputValidation;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.commands.Wrk2;
 import io.hyperfoil.cli.commands.WrkAbstract;
@@ -26,7 +27,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.model.RequestStats;
 
 @Tag("io.hyperfoil.test.Benchmark")
-// If you need to debug use "-Dio.hyperfoil.controller.log.level=debug" VM option and read the file /tmp/hyperfoil/hyperfoil.local.log
+// If you need to debug use "-Dio.hyperfoil.controller.log.level=debug" VM option and read the file target/hyperfoil/hyperfoil.local.log
 public class WrkTest extends BaseWrkBenchmarkTest {
 
    @Test
@@ -71,13 +72,40 @@ public class WrkTest extends BaseWrkBenchmarkTest {
 
    @Test
    public void testWrkReportOutput(@TempDir Path tempDir) {
-      Path reportFile = tempDir.resolve(UUID.randomUUID() + ".html");
+      testWrk2ReportExportOutput(tempDir, ".html");
+   }
+
+   @Test
+   public void testWrkJsonOutput(@TempDir Path tempDir) throws Exception {
+      Path jsonFile = testWrk2ReportExportOutput(tempDir, ".json");
+      OutputValidation.validateJsonContent(jsonFile);
+   }
+
+   @Test
+   public void testWrkCsvOutput(@TempDir Path tempDir) throws Exception {
+      Path csvFile = testWrk2ReportExportOutput(tempDir, ".csv");
+      OutputValidation.validateCsvZipContent(csvFile, tempDir);
+   }
+
+   @Test
+   public void testWrkZipOutput(@TempDir Path tempDir) throws Exception {
+      Path zipFile = testWrk2ReportExportOutput(tempDir, ".zip");
+      OutputValidation.validateCsvZipContent(zipFile, tempDir);
+   }
+
+   private Path testWrk2ReportExportOutput(@TempDir Path tempDir, String extension) {
+      Path reportFile = tempDir.resolve(UUID.randomUUID() + extension);
       assertFalse(reportFile.toFile().exists());
       Wrk2 cmd = new Wrk2();
       int result = cmd.exec(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "--output",
             reportFile.toString(), "localhost:" + httpServer.actualPort() + "/unpredictable" });
       assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Wrk2 command should succeed.");
-      assertTrue(reportFile.toFile().exists(), "Expected HTML report file to be created at: " + reportFile);
+      if (".csv".equals(extension)) {
+         reportFile = Path.of(reportFile.toString().replace(".csv", ".zip"));
+         assertTrue(reportFile.toString().endsWith(".zip"));
+      }
+      assertTrue(reportFile.toFile().exists(), "Expected " + extension + " report file to be created at: " + reportFile);
+      return reportFile;
    }
 
    @Test
@@ -164,4 +192,5 @@ public class WrkTest extends BaseWrkBenchmarkTest {
       int size = series.size();
       assertTrue(size >= (seconds - 1) && size <= (seconds + 1), "Expected ~" + seconds + " buckets, but got: " + size);
    }
+
 }

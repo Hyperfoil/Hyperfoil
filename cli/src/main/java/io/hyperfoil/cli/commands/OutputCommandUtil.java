@@ -1,0 +1,35 @@
+package io.hyperfoil.cli.commands;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.aesh.command.CommandException;
+
+import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+
+public class OutputCommandUtil {
+
+   public static void executeOutputCommand(HyperfoilCommandInvocation invocation, String output, boolean assumeYes)
+         throws CommandException {
+      if (output != null && !output.isBlank()) {
+         String yesFlag = assumeYes ? "-y " : "";
+         // Extension comes from the file name only, so dots in directory names don't count.
+         String fileName = Path.of(output).getFileName().toString();
+         int dotIndex = fileName.lastIndexOf('.');
+         // A directory or an extensionless name falls back to an HTML report, like on master.
+         String extension = (dotIndex < 0 || Files.isDirectory(Path.of(output))) ? "html" : fileName.substring(dotIndex + 1);
+         if ("html".equalsIgnoreCase(extension)) {
+            invocation.executeSwitchable("report --silent " + yesFlag + "--destination " + output);
+         } else {
+            String destination = output;
+            if ("zip".equalsIgnoreCase(extension)) {
+               extension = "csv";
+            } else if ("csv".equalsIgnoreCase(extension)) {
+               // CSV export is actually a zip archive, save it with the correct extension.
+               destination = destination.substring(0, destination.length() - extension.length()) + "zip";
+            }
+            invocation.executeSwitchable("export " + yesFlag + "-f " + extension + " -d " + destination);
+         }
+      }
+   }
+}
