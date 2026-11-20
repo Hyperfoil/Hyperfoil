@@ -28,7 +28,6 @@ import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.AgentData;
 import io.hyperfoil.api.session.ControllerListener;
@@ -549,24 +548,7 @@ public class SimulationRunner {
    }
 
    private void checkNativeTransportForSubMillisecondTiming() {
-      boolean requiresSubMillisecondPrecision = false;
-      double threshold = 1000.0;
-      for (Phase phase : benchmark.phases()) {
-         if (phase.model instanceof Model.ConstantRate model) {
-            double rate = benchmark.slice(model.usersPerSec, agentId);
-            if (rate > threshold) {
-               requiresSubMillisecondPrecision = true;
-               break;
-            }
-         } else if (phase.model instanceof Model.RampRate model) {
-            double initialRate = benchmark.slice(model.initialUsersPerSec, agentId);
-            double targetRate = benchmark.slice(model.targetUsersPerSec, agentId);
-            if (initialRate > threshold || targetRate > threshold) {
-               requiresSubMillisecondPrecision = true;
-               break;
-            }
-         }
-      }
+      boolean requiresSubMillisecondPrecision = SubMillisecondDetector.requiresSubMillisecondPrecision(benchmark, agentId);
 
       // Warn if sub-millisecond precision is needed but native epoll is not available
       if (requiresSubMillisecondPrecision) {
