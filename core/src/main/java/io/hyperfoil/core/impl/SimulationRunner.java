@@ -168,10 +168,19 @@ public class SimulationRunner {
       jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
       jitterWatchdog.setDaemon(true);
 
-      cpuWatchdog = new CpuWatchdog(errorHandler, () -> instances.values().stream().anyMatch(p -> !p.definition().isWarmup));
+      cpuWatchdog = new CpuWatchdog(errorHandler, this::isCpuWatchdogEnabled);
       cpuWatchdog.start();
 
       log.info("Simulation initialization took {} ms", System.currentTimeMillis() - initSimulationStartTime);
+   }
+
+   boolean isCpuWatchdogEnabled() {
+      // All phases are instantiated up front. Only measured phases that have started and
+      // have not terminated should enable CPU errors, including while their sessions drain.
+      return instances.values().stream().anyMatch(p -> {
+         PhaseInstance.Status status = p.status();
+         return !p.definition().isWarmup && status.isStarted() && !status.isTerminated();
+      });
    }
 
    public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Handler<AsyncResult<Void>> handler) {
