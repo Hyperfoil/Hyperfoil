@@ -74,9 +74,9 @@ public class RepullStateRaceTest extends ClusterManagerTestBase {
 
       // Step 2: Manually delete the owner's data on the peer.
       // The peer now has to download it again to recover the lost data.
-      Object peerState = stateOf(peer);
-      invoke(ClusterState.class, peerState, "purge", new Class<?>[] { String.class }, owner.getNodeId());
-      invoke(ClusterState.class, peerState, "admit", new Class<?>[] { String.class }, owner.getNodeId());
+      ClusterState peerState = peer.state();
+      peerState.purge(owner.getNodeId());
+      peerState.admit(owner.getNodeId());
       assertEquals(Set.of(), Set.copyOf(registrations(peer, FEED)), "Peer dropped owner's state due to tombstone");
 
       // Step 3: Tell the peer to pull the data again.

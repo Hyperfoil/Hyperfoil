@@ -59,16 +59,17 @@ abstract class ClusterManagerTestBase {
     * Each cluster gets its own name so that tests running in the same JVM cannot see each other through
     * SHARED_LOOPBACK's static registry.
     */
-   protected JGroupsClusterManager join(String clusterName, Runnable... afterSliceEncoded) {
-      JGroupsClusterManager manager = newManager(clusterName, afterSliceEncoded);
-      Promise<Void> promise = Promise.promise();
-      manager.join(promise);
-      await(promise.future());
-      return manager;
+   protected JGroupsClusterManager join(String clusterName) {
+      return join(clusterName, null, null);
+   }
+
+   /** Like {@link #join(String)}, but also lets a test pause {@link JGroupsClusterManager#announceSlice}. */
+   protected JGroupsClusterManager join(String clusterName, Runnable afterSliceEncoded) {
+      return join(clusterName, afterSliceEncoded, null);
    }
 
    /**
-    * Like {@link #join(String, Runnable...)}, but also lets a test pause {@link JGroupsClusterManager#completePull}
+    * Like {@link #join(String)}, but also lets a test pause {@link JGroupsClusterManager#completePull}
     * right before it applies the pulled responses, to force a specific interleaving with a concurrent mutation.
     */
    protected JGroupsClusterManager join(String clusterName, Runnable afterSliceEncoded,
@@ -84,23 +85,23 @@ abstract class ClusterManagerTestBase {
     * Creates a new manager without joining the cluster right away.
     * Use this for tests where you need to start the join process manually.
     */
-   protected JGroupsClusterManager newManager(String clusterName, Runnable... afterSliceEncoded) {
-      return newManager(clusterName, afterSliceEncoded.length == 0 ? null : afterSliceEncoded[0], null);
+   protected JGroupsClusterManager newManager(String clusterName) {
+      return newManager(clusterName, null, null);
    }
 
-   /** Like {@link #newManager(String, Runnable...)}, but also wires {@code beforePullResponsesApplied}. */
+   /** Like {@link #newManager(String)}, but also wires {@code afterSliceEncoded} and {@code beforePullResponsesApplied}. */
    protected JGroupsClusterManager newManager(String clusterName, Runnable afterSliceEncoded,
          Runnable beforePullResponsesApplied) {
       JGroupsClusterManager manager = new JGroupsClusterManager(stack(), clusterName) {
          @Override
-         protected void afterSliceEncoded() {
+         void afterSliceEncoded() {
             if (afterSliceEncoded != null) {
                afterSliceEncoded.run();
             }
          }
 
          @Override
-         protected void beforePullResponsesApplied() {
+         void beforePullResponsesApplied() {
             if (beforePullResponsesApplied != null) {
                beforePullResponsesApplied.run();
             }
@@ -203,13 +204,6 @@ abstract class ClusterManagerTestBase {
       awaitTrue(what, () -> Set.copyOf(registrations(manager, address)).equals(expected));
       // Re-assert outside the poll so a failure reports the actual value rather than just "timed out"
       assertEquals(expected, Set.copyOf(registrations(manager, address)), what);
-   }
-
-   /** The manager's package-private {@link ClusterState}, for tests that poke at it directly to simulate a race. */
-   protected static Object stateOf(JGroupsClusterManager manager) throws ReflectiveOperationException {
-      var field = JGroupsClusterManager.class.getDeclaredField("state");
-      field.setAccessible(true);
-      return field.get(manager);
    }
 
    /** Invokes a private method reflectively, for tests that drive internals a race needs (e.g. {@code repullState}). */

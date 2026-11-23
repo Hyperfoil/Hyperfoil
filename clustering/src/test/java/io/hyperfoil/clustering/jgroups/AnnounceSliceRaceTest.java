@@ -75,9 +75,9 @@ public class AnnounceSliceRaceTest extends ClusterManagerTestBase {
 
       // Step 2: Simulate a network partition and reconnect (merge)
       // The peer clears the owner's state. It now depends entirely on announceSlice() to get it back.
-      Object peerState = stateOf(peer);
-      invoke(ClusterState.class, peerState, "purge", new Class<?>[] { String.class }, owner.getNodeId());
-      invoke(ClusterState.class, peerState, "admit", new Class<?>[] { String.class }, owner.getNodeId());
+      ClusterState peerState = peer.state();
+      peerState.purge(owner.getNodeId());
+      peerState.admit(owner.getNodeId());
       assertEquals(Set.of(), Set.copyOf(registrations(peer, FEED)), "Peer dropped owner's state due to partition");
 
       // Enable our hook to pause the announceSlice() method

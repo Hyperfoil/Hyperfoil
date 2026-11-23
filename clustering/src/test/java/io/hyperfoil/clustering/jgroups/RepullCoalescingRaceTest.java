@@ -71,9 +71,9 @@ public class RepullCoalescingRaceTest extends ClusterManagerTestBase {
       assertRegistrations("Peer has X's initial state", peer, FEED, xData);
 
       // Step 2: Manually delete Node X's data on the peer, forcing it to recover it later.
-      Object peerState = stateOf(peer);
-      invoke(ClusterState.class, peerState, "purge", new Class<?>[] { String.class }, x.getNodeId());
-      invoke(ClusterState.class, peerState, "admit", new Class<?>[] { String.class }, x.getNodeId());
+      ClusterState peerState = peer.state();
+      peerState.purge(x.getNodeId());
+      peerState.admit(x.getNodeId());
       assertEquals(Set.of(), Set.copyOf(registrations(peer, FEED)), "Peer dropped X's state due to tombstone");
 
       // Step 3: Block Node X's messages so the peer's first pull won't receive X's data.

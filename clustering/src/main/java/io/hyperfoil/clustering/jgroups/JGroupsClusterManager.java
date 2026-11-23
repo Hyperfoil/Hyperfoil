@@ -143,6 +143,11 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       return channel;
    }
 
+   /** For tests that need to drive {@link ClusterState} directly to simulate a race. */
+   ClusterState state() {
+      return state;
+   }
+
    @Override
    public void init(Vertx vertx) {
       this.vertx = (VertxInternal) vertx;
@@ -529,7 +534,7 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * Lets a test pause between the encode and the send to force a specific interleaving with a
     * concurrent {@link #mutate}. A no-op in production.
     */
-   protected void afterSliceEncoded() {
+   void afterSliceEncoded() {
 
    }
 
@@ -596,7 +601,7 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * from peers, but before saving it. This helps test what happens when another data change
     * ({@link #mutate}) happens at the exact same time. It does nothing in real production.
     */
-   protected void beforePullResponsesApplied() {
+   void beforePullResponsesApplied() {
 
    }
 
