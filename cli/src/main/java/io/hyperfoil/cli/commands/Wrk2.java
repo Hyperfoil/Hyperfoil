@@ -47,10 +47,15 @@ public class Wrk2 extends WrkAbstract {
    }
 
    @CommandDefinition(name = CMD, description = "Runs a workload simulation against one endpoint using the same vm")
-   public class Wrk2Command extends WrkAbstract.AbstractWrkCommand {
+   public static class Wrk2Command extends WrkAbstract.AbstractWrkCommand {
 
       @Option(shortName = 'R', description = "Work rate (throughput)", required = true)
       int rate;
+
+      @Override
+      protected String commandName() {
+         return CMD;
+      }
 
       @Override
       protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, WrkScenario.PhaseType phaseType, long durationMs) {

@@ -87,4 +87,61 @@
         </plugins>
 
     </build>
+
+    <profiles>
+        <!--
+            Builds a GraalVM native executable of the CLI. Not active by default.
+            Requires GraalVM 25+: mvn clean package -Pnative -pl cli -am -DskipTests
+            Output: cli/target/hyperfoil-cli
+        -->
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <!-- Generates compile-time command metadata so aesh does not need reflection -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.kohsuke.metainf-services</groupId>
+                                    <artifactId>metainf-services</artifactId>
+                                    <version>${version.metainf-services}</version>
+                                </path>
+                                <path>
+                                    <groupId>org.aesh</groupId>
+                                    <artifactId>aesh-processor</artifactId>
+                                    <version>${version.aesh}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${version.native.maven.plugin}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>hyperfoil-cli</imageName>
+                            <mainClass>io.hyperfoil.cli.HyperfoilCli</mainClass>
+                            <buildArgs>
+                                <buildArg>--no-fallback</buildArg>
+                                <buildArg>-H:IncludeResources=META-INF/hyperfoil-version\.properties</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

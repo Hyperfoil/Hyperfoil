@@ -1,28 +1,28 @@
 package io.hyperfoil.api;
 
-import java.net.URL;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
+import java.io.InputStream;
+import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 
 public class Version {
+   private static final String VERSION_RESOURCE = "/META-INF/hyperfoil-version.properties";
+
    public static final String VERSION;
    public static final String COMMIT_ID;
 
    static {
       String version = "unknown";
       String commitId = "unknown";
-      try {
-         String classPath = Version.class.getResource(Version.class.getSimpleName() + ".class").toString();
-         if (classPath.startsWith("jar")) {
-            String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) +
-                  "/META-INF/MANIFEST.MF";
-            Manifest manifest = null;
-            manifest = new Manifest(new URL(manifestPath).openStream());
-            Attributes attr = manifest.getMainAttributes();
-            commitId = attr.getValue("Scm-Revision");
-            version = attr.getValue("Implementation-Version");
+
+      try (InputStream is = Version.class.getResourceAsStream(VERSION_RESOURCE)) {
+         if (is != null) {
+            Properties properties = new Properties();
+            properties.load(is);
+            version = properties.getProperty("version", version);
+            commitId = properties.getProperty("commit", commitId);
+         } else {
+            LogManager.getLogger(Version.class).warn("Version resource {} not found", VERSION_RESOURCE);
          }
       } catch (Throwable e) {
          LogManager.getLogger(Version.class).error("Cannot find version info.", e);
