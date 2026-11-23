@@ -63,6 +63,14 @@ public final class CliUtil {
       return resource;
    }
 
+   /**
+    * Outside an interactive terminal (CI, containers, piped input) there is nobody to answer a
+    * prompt, so callers should assume yes
+    */
+   public static boolean hasInteractiveTerminal() {
+      return System.console() != null;
+   }
+
    public static boolean isPortListening(String hostname, int port) {
       try (ServerSocket serverSocket = new ServerSocket()) {
          serverSocket.setReuseAddress(false);

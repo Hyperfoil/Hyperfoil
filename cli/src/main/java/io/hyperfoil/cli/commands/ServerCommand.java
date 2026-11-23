@@ -291,7 +291,15 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
    }
 
    protected boolean readYes(HyperfoilCommandInvocation invocation) throws InterruptedException {
-      switch (invocation.getShell().readLine().trim().toLowerCase()) {
+      if (!CliUtil.hasInteractiveTerminal()) {
+         return true;
+      }
+      String line = invocation.getShell().readLine();
+      // No input available (stdin closed/EOF): treat as "no" instead of crashing.
+      if (line == null) {
+         return false;
+      }
+      switch (line.trim().toLowerCase()) {
          case "y":
          case "yes":
             return true;

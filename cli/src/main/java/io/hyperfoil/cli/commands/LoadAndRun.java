@@ -27,7 +27,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
 
    @Override
    protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
-      return List.of(Upload.class, Wait.class, Stats.class, Report.class);
+      return List.of(Upload.class, Wait.class, Stats.class, Report.class, Export.class);
    }
 
    @Override
@@ -45,7 +45,7 @@ public class LoadAndRun extends BaseStandaloneCommand {
    @CommandDefinition(name = "run", description = "Load and start a benchmark on Hyperfoil controller server, the argument can be the benchmark definition directly.")
    public static class LoadAndRunCommand extends io.hyperfoil.cli.commands.Run {
 
-      @Option(name = "output", shortName = 'o', description = "Output destination path for the HTML report")
+      @Option(name = "output", shortName = 'o', description = "Output destination path for the statistics (format detected from file extension: .html, .json, or .csv/.zip; CSV output is always packaged inside a .zip archive)")
       private String output;
 
       @Option(name = "clustered", description = "Start the local controller in clustered mode. Inferred automatically when the benchmark declares agents.", hasValue = false)
@@ -53,6 +53,9 @@ public class LoadAndRun extends BaseStandaloneCommand {
 
       @Option(name = "print-stack-trace", hasValue = false)
       public boolean printStackTrace;
+
+      @Option(shortName = 'y', description = "Assume yes for all interactive questions (e.g. overwriting an existing output file).", hasValue = false)
+      private boolean assumeYes;
 
       @Override
       protected void setup(HyperfoilCommandInvocation invocation) throws CommandException {
@@ -81,9 +84,10 @@ public class LoadAndRun extends BaseStandaloneCommand {
          invocation.executeSwitchable("wait");
          invocation.executeSwitchable("stats -t");
          if (output != null && !output.isBlank()) {
-            invocation.executeSwitchable("report --silent -y --destination " + output);
+            OutputCommandUtil.executeOutputCommand(invocation, output, assumeYes);
          } else {
-            invocation.println("Run files are in " + runDir(invocation) + ". Use --output to generate an HTML report.");
+            invocation.println(
+                  "Run files are in " + runDir(invocation) + ". Use --output to save an HTML, JSON, or CSV report.");
          }
       }
 
