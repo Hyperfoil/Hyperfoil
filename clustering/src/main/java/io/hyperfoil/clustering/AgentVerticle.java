@@ -248,7 +248,7 @@ public class AgentVerticle extends AbstractVerticle {
    }
 
    private MessageConsumer<Object> listenOnControl() {
-      return eb.consumer(Feeds.CONTROL, message -> {
+      return eb.consumer(Feeds.control(runId), message -> {
          PhaseControlMessage controlMessage = (PhaseControlMessage) message.body();
          if (log.isDebugEnabled()) {
             log.debug("Received command: {}", controlMessage.command());

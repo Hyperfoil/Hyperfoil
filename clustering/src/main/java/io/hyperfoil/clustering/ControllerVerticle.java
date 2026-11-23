@@ -753,20 +753,20 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       for (ControllerPhase phase : run.phases.values()) {
          if (phase.status() == ControllerPhase.Status.RUNNING
                && phase.absoluteStartTime() + phase.definition().duration() <= now) {
-            EventBusSend.publish(eb, Feeds.CONTROL,
+            EventBusSend.publish(eb, Feeds.control(run.id),
                   new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name, null),
                   e -> abortRun(run, "FINISH for phase " + phase.definition().name, e));
             phase.status(run.id, ControllerPhase.Status.FINISHING);
          }
          if (phase.status() == ControllerPhase.Status.FINISHED) {
             if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
-               EventBusSend.publish(eb, Feeds.CONTROL,
+               EventBusSend.publish(eb, Feeds.control(run.id),
                      new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name, null),
                      e -> abortRun(run, "TERMINATE for phase " + phase.definition().name, e));
                phase.status(run.id, ControllerPhase.Status.TERMINATING);
             } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get)
                   .allMatch(p -> p.status().isTerminated())) {
-               EventBusSend.publish(eb, Feeds.CONTROL,
+               EventBusSend.publish(eb, Feeds.control(run.id),
                      new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name, null),
                      e -> abortRun(run, "TRY_TERMINATE for phase " + phase.definition().name, e));
             }
@@ -778,7 +778,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          if (!newGlobalData.isEmpty()) {
             run.newGlobalData = new HashMap<>();
          }
-         EventBusSend.publish(eb, Feeds.CONTROL,
+         EventBusSend.publish(eb, Feeds.control(run.id),
                new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name, newGlobalData),
                e -> abortRun(run, "RUN for phase " + phase.definition().name, e));
          phase.absoluteStartTime(now);
@@ -1079,7 +1079,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   entry.getValue().status(run.id, ControllerPhase.Status.CANCELLED);
                } else {
                   entry.getValue().status(run.id, ControllerPhase.Status.TERMINATING);
-                  eb.publish(Feeds.CONTROL,
+                  eb.publish(Feeds.control(run.id),
                         new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey(), null));
                }
             }
