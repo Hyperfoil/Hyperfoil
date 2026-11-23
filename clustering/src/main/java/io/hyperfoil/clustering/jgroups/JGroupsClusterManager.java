@@ -101,6 +101,19 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * its owner's deltas and so is already ordered against them.
     */
    private List<Supplier<Collection<String>>> pendingOps;
+   /**
+    * Guarded by {@link #pullLock}.
+    * <p>
+    * Set to true by {@link #repullState} if a new pull is requested while another
+    * pull is already running.
+    * <p>
+    * <b>Why we need this:</b> The running pull only asks for data from nodes that
+    * were in the cluster when it started. If a node leaves and quickly rejoins
+    * (a view change), the running pull will miss it. By setting this flag, we tell
+    * {@link #drainPending} to start a fresh pull immediately after the current one
+    * finishes, ensuring we don't miss that node's data.
+    */
+   private boolean repullRequested;
 
    private VertxInternal vertx;
    private ContextInternal context;
@@ -519,15 +532,15 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * If we do not use this queue, a small update (delta) could arrive faster than the main data (pull response).
     * If that happens, {@link ClusterState} will think the main data is too old and reject it.
     * <p>
-    * Calling {@link #beginPull} creates a new queue only if one does not already exist. If another
-    * pull is already running, this method does nothing (the other pull will handle the updates).
-    * Otherwise, this method creates the queue and keeps it until {@link #completePull} processes everything.
+    * If a pull is already running, this method records that another pull is needed.
+    * When the active pull finishes, {@link #drainPending} starts the new pull.
+    * This ensures we receive data from any nodes that joined the cluster after the
+    * first pull started.
     */
    private void repullState() {
-      if (!beginPull()) {
-         return;
+      if (beginPullOrRequestRepull()) {
+         pullState(null);
       }
-      pullState(null);
    }
 
    // ----------------------------------------------------------- plumbing
@@ -628,24 +641,50 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
       }
    }
 
-   /** Applies whatever accumulated while the pull was in flight and stops queueing. Caller holds {@link #pullLock}. */
-   private Set<String> endPull() {
-      List<Supplier<Collection<String>>> queued = pendingOps;
-      pendingOps = null;
-      if (queued == null) {
-         return Collections.emptySet();
+   /**
+    * Works like {@link #beginPull}, but for repulls. If a pull is already running,
+    * this method sets a flag. Later, {@link #drainPending} checks this flag to start
+    * a new pull when the active one finishes.
+    *
+    * @return true if a new pull started. The caller must then run {@link #pullState}.
+    */
+   private boolean beginPullOrRequestRepull() {
+      synchronized (pullLock) {
+         if (pendingOps != null) {
+            repullRequested = true;
+            return false;
+         }
+         pendingOps = new ArrayList<>();
+         return true;
       }
-      Set<String> affected = new HashSet<>();
-      for (Supplier<Collection<String>> op : queued) {
-         affected.addAll(op.get());
-      }
-      return affected;
    }
 
+   /**
+    * Processes all updates saved in the queue during the active pull.
+    * If no new pull is requested, it stops queueing.
+    *
+    * If a new pull is requested, it creates a new queue immediately. This keeps
+    * {@link #pendingOps} active so other threads see that a pull is still running.
+    * Finally, it signals the caller to start the new pull after releasing the {@link #pullLock}.
+    */
    private Set<String> drainPending() {
+      Set<String> affected = new HashSet<>();
+      boolean repull;
       synchronized (pullLock) {
-         return endPull();
+         List<Supplier<Collection<String>>> queued = pendingOps;
+         repull = repullRequested;
+         repullRequested = false;
+         pendingOps = repull ? new ArrayList<>() : null;
+         if (queued != null) {
+            for (Supplier<Collection<String>> op : queued) {
+               affected.addAll(op.get());
+            }
+         }
       }
+      if (repull) {
+         pullState(null);
+      }
+      return affected;
    }
 
    private void applyOrQueue(Supplier<Collection<String>> op) {
