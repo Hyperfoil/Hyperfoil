@@ -1,0 +1,114 @@
+name: ollama-conversation
+
+http:
+  host: localhost
+  port: 11434
+  requestTimeout: 180s
+
+phases:
+- conversation:
+    atOnce:
+      users: 1
+      scenario:
+      - multi-turn:
+        # First turn: Ask initial question with system message
+        - httpRequest:
+            POST: /v1/chat/completions
+            headers:
+              Content-Type: application/json
+              Accept: text/event-stream
+            body: |
+              {
+                "model": "granite4.2:3b",
+                "messages": [
+                  { "role": "system", "content": "You are a helpful physics teacher. Explain concepts clearly and concisely." },
+                  { "role": "user", "content": "Why is the sky blue?" }
+                ],
+                "stream": true
+              }
+            handler:
+              status:
+                range: 2xx
+              body:
+                sseJsonExtractor:
+                  path: choices[0].delta.content
+                  toVar: firstResponseContent
+            sync: true
+
+        - log: 'Turn 1 completed - Question: Why is the sky blue?'
+        - log: 'Extracted first response: ${firstResponseContent}'
+
+        # Escape the extracted content for safe JSON embedding
+        - jsonStringEscaper:
+            fromVar: firstResponseContent
+            toVar: firstResponseContentEscaped
+
+        - log: 'Escaped content prepared for next request'
+        - log: 'Escaped content: ${firstResponseContentEscaped}'
+
+        # Second turn using the escaped extracted content
+        - httpRequest:
+            POST: /v1/chat/completions
+            headers:
+              Content-Type: application/json
+              Accept: text/event-stream
+            body: |
+              {
+                "model": "granite4.2:3b",
+                "messages": [
+                  { "role": "system", "content": "You are a helpful physics teacher. Explain concepts clearly and concisely." },
+                  { "role": "user", "content": "Why is the sky blue?" },
+                  { "role": "assistant", "content": "${firstResponseContentEscaped}" },
+                  { "role": "user", "content": "What happens to the color of the sky during sunset?" }
+                ],
+                "stream": true
+              }
+            handler:
+              status:
+                range: 2xx
+              body:
+                sseJsonExtractor:
+                  path: choices[0].delta.content
+                  toVar: secondResponseContent
+            sync: true
+
+        - log: 'Turn 2 completed - Follow-up: What happens during sunset?'
+        - log: 'Extracted second response: ${secondResponseContent}'
+
+        # Escape the second response for safe JSON embedding
+        - jsonStringEscaper:
+            fromVar: secondResponseContent
+            toVar: secondResponseContentEscaped
+
+        - log: 'Escaped second response prepared for next request'
+
+        # Third turn using the escaped second response
+        - httpRequest:
+            POST: /v1/chat/completions
+            headers:
+              Content-Type: application/json
+              Accept: text/event-stream
+            body: |
+              {
+                "model": "granite4.2:3b",
+                "messages": [
+                  { "role": "system", "content": "You are a helpful physics teacher. Explain concepts clearly and concisely." },
+                  { "role": "user", "content": "Why is the sky blue?" },
+                  { "role": "assistant", "content": "${firstResponseContentEscaped}" },
+                  { "role": "user", "content": "What happens to the color of the sky during sunset?" },
+                  { "role": "assistant", "content": "${secondResponseContentEscaped}" },
+                  { "role": "user", "content": "Can clouds affect these colors?" }
+                ],
+                "stream": true
+              }
+            handler:
+              status:
+                range: 2xx
+              body:
+                sseJsonExtractor:
+                  path: choices[0].delta.content
+                  toVar: thirdResponseContent
+            sync: true
+
+        - log: 'Turn 3 completed - Follow-up: Can clouds affect these colors?'
+        - log: 'Extracted third response: ${thirdResponseContent}'
