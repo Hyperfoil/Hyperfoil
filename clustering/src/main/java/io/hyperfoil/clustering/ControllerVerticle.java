@@ -890,8 +890,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       // Vert.x assigns a worker thread from its background pool to run the lambda
       vertx.executeBlocking(() -> {
          // The deployer calls back from its own thread; run.errors and agent statuses are event-loop only.
+         // Use this verticle's own context (not vertx.runOnContext): the deployer's thread is unknown to
+         // Vert.x, so vertx.runOnContext would create a fresh context on an event loop chosen from the
+         // calling thread's id, not this verticle's own event loop, and race on the shared run/agent state.
          agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark,
-               exception -> vertx.runOnContext(nil -> {
+               exception -> context.runOnContext(nil -> {
                   if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
                      run.errors.add(new Run.Error(agentInfo,
                            new BenchmarkExecutionException("Failed to deploy agent", exception)));

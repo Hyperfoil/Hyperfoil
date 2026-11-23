@@ -2,6 +2,7 @@ package io.hyperfoil.clustering;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
@@ -170,12 +171,12 @@ public class ControllerLifecycleTest {
 
    /**
     * Deployments happen on background worker threads, but controller state (like 'run.errors')
-    * must only be modified on the Vert.x event loop to avoid race conditions.
+    * must only be modified on the controller's own pinned context to avoid race conditions.
     *
-    * This test ensures that if a deployment fails, the background thread doesn't modify
-    * the controller state directly. We prove this by triggering an error from a custom
-    * background thread and verifying that the error isn't added instantly, but is instead
-    * safely scheduled for the event loop to handle shortly after.
+    * A foreign thread calling {@code vertx.runOnContext(...)} would get a context picked from that
+    * thread's identity, which can land on a different event loop than the controller's. So it is not
+    * enough to check that the failure is applied on "an" event loop: we record the exact
+    * {@link Context} the failure is applied on and compare it against {@code controller.context()}.
     */
    @Test
    public void shouldApplyADeployerFailureOnTheEventLoop(@TempDir Path dir) throws Exception {
@@ -187,6 +188,14 @@ public class ControllerLifecycleTest {
          return () -> {
          };
       });
+      AtomicReference<Context> stoppedOnContext = new AtomicReference<>();
+      controller = new CountingController() {
+         @Override
+         void stopSimulation(Run run) {
+            stoppedOnContext.set(Vertx.currentContext());
+            super.stopSimulation(run);
+         }
+      };
       controller.init(vertx, vertx.getOrCreateContext());
       controller.setDeployer(deployer);
       Run run = runWithAgents(dir, AgentInfo.Status.STARTING);
@@ -194,36 +203,33 @@ public class ControllerLifecycleTest {
       runOnContextAndWait(() -> controller.deployAgent(run, run.agents.get(0), AGENT));
       assertTrue(handlerReady.await(TIMEOUT_MS, TimeUnit.MILLISECONDS), "deployer was never called");
 
-      // Call it from a thread that is not the event loop, which is what a deployer does, and have that same
-      // thread report what it saw. Reading run.errors from here instead would race the event loop, which is
-      // free to have applied the failure already by the time join() returns.
-      AtomicBoolean appliedOnCallerThread = new AtomicBoolean();
-      Thread caller = new Thread(() -> {
-         captured.get().accept(new RuntimeException("agent process died"));
-         appliedOnCallerThread.set(!run.errors.isEmpty());
-      });
+      // Call it from a thread that is not the event loop, which is what a deployer does.
+      Thread caller = new Thread(() -> captured.get().accept(new RuntimeException("agent process died")));
       caller.start();
       caller.join(TIMEOUT_MS);
 
-      assertFalse(appliedOnCallerThread.get(),
-            "the failure must be applied on the event loop, not on the deployer's thread");
       awaitOnEventLoop("the failure to be applied", () -> !run.errors.isEmpty());
       assertEquals("Failed to deploy agent", run.errors.get(0).error.getMessage());
+      assertSame(controller.context(), stoppedOnContext.get(),
+            "the failure must be applied on the controller's own pinned context, not an arbitrary event loop");
    }
 
    /**
     * The cluster manager reports a node leaving from its own notification thread, not from the event loop.
     * The handler changes {@code agent.status} and {@code run.errors} and calls {@code stopSimulation}, which are
-    * all event-loop-only state, so it must hop onto the event loop before doing so.
+    * all event-loop-only state, so it must hop onto the controller's own pinned context before doing so.
+    *
+    * {@code Context.isOnEventLoopThread()} alone would not catch a handler landing on the wrong event loop
+    * (any loop makes it true), so we compare the exact {@link Context} against {@code recording.context()}.
     */
    @Test
    public void shouldHandleNodeLeftOnTheEventLoop(@TempDir Path dir) throws Exception {
-      AtomicBoolean onEventLoop = new AtomicBoolean();
+      AtomicReference<Context> stoppedOnContext = new AtomicReference<>();
       CountDownLatch stopped = new CountDownLatch(1);
       CountingController recording = new CountingController() {
          @Override
          void stopSimulation(Run run) {
-            onEventLoop.set(Context.isOnEventLoopThread());
+            stoppedOnContext.set(Vertx.currentContext());
             stopped.countDown();
             super.stopSimulation(run);
          }
@@ -238,7 +244,8 @@ public class ControllerLifecycleTest {
       clusterThread.join(TIMEOUT_MS);
 
       assertTrue(stopped.await(TIMEOUT_MS, TimeUnit.MILLISECONDS), "the run was never stopped");
-      assertTrue(onEventLoop.get(), "nodeLeft must stop the run on the event loop, not on the cluster manager's thread");
+      assertSame(recording.context(), stoppedOnContext.get(),
+            "nodeLeft must stop the run on the controller's own pinned context, not an arbitrary event loop");
       awaitOnEventLoop("the error to be recorded", () -> !run.errors.isEmpty());
       assertEquals("Agent unexpectedly left the cluster.", run.errors.get(0).error.getMessage());
    }
@@ -297,6 +304,11 @@ public class ControllerLifecycleTest {
       void persistRun(Run run) {
          persisted.incrementAndGet();
          run.persisted = true;
+      }
+
+      /** The verticle's own pinned context, the one every foreign-thread callback hops onto. */
+      Context context() {
+         return context;
       }
    }
 
