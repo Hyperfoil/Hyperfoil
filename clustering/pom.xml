@@ -137,6 +137,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <excludedGroups>${junit.excluded.categories}</excludedGroups>
+                    <systemPropertyVariables>
+                        <!-- Controller.ROOT_DIR and its derived paths are read once, when the class is loaded. -->
+                        <io.hyperfoil.rootdir>${project.build.directory}/hyperfoil</io.hyperfoil.rootdir>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
 
