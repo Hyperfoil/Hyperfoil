@@ -15,11 +15,14 @@ public class OutputCommandUtil {
       if (output != null && !output.isBlank()) {
          boolean effectiveAssumeYes = assumeYes || !CliUtil.hasInteractiveTerminal();
          String yesFlag = effectiveAssumeYes ? "-y " : "";
+         Path outputPath = Path.of(output);
          // Extension comes from the file name only, so dots in directory names don't count.
-         String fileName = Path.of(output).getFileName().toString();
+         // getFileName() is null for a root path (e.g. "/"), which has no file name to parse.
+         Path fileNamePath = outputPath.getFileName();
+         String fileName = fileNamePath == null ? "" : fileNamePath.toString();
          int dotIndex = fileName.lastIndexOf('.');
          // A directory or an extensionless name falls back to an HTML report, like on master.
-         String extension = (dotIndex < 0 || Files.isDirectory(Path.of(output))) ? "html" : fileName.substring(dotIndex + 1);
+         String extension = (dotIndex < 0 || Files.isDirectory(outputPath)) ? "html" : fileName.substring(dotIndex + 1);
          // Any extension that isn't a recognized export format also falls back to HTML,
          // instead of forwarding it to export and failing with "Unknown format".
          if (!"html".equalsIgnoreCase(extension) && !"json".equalsIgnoreCase(extension)
