@@ -81,25 +81,22 @@ public class ExportTest {
    }
 
    @Test
-   public void promptingWithoutATerminalDoesNotCrash(@TempDir Path dir) throws Exception {
+   public void promptingWithoutATerminalAssumesYesAndOverwrites(@TempDir Path dir) throws Exception {
       // Non-interactive run (e.g. CI, no TTY) where the destination file already exists.
-      // Shell.readLine() returns null (no input available) in that case; readYes() must
-      // treat it as "no" instead of crashing with NullPointerException.
+      // Nobody can answer an overwrite prompt there, so readYes() must assume yes instead
+      // of crashing (NullPointerException) or silently keeping the old file (exit 0, stale data).
       Path existing = dir.resolve("testrun.json");
-      byte[] originalContent = { 9 };
-      Files.write(existing, originalContent);
+      Files.write(existing, new byte[] { 9 });
 
       Export export = newExport(existing.toString(), false);
       Client.RunRef runRef = mockRunRef();
       HyperfoilCliContext ctx = mockConnectedContext(runRef);
-      Shell shell = mock(Shell.class);
-      when(shell.readLine()).thenReturn(null);
-      HyperfoilCommandInvocation invocation = mockInvocation(ctx, shell);
+      HyperfoilCommandInvocation invocation = mockInvocation(ctx, mock(Shell.class));
 
       CommandResult result = export.execute(invocation);
 
       assertEquals(CommandResult.SUCCESS, result);
-      assertArrayEquals(originalContent, Files.readAllBytes(existing), "Existing file must not be overwritten");
+      assertArrayEquals(new byte[] { 1, 2, 3 }, Files.readAllBytes(existing), "Existing file must be overwritten");
    }
 
    @Test

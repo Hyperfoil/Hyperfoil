@@ -5,6 +5,7 @@ import java.nio.file.Path;
 
 import org.aesh.command.CommandException;
 
+import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 
 public class OutputCommandUtil {
@@ -12,7 +13,8 @@ public class OutputCommandUtil {
    public static void executeOutputCommand(HyperfoilCommandInvocation invocation, String output, boolean assumeYes)
          throws CommandException {
       if (output != null && !output.isBlank()) {
-         String yesFlag = assumeYes ? "-y " : "";
+         boolean effectiveAssumeYes = assumeYes || !CliUtil.hasInteractiveTerminal();
+         String yesFlag = effectiveAssumeYes ? "-y " : "";
          // Extension comes from the file name only, so dots in directory names don't count.
          String fileName = Path.of(output).getFileName().toString();
          int dotIndex = fileName.lastIndexOf('.');
