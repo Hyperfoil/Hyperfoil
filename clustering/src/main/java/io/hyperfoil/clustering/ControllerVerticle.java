@@ -1079,8 +1079,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   entry.getValue().status(run.id, ControllerPhase.Status.CANCELLED);
                } else {
                   entry.getValue().status(run.id, ControllerPhase.Status.TERMINATING);
-                  eb.publish(Feeds.control(run.id),
-                        new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey(), null));
+                  EventBusSend.publish(eb, Feeds.control(run.id),
+                        new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey(), null),
+                        e -> abortRun(run, "TERMINATE for phase " + entry.getKey(), e));
                }
             }
          }
