@@ -32,6 +32,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    protected boolean forceIterations = false;
    protected List<PhaseForkBuilder> forks = new ArrayList<>();
    protected boolean isWarmup = false;
+   protected boolean releaseSessions = false;
    protected Map<String, List<SLABuilder<PB>>> customSlas = new HashMap<>();
    protected PhaseReferenceDelay startWith;
 
@@ -46,7 +47,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          Collection<String> terminateAfterStrict) {
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], 0, 0);
       return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict,
-            terminateAfterStrict, duration, duration, null, true, new Model.Noop(), Collections.emptyMap(), null);
+            terminateAfterStrict, duration, duration, null, true, false, new Model.Noop(), Collections.emptyMap(), null);
    }
 
    public BenchmarkBuilder endPhase() {
@@ -196,7 +197,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
             iterationStartTime(iteration), iterationReferences(startAfter, iteration, false),
             iterationReferences(startAfterStrict, iteration, true),
             iterationReferences(terminateAfterStrict, iteration, false), duration, maxDuration,
-            sharedResources(f), isWarmup, createModel(iteration, f.weight),
+            sharedResources(f), isWarmup, releaseSessions, createModel(iteration, f.weight),
             Collections.unmodifiableMap(customSlas.entrySet().stream().collect(customSlaCollector)),
             iterationStartWith(startWith, iteration));
    }
@@ -320,6 +321,20 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    public PB isWarmup(boolean isWarmup) {
       this.isWarmup = isWarmup;
+      return self();
+   }
+
+   /**
+    * Destroy the sessions of this phase and run a full GC once it terminates, before the phases starting strictly after
+    * it ({@link #startAfterStrict(String)}) start, so that they neither stay in the heap nor are collected while those
+    * phases run. Ignored (with a warning) unless every phase not terminated yet starts strictly after this one and none
+    * of them uses its sessions (as the next iteration of this phase would). Not available in YAML.
+    *
+    * @param releaseSessions whether to release the sessions; {@code false} by default
+    * @return this builder
+    */
+   public PB releaseSessions(boolean releaseSessions) {
+      this.releaseSessions = releaseSessions;
       return self();
    }
 

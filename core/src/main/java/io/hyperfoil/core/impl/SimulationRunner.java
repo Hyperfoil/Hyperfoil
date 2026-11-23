@@ -8,13 +8,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -81,6 +84,8 @@ public class SimulationRunner {
    private CpuWatchdog cpuWatchdog;
    private final GlobalDataImpl[] globalData;
    private final GlobalDataImpl.Collector globalCollector = new GlobalDataImpl.Collector();
+   // bumped when releaseSessions() starts and ends its GC, whose pause the jitter watchdog must not report
+   private final AtomicLong explicitGcEpoch = new AtomicLong();
 
    private final Runnable noAction = () -> {
    };
@@ -193,6 +198,7 @@ public class SimulationRunner {
       long period = Properties.getLong(Properties.JITTER_WATCHDOG_PERIOD, 50);
       long threshold = Properties.getLong(Properties.JITTER_WATCHDOG_THRESHOLD, 100);
       long lastTimestamp = System.nanoTime();
+      long lastEpoch = explicitGcEpoch.get();
       while (true) {
          try {
             Thread.sleep(period);
@@ -202,7 +208,8 @@ public class SimulationRunner {
          }
          long currentTimestamp = System.nanoTime();
          long delay = TimeUnit.NANOSECONDS.toMillis(currentTimestamp - lastTimestamp);
-         if (delay > threshold) {
+         long epoch = explicitGcEpoch.get();
+         if (delay > threshold && epoch == lastEpoch && (epoch & 1) == 0) {
             String message = String.format(
                   "%s | Jitter watchdog was not invoked for %d ms (threshold is %d ms); please check your GC settings.",
                   new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), delay, threshold);
@@ -210,6 +217,7 @@ public class SimulationRunner {
             errorHandler.accept(new BenchmarkExecutionException(message));
          }
          lastTimestamp = currentTimestamp;
+         lastEpoch = epoch;
       }
    }
 
@@ -224,7 +232,11 @@ public class SimulationRunner {
          }
       }
       if (status == PhaseInstance.Status.TERMINATED) {
-         phaseChangedFuture = completePhase(phase)
+         phaseChangedFuture = completePhase(phase);
+         if (phase.releaseSessions) {
+            phaseChangedFuture = phaseChangedFuture.thenCompose(nil -> releaseSessions(phase));
+         }
+         phaseChangedFuture = phaseChangedFuture
                .whenComplete((nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded,
                      error != null ? error : e, globalCollector.extract()));
       } else {
@@ -236,6 +248,53 @@ public class SimulationRunner {
 
    protected Runnable onPhaseChanged(Phase phase, PhaseInstance.Status status) {
       return noAction;
+   }
+
+   /**
+    * Releases the sessions of a phase that {@link Phase#releaseSessions() asks for it}: they are destroyed and collected
+    * before its termination is reported, i.e. before the controller starts the phases waiting strictly for it. Skipped
+    * unless every other phase not terminated yet waits strictly for it (so none is running nor can start meanwhile) and
+    * does not use these sessions (the next iteration of this phase).
+    */
+   private CompletableFuture<Void> releaseSessions(Phase phase) {
+      for (PhaseInstance other : instances.values()) {
+         Phase def = other.definition();
+         if (def != phase && !other.status().isTerminated()
+               && (Objects.equals(def.sharedResources, phase.sharedResources)
+                     || !def.startAfterStrict().contains(phase.name))) {
+            log.warn("Not releasing the sessions of phase {}: phase {} ({}) uses them or does not start strictly after it",
+                  phase.name, def.name, other.status());
+            return Util.COMPLETED_VOID_FUTURE;
+         }
+      }
+      SharedResources resources = sharedResources.get(phase.sharedResources);
+      if (resources == null || resources.sessions == null) {
+         return Util.COMPLETED_VOID_FUTURE;
+      }
+      // off the event loop: System.gc() blocks
+      return CompletableFuture.runAsync(() -> {
+         destroySessions(phase, resources);
+         explicitGcEpoch.incrementAndGet();
+         try {
+            runGC();
+         } finally {
+            explicitGcEpoch.incrementAndGet();
+         }
+      });
+   }
+
+   // not inlined in releaseSessions(): no local variable must reference the sessions during runGC()
+   private void destroySessions(Phase phase, SharedResources resources) {
+      List<Session> released;
+      synchronized (sessions) {
+         released = new ArrayList<>(resources.sessions);
+         resources.sessions.clear();
+         // sessions do not override equals()
+         sessions.removeAll(new HashSet<>(released));
+      }
+      resources.sessionPool.clear();
+      released.forEach(SessionFactory::destroy);
+      log.info("Released {} sessions of phase {}", released.size(), phase.name);
    }
 
    private CompletableFuture<Void> completePhase(Phase phase) {
@@ -596,7 +655,7 @@ public class SimulationRunner {
       static final SharedResources NONE = new SharedResources(0);
 
       PhaseInstance currentPhase;
-      ElasticPool<Session> sessionPool;
+      AffinityAwareSessionPool sessionPool;
       List<Session> sessions;
       SessionStatistics[] statistics;
 

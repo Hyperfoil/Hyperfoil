@@ -33,13 +33,16 @@ public final class Phase implements Serializable {
    public final String sharedResources;
    public final Model model;
    public final boolean isWarmup;
+   // not a YAML property, hence not printed with the benchmark
+   @Visitor.Ignore
+   public final boolean releaseSessions;
    public final Map<String, SLA[]> customSlas;
    public final StartWithDelay startWithDelay;
 
    public Phase(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario,
          long startTime, Collection<String> startAfter, Collection<String> startAfterStrict,
          Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, boolean isWarmup,
-         Model model, Map<String, SLA[]> customSlas, StartWithDelay startWithDelay) {
+         boolean releaseSessions, Model model, Map<String, SLA[]> customSlas, StartWithDelay startWithDelay) {
       this.benchmark = benchmark;
       this.id = id;
       this.iteration = iteration;
@@ -53,6 +56,7 @@ public final class Phase implements Serializable {
       this.duration = duration;
       this.sharedResources = sharedResources;
       this.isWarmup = isWarmup;
+      this.releaseSessions = releaseSessions;
       this.model = model;
       this.customSlas = customSlas;
       this.startWithDelay = startWithDelay;
@@ -116,6 +120,15 @@ public final class Phase implements Serializable {
     */
    public long maxDuration() {
       return maxDuration;
+   }
+
+   /**
+    * @return Whether the sessions of this phase are destroyed and garbage collected once it terminates, before the
+    *         phases starting strictly after it start.
+    * @see PhaseBuilder#releaseSessions(boolean)
+    */
+   public boolean releaseSessions() {
+      return releaseSessions;
    }
 
    public Benchmark benchmark() {

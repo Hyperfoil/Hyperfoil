@@ -166,12 +166,19 @@ public class LocalSimulationRunner extends SimulationRunner {
       return instances.values().stream().filter(phase -> phase.status() == PhaseInstance.Status.NOT_STARTED &&
             startTime + phase.definition().startTime() <= System.currentTimeMillis() &&
             phase.definition().startAfter().stream().allMatch(dep -> instances.get(dep).status().isFinished()) &&
-            phase.definition().startAfterStrict().stream().allMatch(dep -> instances.get(dep).status().isTerminated()) &&
+            phase.definition().startAfterStrict().stream().allMatch(dep -> isTerminated(instances.get(dep))) &&
             (phase.definition().startWithDelay() == null ||
                   instances.get(phase.definition().startWithDelay().phase).status().isStarted() &&
                         instances.get(phase.definition().startWithDelay().phase).absoluteStartTime()
                               + phase.definition().startWithDelay().delay <= System.currentTimeMillis()))
             .toArray(PhaseInstance[]::new);
+   }
+
+   // A phase releasing its sessions is terminated for the controller only once they are collected
+   // (see SimulationRunner.releaseSessions()), before onPhaseChanged() sets STATS_COMPLETE.
+   private static boolean isTerminated(PhaseInstance phase) {
+      return phase.definition().releaseSessions ? phase.status() == PhaseInstance.Status.STATS_COMPLETE
+            : phase.status().isTerminated();
    }
 
    /**
