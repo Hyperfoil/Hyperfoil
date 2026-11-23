@@ -205,17 +205,18 @@ public class JGroupsChaosTest extends ClusterManagerTestBase {
    /**
     * In the standard {@link #shouldConvergeUnder} tests, all nodes join the cluster before anyone starts writing data.
     * Because of this, a new node joining never overlaps with live data updates.
-    * This means the {@code pendingOps} queue is never used in those tests.
     * <p>
-    * This test is different. It makes a new node join <i>while</i> other nodes are actively writing data.
+    * This test is different. It makes a new node join <i>while</i> other nodes are actively writing data, under
+    * the {@code DELAY} fault, so the join's own state pull overlaps real, concurrently arriving deltas from its
+    * peers - not an artificially paused one, with real threads and real network delay.
     * <p>
-    * We use the {@code DELAY} fault here on purpose. It makes the network slow, which stretches the time
-    * it takes for the new node to download the full state. This creates a longer window of time for small
-    * data updates (deltas) to arrive during the download, forcing the system to use the {@code pendingOps} queue.
-    * <p>
-    * Other tests (like {@link AnnounceSliceRaceTest}, {@link RepullStateRaceTest}, and {@link JoinPullRaceTest})
-    * test this exact timing by artificially pausing the code. This test proves the queue works in a
-    * real-world scenario, with actual network delays and real threads writing at the same time.
+    * This is a real-world stability check, not a deterministic reproduction of the {@code pendingOps} race:
+    * measuring the queue at drain shows it empty in every run, so this test does not reliably exercise it (a
+    * timing window this test does not control decides that). The exact queueing races are covered
+    * deterministically, by pausing the code at the right moment, in {@link AnnounceSliceRaceTest},
+    * {@link RepullStateRaceTest}, {@link JoinPullRaceTest} and {@link RepullCoalescingRaceTest}. What this test
+    * does guarantee is that a join overlapping a live, faulted workload still converges to the correct final
+    * state end to end.
     */
    @Test
    public void shouldConvergeWhenNodeJoinsMidWorkloadUnderDelay() throws Exception {
