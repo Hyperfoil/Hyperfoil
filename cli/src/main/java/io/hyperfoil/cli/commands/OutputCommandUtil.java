@@ -18,6 +18,12 @@ public class OutputCommandUtil {
          int dotIndex = fileName.lastIndexOf('.');
          // A directory or an extensionless name falls back to an HTML report, like on master.
          String extension = (dotIndex < 0 || Files.isDirectory(Path.of(output))) ? "html" : fileName.substring(dotIndex + 1);
+         // Any extension that isn't a recognized export format also falls back to HTML,
+         // instead of forwarding it to export and failing with "Unknown format".
+         if (!"html".equalsIgnoreCase(extension) && !"json".equalsIgnoreCase(extension)
+               && !"csv".equalsIgnoreCase(extension) && !"zip".equalsIgnoreCase(extension)) {
+            extension = "html";
+         }
          if ("html".equalsIgnoreCase(extension)) {
             invocation.executeSwitchable("report --silent " + yesFlag + "--destination " + output);
          } else {

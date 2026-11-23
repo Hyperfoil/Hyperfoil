@@ -115,6 +115,18 @@ public class RunTest extends BaseBenchmarkTest {
    }
 
    @Test
+   public void testRunOutputWithUnrecognizedExtensionGeneratesHtmlReport(@TempDir Path tempDir) {
+      // An extension that isn't .html/.json/.csv/.zip should fall back to HTML
+      String benchmark = getBenchmarkPath("scenarios/httpRequestParameterized.hf.yaml");
+      Path outputFile = tempDir.resolve("report.txt");
+      LoadAndRun cmd = new LoadAndRun();
+      int result = cmd.exec(new String[] { benchmark, "-PSERVER_PORT=" + httpServer.actualPort(), "--output",
+            outputFile.toString() });
+      assertEquals(CommandResult.SUCCESS.getResultValue(), result, "Run command should succeed.");
+      assertTrue(outputFile.toFile().exists(), "Expected HTML report to be created at: " + outputFile);
+   }
+
+   @Test
    public void testRunOutputWithoutExtensionGeneratesHtmlReport(@TempDir Path tempDir) {
       // --output pointing at a file name with no extension should fall back to HTML,
       // not fail with a confusing "Unknown format" error.
