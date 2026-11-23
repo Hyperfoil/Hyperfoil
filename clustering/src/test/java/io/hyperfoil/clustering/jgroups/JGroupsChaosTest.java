@@ -55,9 +55,9 @@ import io.vertx.core.spi.cluster.RegistrationInfo;
  * <li><b>Testing realistic chaos:</b> By putting faults below NAKACK2, we test what happens
  * on a real network. We prove that the system stays stable even if the raw network loses,
  * duplicates, or reorders messages.</li>
- * <li><b>Breaking the rules:</b> If we put faults <i>above</i> NAKACK2, the tests would fail.
- * This is not a bug in our code. It fails because it breaks the strict message order that our
- * design requires.</li>
+ * <li><b>Breaking the rules:</b> Putting faults <i>above</i> NAKACK2 is expected to fail these tests -
+ * not a run we have measured, but a direct consequence of the strict message order that our
+ * design requires and that NAKACK2 is what provides.</li>
  * </ul>
  * <p>
  * Because NAKACK2 already prevents out-of-order and duplicate messages, these chaos tests
@@ -104,8 +104,9 @@ public class JGroupsChaosTest extends ClusterManagerTestBase {
 
             // Simulates messages arriving in the wrong order.
             // The network layer must fix the order before our application sees them.
-            // We set 'maxTime' to 100ms so the test does not get stuck waiting
-            // for the SHUFFLE buffer to fill up.
+            // maxTime is what flushes a buffer that would otherwise never fill on its own; the 1500ms
+            // default would hold the tail of every burst long enough to dominate the run, so we set it
+            // to 100ms instead.
             Arguments.of("reorder", protocolFault(
                   () -> new SHUFFLE().setUp(true).setDown(true).setMaxSize(4).setMaxTime(100))));
    }
@@ -335,11 +336,12 @@ public class JGroupsChaosTest extends ClusterManagerTestBase {
                   shuffle.flush(true);
                }
             }
-            // Some protocols (like DELAY) use a background thread to deliver messages.
-            // We must pause for a short time (200ms) to let these threads finish their work.
-            // If we remove the protocol while it is still trying to send a message, it breaks
-            // the network links and causes errors in the log.
-            // (The system would safely resend the lost message anyway, but we want to avoid messy log errors).
+            // DELAY's handler thread does not finish here, or ever: in this JGroups version it runs an
+            // unconditional loop around a non-blocking drain and keeps spinning even after destroy(). This
+            // sleep only reduces the odds of unlinking the protocol from the stack while it is still mid
+            // delivery, which otherwise surfaced as SHARED_LOOPBACK NullPointerExceptions in Protocol.up
+            // (observed in roughly 5/5 chaos runs without this pause, versus roughly 1/20 with it). The
+            // leftover spinning threads are a known cost of this fault, cleaned up only at JVM exit.
             try {
                Thread.sleep(200);
             } catch (InterruptedException e) {

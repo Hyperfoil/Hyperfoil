@@ -99,6 +99,12 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * <p>
     * Only the pull needs this. A slice that arrives from {@link #announceSlice} shares the multicast channel with
     * its owner's deltas and so is already ordered against them.
+    * <p>
+    * This is a deliberate latency trade-off: every owner's deltas are held back while any pull is in flight, not
+    * just the one being repulled, so one unresponsive member can delay a registration everyone else is waiting
+    * on for as long as the pull takes to resolve - up to {@link #STATE_TIMEOUT_MS} if the unresponsive member
+    * never answers. Correctness - never losing a registration to a stale-version rejection - is worth that cost
+    * here, since registrations are rare enough that even seconds of added latency is acceptable.
     */
    private List<Supplier<Collection<String>>> pendingOps;
    /**
@@ -528,14 +534,23 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
    }
 
    /**
+    * The other half of the view-change repair: asks the cluster for the slices we may have just dropped.
+    * <p>
+    * {@link #announceSlice} alone is not enough once {@link ClusterState#purge} leaves a tombstone. A peer that
+    * installs the new view before we install ours announces its slice straight away, and that multicast can
+    * reach us while its owner is still tombstoned here, in which case it is discarded - correctly, since from
+    * our side the sender is not yet a member. Nothing would carry that peer's state to us afterwards: it has
+    * already announced, and it announces again only on the next view change. Pulling after the admits in
+    * {@link #viewAccepted} closes the window from the side that knows the admits have happened.
+    * <p>
     * This pull operation needs to use the {@link #pendingOps} queue, just like {@link #join} does.
     * If we do not use this queue, a small update (delta) could arrive faster than the main data (pull response).
     * If that happens, {@link ClusterState} will think the main data is too old and reject it.
     * <p>
-    * If a pull is already running, this method records that another pull is needed.
-    * When the active pull finishes, {@link #drainPending} starts the new pull.
-    * This ensures we receive data from any nodes that joined the cluster after the
-    * first pull started.
+    * If a pull is already running, this method records that another pull is needed, via
+    * {@link #repullRequested}, instead of simply skipping it: the running pull only asks nodes that were in the
+    * cluster when it was cast, so it cannot see a node that is readmitted by a later view change. When the
+    * active pull finishes, {@link #drainPending} starts the new pull.
     */
    private void repullState() {
       if (beginPullOrRequestRepull()) {
@@ -744,7 +759,9 @@ public class JGroupsClusterManager implements ClusterManager, RequestHandler, Re
     * This means we send the network message ({@code castMessage}) while holding a process-wide lock.
     * We chose to use a lock here on purpose. Consumer registrations happen rarely, so waiting for
     * a lock does not slow down the system. It is much better to use a lock than to risk saving
-    * data in the wrong order.
+    * data in the wrong order. Note that {@code castMessage} can itself block on this thread while held: if
+    * MFC's flow-control credits have run out, sending blocks until more arrive. That is acceptable here for
+    * the same reason - these are rare, tiny control messages, one per registration.
     * <p>
     * Sending the message is asynchronous (we do not wait for other nodes to reply). We do not need
     * to wait because the network layer (NAKACK2) automatically resends messages if they get lost.
