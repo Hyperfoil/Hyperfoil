@@ -21,8 +21,8 @@ public class LoadAndRun extends BaseStandaloneCommand {
    }
 
    @Override
-   protected Class<? extends Command<HyperfoilCommandInvocation>> getCommand() {
-      return LoadAndRunCommand.class;
+   protected Command<HyperfoilCommandInvocation> getCommand() {
+      return new LoadAndRunCommand();
    }
 
    @Override
