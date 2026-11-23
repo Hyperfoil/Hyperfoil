@@ -891,8 +891,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       vertx.executeBlocking(() -> {
          // The deployer calls back from its own thread; run.errors and agent statuses are event-loop only.
          // Use this verticle's own context (not vertx.runOnContext): the deployer's thread is unknown to
-         // Vert.x, and vertx.runOnContext would pick an event loop based on that thread's identity, which
-         // can differ between deployer threads and race on the shared run/agent state.
+         // Vert.x, so vertx.runOnContext would create a fresh context on an event loop chosen from the
+         // calling thread's id, not this verticle's own event loop, and race on the shared run/agent state.
          agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark,
                exception -> context.runOnContext(nil -> {
                   if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
