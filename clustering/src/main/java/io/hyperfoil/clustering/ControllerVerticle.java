@@ -604,7 +604,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       Set<String> activeAgents = new HashSet<>();
       for (Run r : runs.values()) {
          if (!r.terminateTime.future().isComplete()) {
-            for (AgentInfo agent : run.agents) {
+            for (AgentInfo agent : r.agents) {
                activeAgents.add(agent.name);
             }
          }
