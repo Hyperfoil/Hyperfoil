@@ -49,6 +49,15 @@ public class TestSshDeployedAgent extends SshDeployedAgent {
    }
 
    @Override
+   public void deploy(ClientSession session, String fileTransferClient, Consumer<Throwable> exceptionHandler) {
+      try {
+         super.deploy(session, fileTransferClient, exceptionHandler);
+      } finally {
+         deleteTempJarDir();
+      }
+   }
+
+   @Override
    protected String uploadableFile(String classpathEntry) {
       String jar = super.uploadableFile(classpathEntry);
       if (jar != null) {
