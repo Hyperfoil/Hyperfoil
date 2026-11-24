@@ -29,6 +29,7 @@ import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.api.session.AgentData;
 import io.hyperfoil.api.session.ControllerListener;
 import io.hyperfoil.api.session.GlobalData;
@@ -51,8 +52,10 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.Native;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -175,13 +178,19 @@ public class SimulationRunner {
 
    public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Handler<AsyncResult<Void>> handler) {
       List<Future<?>> futures = new ArrayList<>();
+      Context ctx = Vertx.currentContext();
+      Function<Callable<Void>, CompletableFuture<Void>> blockingAdapter = callable -> blockingHandler.apply(callable)
+            .toCompletionStage().toCompletableFuture();
+      Consumer<CompletableFuture<Void>> collector = cf -> futures
+            .add(ctx != null ? Future.fromCompletionStage(cf, ctx) : Future.fromCompletionStage(cf));
+
       for (PluginRunData plugin : runData) {
-         plugin.openConnections(blockingHandler, futures::add);
+         plugin.openConnections(blockingAdapter, collector);
       }
 
       Future.join(futures).onComplete(result -> {
          if (result.failed()) {
-            log.error("One of the HTTP client pools failed to start.");
+            log.error("One of the plugin client pools failed to start.", result.cause());
          }
          handler.handle(result.mapEmpty());
          jitterWatchdog.start();

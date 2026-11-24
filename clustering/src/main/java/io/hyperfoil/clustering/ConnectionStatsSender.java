@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.clustering.messages.ConnectionStatsMessage;
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.LowHigh;
 import io.vertx.core.eventbus.EventBus;
 

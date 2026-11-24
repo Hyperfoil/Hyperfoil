@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.vertx.core.Future;

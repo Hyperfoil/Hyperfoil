@@ -18,7 +18,7 @@
  */
 package io.hyperfoil.http.api;
 
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.http.config.Http;
 import io.netty.util.concurrent.EventExecutor;
 import io.vertx.core.AsyncResult;

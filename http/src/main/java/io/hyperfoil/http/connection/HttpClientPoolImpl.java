@@ -32,7 +32,7 @@ import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.core.impl.EventLoopFactory;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnectionPool;

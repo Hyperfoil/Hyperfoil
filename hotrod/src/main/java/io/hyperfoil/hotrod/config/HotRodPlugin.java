@@ -1,5 +1,7 @@
 package io.hyperfoil.hotrod.config;
 
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -11,7 +13,6 @@ import io.hyperfoil.core.parser.ErgonomicsParser;
 import io.hyperfoil.core.parser.Parser;
 import io.hyperfoil.hotrod.HotRodRunData;
 import io.hyperfoil.hotrod.parser.HotRodParser;
-import io.netty.channel.EventLoop;
 
 @MetaInfServices(Plugin.class)
 public class HotRodPlugin implements Plugin {
@@ -37,7 +38,7 @@ public class HotRodPlugin implements Plugin {
    }
 
    @Override
-   public PluginRunData createRunData(Benchmark benchmark, EventLoop[] executors, int agentId) {
+   public PluginRunData createRunData(Benchmark benchmark, ScheduledExecutorService[] executors, int agentId) {
       return new HotRodRunData(benchmark, executors, agentId);
    }
 }

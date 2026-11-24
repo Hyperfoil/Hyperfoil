@@ -1,5 +1,7 @@
 package io.hyperfoil.http.config;
 
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -10,7 +12,6 @@ import io.hyperfoil.core.parser.PropertyParser;
 import io.hyperfoil.http.HttpRunData;
 import io.hyperfoil.http.api.FollowRedirect;
 import io.hyperfoil.http.parser.HttpParser;
-import io.netty.channel.EventLoop;
 
 @MetaInfServices(Plugin.class)
 public class HttpPlugin implements Plugin {
@@ -43,7 +44,7 @@ public class HttpPlugin implements Plugin {
    }
 
    @Override
-   public HttpRunData createRunData(Benchmark benchmark, EventLoop[] executors, int agentId) {
+   public HttpRunData createRunData(Benchmark benchmark, ScheduledExecutorService[] executors, int agentId) {
       return new HttpRunData(benchmark, executors, agentId);
    }
 

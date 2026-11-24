@@ -7,7 +7,7 @@ import java.util.Collection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.http.api.ConnectionConsumer;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
