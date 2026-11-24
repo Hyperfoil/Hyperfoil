@@ -129,12 +129,14 @@ public class AgentVerticle extends AbstractVerticle {
    }
 
    /**
-    * Fails the run because a message could not be put on the wire. Continuing would mean reporting numbers
-    * that silently omit whatever was dropped, so the run has to end instead.
+    * Fails the run because a message could not be put on the wire, or could not be applied. Continuing would mean
+    * reporting numbers that silently omit whatever was dropped, so the run has to end instead.
+    *
+    * @param what the message that failed, e.g. "connection statistics"
     */
    private void abortRun(String what, Throwable cause) {
       BenchmarkExecutionException error = new BenchmarkExecutionException(
-            "Cannot send " + what + " to the controller; the run cannot produce valid results.", cause);
+            "Failure handling " + what + "; the run cannot produce valid results.", cause);
       log.error("{} Aborting the run", deploymentId, error);
       try {
          eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, true));
@@ -253,24 +255,34 @@ public class AgentVerticle extends AbstractVerticle {
          if (log.isDebugEnabled()) {
             log.debug("Received command: {}", controlMessage.command());
          }
-         switch (controlMessage.command()) {
-            case RUN:
-               if (controlMessage.globalData() != null) {
-                  runner.addGlobalData(controlMessage.globalData());
-               }
-               runner.startPhase(controlMessage.phase());
-               break;
-            case FINISH:
-               runner.finishPhase(controlMessage.phase());
-               break;
-            case TRY_TERMINATE:
-               runner.tryTerminatePhase(controlMessage.phase());
-               break;
-            case TERMINATE:
-               runner.terminatePhase(controlMessage.phase());
-               break;
+         try {
+            applyControl(controlMessage);
+         } catch (Throwable t) {
+            // The exception would not reach anyone: there is no reply to fail and Vert.x does not hand it to the
+            // exception handler either. The controller would wait forever for a phase that never changes status.
+            abortRun("the " + controlMessage.command() + " control message for phase " + controlMessage.phase(), t);
          }
       });
+   }
+
+   private void applyControl(PhaseControlMessage controlMessage) {
+      switch (controlMessage.command()) {
+         case RUN:
+            if (controlMessage.globalData() != null) {
+               runner.addGlobalData(controlMessage.globalData());
+            }
+            runner.startPhase(controlMessage.phase());
+            break;
+         case FINISH:
+            runner.finishPhase(controlMessage.phase());
+            break;
+         case TRY_TERMINATE:
+            runner.tryTerminatePhase(controlMessage.phase());
+            break;
+         case TERMINATE:
+            runner.terminatePhase(controlMessage.phase());
+            break;
+      }
    }
 
    @Override
