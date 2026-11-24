@@ -133,15 +133,22 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       Controller.HOOKS_DIR.resolve("post").toFile().mkdirs();
 
       eb.consumer(Feeds.DISCOVERY, message -> {
-         if (message.body() instanceof AgentHello) {
-            handleAgentHello(message, (AgentHello) message.body());
-         } else if (message.body() instanceof AuxiliaryHello) {
-            AuxiliaryHello hello = (AuxiliaryHello) message.body();
-            log.info("Noticed auxiliary {} (node {}, {})", hello.name(), hello.nodeId(), hello.deploymentId());
-            String nodeId = ((VertxInternal) vertx).clusterManager().getNodeId();
-            message.reply(nodeId);
-         } else {
-            log.error("Unknown message on discovery feed! {}", message.body());
+         // Whoever sends a hello waits for the reply; an exception here would only leave it to time out, with
+         // nothing in the log. Failing the reply gets the reason to the agent, which logs it and says hello again.
+         try {
+            if (message.body() instanceof AgentHello) {
+               handleAgentHello(message, (AgentHello) message.body());
+            } else if (message.body() instanceof AuxiliaryHello) {
+               AuxiliaryHello hello = (AuxiliaryHello) message.body();
+               log.info("Noticed auxiliary {} (node {}, {})", hello.name(), hello.nodeId(), hello.deploymentId());
+               String nodeId = ((VertxInternal) vertx).clusterManager().getNodeId();
+               message.reply(nodeId);
+            } else {
+               log.error("Unknown message on discovery feed! {}", message.body());
+            }
+         } catch (Throwable e) {
+            log.error("Failed to process discovery message {}", message.body(), e);
+            message.fail(1, Util.explainCauses(e));
          }
       });
 
