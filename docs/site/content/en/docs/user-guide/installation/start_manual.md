@@ -40,9 +40,9 @@ Below is the comprehensive list of all the properties Hyperfoil recognizes. All 
 | io.hyperfoil.agent.debug.suspend          | n                  | Suspend parameter for the debug port                             |
 | io.hyperfoil.controller.cluster.ip        | first non-loopback | Hostname/IP used for clustering with agents                      |
 | io.hyperfoil.controller.cluster.port      | 7800               | Default JGroups clustering port                                  |
-| io.hyperfoil.cluster.name                 | ISPN               | Cluster name shared by the controller and deployed agents.       |
+| io.hyperfoil.cluster.name                 | hyperfoil          | Cluster name shared by the controller and deployed agents.       |
 | io.hyperfoil.cluster.jgroups_stack        | jgroups-tcp.xml    | JGroups stack configuration; agents default to `jgroups-tcp-agent.xml` |
-| io.hyperfoil.cluster.node_name            | _hostname_-_random_| Logical node name in the cluster, used as the Vert.x node id     |
+| io.hyperfoil.cluster.node_name            | _hostname_-_random_| Logical node name in the cluster, used as the Vert.x node id. Must be unique: a restarted node must not reuse the name of an incarnation still in the view, since state is keyed by name and the old incarnation's eventual purge would tombstone the new one. |
 | io.hyperfoil.controller.external.uri      |                    | Externally advertised URI of REST server                         |
 | io.hyperfoil.controller.keystore.path     |                    | File path to Java Keystore                                       |
 | io.hyperfoil.controller.keystore.password |                    | Java Keystore password                                           |
@@ -63,7 +63,7 @@ If `io.hyperfoi.trigger.url` is set the controller does not start benchmark run 
 
 A controller and the agents it deploys form a JGroups cluster, and a node only ever talks to nodes of
 the same cluster name - messages from any other one are dropped. A single controller per host therefore
-needs no configuration at all: both sides fall back to `ISPN` and find each other.
+needs no configuration at all: both sides fall back to `hyperfoil` and find each other.
 
 To run two benchmarks side by side - say one per git worktree - give each controller its own cluster
 name, REST port and root directory:
