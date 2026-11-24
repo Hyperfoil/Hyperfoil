@@ -3,7 +3,7 @@ package io.hyperfoil.http.connection;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.Watermarks;
 import io.hyperfoil.http.api.HttpConnection;
 

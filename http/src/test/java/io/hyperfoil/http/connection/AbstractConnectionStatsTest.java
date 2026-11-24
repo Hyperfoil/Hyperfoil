@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.http.BaseHttpScenarioTest;

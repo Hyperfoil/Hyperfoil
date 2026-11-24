@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -15,9 +17,9 @@ import javax.net.ssl.SSLException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.PluginRunData;
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
@@ -30,8 +32,6 @@ import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.connection.HttpDestinationTableImpl;
 import io.hyperfoil.http.connection.SessionConnectionPool;
 import io.netty.channel.EventLoop;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 
 public class HttpRunData implements PluginRunData {
    private final HttpPluginConfig plugin;
@@ -40,7 +40,7 @@ public class HttpRunData implements PluginRunData {
    private final boolean hasSessionPools;
    private final boolean hasHttpCacheEnabled;
 
-   public HttpRunData(Benchmark benchmark, EventLoop[] executors, int agentId) {
+   public HttpRunData(Benchmark benchmark, ScheduledExecutorService[] executors, int agentId) {
       plugin = benchmark.plugin(HttpPluginConfig.class);
       // either all http configs disable the cache or keep it enabled
       hasHttpCacheEnabled = plugin.http().values().stream().anyMatch(Http::enableHttpCache);
@@ -49,16 +49,20 @@ public class HttpRunData implements PluginRunData {
       @SuppressWarnings("unchecked")
       Map<String, HttpConnectionPool>[] connectionPools = new Map[executors.length];
       destinations = new HttpDestinationTableImpl[executors.length];
+      EventLoop[] eventLoops = new EventLoop[executors.length];
+      for (int i = 0; i < executors.length; i++) {
+         eventLoops[i] = (EventLoop) executors[i];
+      }
       for (Map.Entry<String, Http> http : plugin.http().entrySet()) {
          try {
-            HttpClientPool httpClientPool = new HttpClientPoolImpl(http.getValue(), executors, benchmark, agentId);
+            HttpClientPool httpClientPool = new HttpClientPoolImpl(http.getValue(), eventLoops, benchmark, agentId);
             clientPools.put(http.getKey(), httpClientPool);
             if (http.getValue().isDefault()) {
                clientPools.put(null, httpClientPool);
             }
 
-            for (int executorId = 0; executorId < executors.length; ++executorId) {
-               HttpConnectionPool httpConnectionPool = httpClientPool.connectionPool(executors[executorId]);
+            for (int executorId = 0; executorId < eventLoops.length; ++executorId) {
+               HttpConnectionPool httpConnectionPool = httpClientPool.connectionPool(eventLoops[executorId]);
                Map<String, HttpConnectionPool> pools = connectionPools[executorId];
                if (pools == null) {
                   connectionPools[executorId] = pools = new HashMap<>();
@@ -119,14 +123,20 @@ public class HttpRunData implements PluginRunData {
    }
 
    @Override
-   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler,
-         Consumer<Future<Void>> promiseCollector) {
+   public void openConnections(Function<Callable<Void>, CompletableFuture<Void>> blockingHandler,
+         Consumer<CompletableFuture<Void>> promiseCollector) {
       for (Map.Entry<String, HttpClientPool> entry : clientPools.entrySet()) {
          // default client pool is initialized by name
          if (entry.getKey() != null) {
-            Promise<Void> promise = Promise.promise();
-            promiseCollector.accept(promise.future());
-            entry.getValue().start(promise::handle);
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            promiseCollector.accept(future);
+            entry.getValue().start(result -> {
+               if (result.succeeded()) {
+                  future.complete(null);
+               } else {
+                  future.completeExceptionally(result.cause());
+               }
+            });
          }
       }
    }

@@ -2,7 +2,7 @@ package io.hyperfoil.http.api;
 
 import java.util.Collection;
 
-import io.hyperfoil.core.impl.ConnectionStatsConsumer;
+import io.hyperfoil.api.connection.ConnectionStatsConsumer;
 import io.netty.channel.EventLoop;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
