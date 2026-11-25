@@ -16,4 +16,3 @@ updates:
       - dependency
     ignore:
       - dependency-name: "org.infinispan:*"
-      - dependency-name: "org.jgroups:jgroups"
