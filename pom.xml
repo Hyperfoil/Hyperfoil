@@ -86,7 +86,7 @@
 
         <version.vertx>5.2.3</version.vertx>
         <!-- Clustering talks to JGroups directly; see io.hyperfoil.clustering.jgroups.JGroupsClusterManager. -->
-        <version.jgroups>5.5.7.Final</version.jgroups>
+        <version.jgroups>5.5.8.Final</version.jgroups>
         <!-- Used by the hotrod module only. -->
         <version.infinispan>15.2.4.Final</version.infinispan>
 
