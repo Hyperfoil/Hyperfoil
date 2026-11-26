@@ -41,8 +41,8 @@ public class Wrk extends WrkAbstract {
    }
 
    @Override
-   protected Class<? extends Command<HyperfoilCommandInvocation>> getCommand() {
-      return WrkCommand.class;
+   protected Command<HyperfoilCommandInvocation> getCommand() {
+      return new WrkCommand();
    }
 
    @CommandDefinition(name = CMD, description = "Runs a workload simulation against one endpoint using the same vm")

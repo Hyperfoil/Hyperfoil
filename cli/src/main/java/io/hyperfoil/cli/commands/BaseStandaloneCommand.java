@@ -33,7 +33,7 @@ public abstract class BaseStandaloneCommand {
 
    private CommandRegistry<HyperfoilCommandInvocation> commandRegistry;
 
-   protected abstract Class<? extends Command<HyperfoilCommandInvocation>> getCommand();
+   protected abstract Command<HyperfoilCommandInvocation> getCommand();
 
    protected List<Class<? extends Command<HyperfoilCommandInvocation>>> getDependencyCommands() {
       return List.of();
@@ -53,7 +53,11 @@ public abstract class BaseStandaloneCommand {
          AeshCommandRegistryBuilder<HyperfoilCommandInvocation> registry = AeshCommandRegistryBuilder
                .<HyperfoilCommandInvocation> builder()
                // add default commands
-               .commands(StartLocal.class, getCommand(), Exit.class);
+               .commands(StartLocal.class, Exit.class)
+               // registered as an instance (not a class) so that aesh's execution-scoped forking
+               // (since aesh 3.18.3, see aeshell/aesh#642) does not create a separate instance for
+               // execution, leaving the registry lookup below pointing at a different, never-run command
+               .command(getCommand());
 
          for (Class<? extends Command<HyperfoilCommandInvocation>> command : getDependencyCommands()) {
             registry.command(command);
